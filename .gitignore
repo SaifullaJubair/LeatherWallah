@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────
+# Ecommerce-Workspace .gitignore
+# This repo tracks ONLY: docs/, .claude/, root CLAUDE.md, audit plans
+# Sub-app folders have their own repos — exclude them entirely.
+# ─────────────────────────────────────────────────────────────
+
+# Sub-app code (separate repos, do NOT track from here)
+FruitSnacksBackend/
+FruitSnacksAdmin/
+FruitSnacksFrontend/
+
+# Node + builds
+node_modules/
+dist/
+build/
+.next/
+*.log
+npm-debug.log*
+
+# Local-only settings
+.claude/settings.local.json
+.vscode/
+
+# Env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Business / sensitive — EXCLUDED by default; opt-in if owner wants tracked
+BuisnessPLan/
+
+# Temp scratch outside of work folder
+*.tmp
+.cache/

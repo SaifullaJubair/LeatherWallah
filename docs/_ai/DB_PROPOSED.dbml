@@ -1,0 +1,170 @@
+// ============================================================
+// FruitSnacks — PROPOSED database (target, ZatiqEasy-inspired)
+// Paste into https://dbdiagram.io  → visual ER diagram.
+// Shows the big-bone changes from BACKEND_AUDIT.md:
+//   Phase A variation engine, nested category, product↔category M:N,
+//   backend pricing, online payment + advance. SaaS store_id noted.
+// Tables UNCHANGED from current are omitted for clarity (admins, roles,
+// users, brands, themes, settings, etc. stay the same).
+// ============================================================
+
+// ============================================================
+// 1) VARIATION ENGINE  (Phase A — the keystone)
+//    Replaces the flat `variations` collection.
+// ============================================================
+
+// Reusable attribute definitions (Size, Color, RAM, Storage...)
+Table attributes {
+  _id objectid [pk]
+  attribute_name varchar [note: 'Size, Color, Installation...']
+  attribute_slug varchar
+  category_id objectid [ref: > categories._id, note: 'optional scope']
+  Note: 'attribute_values[] embedded: {value_id, name, slug, color_code, image}'
+}
+
+// Per-product: which axes this product varies on (+ flags)
+Table product_variant_types {
+  _id objectid [pk]
+  product_id objectid [ref: > products._id]
+  attribute_id objectid [ref: > attributes._id, note: 'the axis: Size / Color']
+  is_mandatory boolean [note: 'customer MUST pick this axis']
+  position int [note: 'display order']
+  Note: 'Selected values stored as embedded value_options[]: {attribute_value_id, price_delta, image_url, sku}. Final price = product base + Σ deltas. (ZatiqEasy variant_types model)'
+}
+
+// Per-combination stock (the matrix: Red+XL → 5 units)
+Table product_stocks {
+  _id objectid [pk]
+  product_id objectid [ref: > products._id]
+  combination varchar [note: 'sorted attribute_value_id set, e.g. [redId, xlId]']
+  quantity int
+  is_active boolean [note: 'turn off out-of-stock combos without deleting']
+  sku varchar
+  Note: 'Resolves single / single-axis / multi-axis matrix (Daraz/StarTech). Replaces flat variations.variation_quantity.'
+}
+
+// ============================================================
+// 2) NESTED CATEGORY  (replaces 3 separate category tables)
+//    Self-referencing, infinite depth (ZatiqEasy model)
+// ============================================================
+
+Table categories {
+  _id objectid [pk]
+  category_name varchar
+  category_slug varchar [unique]
+  parent_id objectid [ref: > categories._id, note: 'NULL = root; infinite depth']
+  category_serial int
+  category_status varchar
+  default_theme_id objectid [note: 'ref themes']
+  Note: 'ONE collection replaces categories + subcategories + childcategories. Drill-down admin UI builds the path.'
+}
+
+// Many-to-many: a product can sit in multiple categories, or none
+Table product_categories {
+  _id objectid [pk]
+  product_id objectid [ref: > products._id]
+  category_id objectid [ref: > categories._id]
+  Note: 'Pivot. Product can be uploaded WITHOUT a category (ZatiqEasy allows this), or live in several.'
+}
+
+// ============================================================
+// 3) PRODUCT  (additive fields from CLONE_NOW_FIXES B)
+// ============================================================
+
+Table products {
+  _id objectid [pk]
+  product_name varchar
+  product_slug varchar [unique]
+  product_sku varchar
+  product_status varchar
+  brand_id objectid [ref: > brands._id]
+  base_price int [note: 'variation deltas add on top']
+  product_buying_price int
+  product_discount_price int
+  is_variation boolean
+  theme_id objectid [note: 'ref themes']
+  // ---- additive (clone-now B) ----
+  video_link varchar [note: 'YouTube URL — no S3']
+  condition varchar [note: 'new | used | refurbished']
+  sold_count int [note: 'social proof: "53 কিনেছে"']
+  view_count int
+  weight_kg int
+  unit_name varchar
+  store_id objectid [note: 'SaaS only — see SAAS_FUTURE_PLAN; NULL in clone']
+  created_at timestamp
+  Note: 'custom_fields[] embedded {key, value} = friendly specs (replaces heavy specifications refs). PDP content arrays unchanged. category_id REMOVED → now via product_categories pivot.'
+}
+
+// ============================================================
+// 4) PRICING + PAYMENT  (Phase B/E)
+// ============================================================
+
+Table orders {
+  _id objectid [pk]
+  invoice_id varchar
+  order_status varchar [note: 'pending|confirmed|processing|shipped|delivered|cancel|return|on-hold']
+  sub_total_amount int
+  shipping_cost int
+  discount_amount int
+  grand_total_amount int
+  coupon_id objectid [ref: > coupons._id]
+  customer_id objectid [ref: > users._id]
+  // ---- NEW payment fields (clone-now D16 / Phase E) ----
+  payment_method varchar [note: 'cod | sslcommerz | bkash | self_mfs']
+  payment_status varchar [note: 'unpaid | partial | paid']
+  transaction_id varchar
+  paid_amount int
+  advance_amount int [note: 'pay X% online, rest COD']
+  currency_code varchar [note: 'from settings, NOT hardcoded BDT']
+  courier_type varchar
+  created_at timestamp
+  Note: 'Server recomputes total + decrements product_stocks in a transaction. Currency from settings.'
+}
+
+Table orderproducts {
+  _id objectid [pk]
+  order_id objectid [ref: > orders._id]
+  product_id objectid [ref: > products._id]
+  stock_id objectid [ref: > product_stocks._id, note: 'which combination was bought']
+  customer_id objectid [ref: > users._id]
+  product_unit_final_price int [note: 'resolved by BACKEND price-resolver, not frontend']
+  product_quantity int
+  product_grand_total_price int
+}
+
+// ============================================================
+// 5) NEW MODULES  (clone-now D)
+// ============================================================
+
+Table wishlists {
+  _id objectid [pk]
+  user_id objectid [ref: > users._id]
+  Note: 'items[] embedded {product_id, variation/stock ref}. Currently localStorage-only — D15 adds backend.'
+}
+
+// ============================================================
+// 6) REFERENCED-BUT-UNCHANGED tables (stubs)
+//    These are NOT changing in the proposed design, but dbdiagram.io
+//    requires any table targeted by a `Ref` to be declared in the same
+//    file — so they're stubbed here (full schema is in DB_CURRENT.dbml).
+// ============================================================
+
+Table users {
+  _id objectid [pk]
+  Note: 'Unchanged — see DB_CURRENT.dbml for full schema'
+}
+
+Table brands {
+  _id objectid [pk]
+  Note: 'Unchanged — see DB_CURRENT.dbml'
+}
+
+Table coupons {
+  _id objectid [pk]
+  Note: 'Unchanged (clone-now A3 adds server-side date-range check)'
+}
+
+// Other tables kept AS-IS and NOT referenced here, so not stubbed:
+// admins, roles, suppliers, themes, faq_templates, settings, campaigns,
+// carts.  carts.cart_products[] will point at product_stocks instead of
+// the old flat variation_id.

@@ -1,0 +1,208 @@
+// ============================================================
+// FruitSnacks — CURRENT database (as-is)  [MongoDB / Mongoose]
+// Paste into https://dbdiagram.io  → visual ER diagram.
+// NOTE: This is MongoDB. "Ref" = ObjectId + populate. Arrays/embedded
+//       sub-docs are shown as Notes (DBML has no array column type).
+// Generated 2026-05-25 from src/app/*/*.model.ts (core entities only).
+// ============================================================
+
+// ---------------- AUTH & USERS ----------------
+
+Table admins {
+  _id objectid [pk]
+  admin_name varchar
+  admin_phone varchar
+  admin_password varchar
+  admin_status varchar [note: 'active | in-active']
+  role_id objectid [ref: > roles._id]
+  admin_publisher_id objectid [ref: > admins._id]
+  admin_updated_by objectid [ref: > admins._id]
+  created_at timestamp
+}
+
+Table roles {
+  _id objectid [pk]
+  role_name varchar
+  role_publisher_id objectid [ref: > admins._id]
+  Note: '~100 boolean permission flags (category_post, product_update, theme_delete, ...) — RBAC'
+}
+
+Table users {
+  _id objectid [pk]
+  user_name varchar
+  user_phone varchar
+  user_password varchar
+  user_type varchar [note: 'guest | registered']
+  user_verified boolean
+  user_district varchar
+  user_division varchar
+  wallet_amount int
+  forgot_otp int
+  otp_expires_at timestamp
+  created_at timestamp
+}
+
+Table suppliers {
+  _id objectid [pk]
+  // referenced by products.product_supplier_id
+  Note: 'Supplier records — sourcing'
+}
+
+// ---------------- CATALOG ----------------
+
+Table categories {
+  _id objectid [pk]
+  category_name varchar
+  category_slug varchar [unique]
+  category_serial int
+  category_status varchar
+  category_publisher_id objectid [ref: > admins._id]
+}
+
+Table subcategories {
+  _id objectid [pk]
+  sub_category_name varchar
+  sub_category_slug varchar
+  sub_category_serial int
+  category_id objectid [ref: > categories._id]
+  default_theme_id objectid [ref: > themes._id]
+  sub_category_publisher_id objectid [ref: > admins._id]
+}
+
+Table childcategories {
+  _id objectid [pk]
+  child_category_name varchar
+  child_category_slug varchar
+  category_id objectid [ref: > categories._id]
+  sub_category_id objectid [ref: > subcategories._id]
+  child_category_publisher_id objectid [ref: > admins._id]
+}
+
+Table brands {
+  _id objectid [pk]
+  // referenced by products.brand_id
+  Note: 'Brand records'
+}
+
+Table attributes {
+  _id objectid [pk]
+  attribute_name varchar
+  attribute_slug varchar
+  category_id objectid [ref: > categories._id]
+  attribute_publisher_id objectid [ref: > admins._id]
+  Note: 'attribute_values[] embedded: {name, slug, code, status}. NOT currently linked to variations (the gap Phase A fixes).'
+}
+
+Table specifications {
+  _id objectid [pk]
+  Note: 'Spec key/values. products.specifications[] refs this (model was buggy: ref said "attributes", now "specifications").'
+}
+
+Table products {
+  _id objectid [pk]
+  product_name varchar
+  product_slug varchar [unique]
+  product_sku varchar
+  product_status varchar
+  category_id objectid [ref: > categories._id]
+  sub_category_id objectid [ref: > subcategories._id]
+  child_category_id objectid [ref: > childcategories._id]
+  brand_id objectid [ref: > brands._id]
+  product_price int
+  product_buying_price int
+  product_discount_price int
+  product_quantity int
+  is_variation boolean
+  unit varchar
+  product_publisher_id objectid [ref: > admins._id]
+  product_campaign_id objectid [ref: > campaigns._id]
+  product_supplier_id objectid [ref: > suppliers._id]
+  theme_id objectid [ref: > themes._id]
+  created_at timestamp
+  Note: 'Embedded arrays: specifications[] (ref specifications), attributes_details[] {name, values[]} — FLAT copy, not linked to variations. PDP content: benefits[], use_cases[], process_steps[], faqs[], nutrition{}, floating_images[], short_features[].'
+}
+
+Table variations {
+  _id objectid [pk]
+  variation_name varchar
+  product_id objectid [ref: > products._id]
+  variation_price int
+  variation_discount_price int
+  variation_quantity int
+  variation_sku varchar
+  variation_weight_grams int
+  created_at timestamp
+  Note: 'FLAT model — variation_name is a free string ("Red / XL"), NOT linked to attributes. No price-delta, no combination stock matrix. This is the keystone gap Phase A rewrites.'
+}
+
+// ---------------- COMMERCE ----------------
+
+Table carts {
+  _id objectid [pk]
+  cart_user_id objectid [ref: - users._id, note: 'unique — one cart per user']
+  Note: 'cart_products[] embedded: {product_id ref products, variation_id ref variations, quantity}'
+}
+
+Table orders {
+  _id objectid [pk]
+  invoice_id varchar
+  order_status varchar [note: 'pending|processing|shipped|delivered|cancel|return']
+  sub_total_amount int
+  shipping_cost int
+  discount_amount int
+  grand_total_amount int
+  coupon_id objectid [ref: > coupons._id]
+  customer_id objectid [ref: > users._id]
+  customer_phone varchar
+  courier_type varchar [note: 'pathao | steadfast']
+  tracking_code varchar
+  order_updated_by objectid [ref: > admins._id]
+  created_at timestamp
+  Note: 'NO payment fields — COD only. Pathao/Steadfast courier fields embedded. Currency hardcoded BDT in controller.'
+}
+
+Table orderproducts {
+  _id objectid [pk]
+  invoice_id varchar
+  order_id objectid [ref: > orders._id]
+  product_id objectid [ref: > products._id]
+  variation_id objectid [ref: > variations._id]
+  customer_id objectid [ref: > users._id]
+  campaign_id objectid [ref: > campaigns._id]
+  product_unit_price int
+  product_quantity int
+  product_unit_final_price int
+  product_grand_total_price int
+  Note: 'Line items — price snapshot copied at order time (computed on FRONTEND today; Phase B moves to backend resolver).'
+}
+
+Table coupons {
+  _id objectid [pk]
+  Note: 'Coupon codes. coupon_used/ sub-collection tracks redemptions. Date-range not validated server-side (clone-now fix A3).'
+}
+
+// ---------------- MARKETING ----------------
+
+Table campaigns {
+  _id objectid [pk]
+  Note: 'Time-boxed campaign; campaign_products[]. Cron unsets product.product_campaign_id at end.'
+}
+
+// ---------------- THEMING / CONFIG ----------------
+
+Table themes {
+  _id objectid [pk]
+  used_in_products int [note: 'counter kept in sync by product hooks; drives is_deletable']
+  is_deletable boolean
+  Note: 'Reusable palette/floating/typography presets. products.theme_id + subcategories.default_theme_id ref this.'
+}
+
+Table faq_templates {
+  _id objectid [pk]
+  Note: 'Reusable FAQ entries admin copies into product.faqs[]'
+}
+
+Table settings {
+  _id objectid [pk]
+  Note: 'Singleton site config (title, currency_symbol/code, SMS, SEO defaults). Some values hardcoded in code instead of read here (clone-now C).'
+}
