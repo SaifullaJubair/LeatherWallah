@@ -169,12 +169,13 @@ Each finding lives in `findings/F<NNN>-<slug>.md`. Index regenerated as cards ar
 
 | ID | Title | Severity | Status | Module | Card |
 |----|-------|----------|--------|--------|------|
-| F001 | Missing ACCESS_TOKEN fail-fast guard | 🟠 P1 | open | utils/auth.tokens | _(pending card)_ |
-| F002 | No rate limiting on auth endpoints | 🔴 P0 | open | middleware (global) | _(pending card)_ |
-| F003 | Missing security headers (helmet) | 🟠 P1 | open | index.ts | _(pending card)_ |
-| F004 | No CSRF defense with sameSite=none cookies | 🟠 P1 | open | index.ts + auth | _(pending card)_ |
-| F005 | Unstructured logging (console.*) | 🟡 P2 | open | global | _(pending card)_ |
-| F006 | No explicit body size limit | 🟡 P2 | open | index.ts | _(pending card)_ |
+| F001 | Missing ACCESS_TOKEN fail-fast guard | 🟠 P1 | **fixed v2 s18** | utils/env.ts (new) | [F001 card](findings/F001-env-fail-fast.md) |
+| F002 | No rate limiting on auth endpoints | 🔴 P0 | **fixed v2 s18** | middlewares/rate.limit.ts (new) | [F002 card](findings/F002-rate-limit-auth-endpoints.md) |
+| F003 | Missing security headers (helmet) | 🟠 P1 | **fixed v2 s18** | index.ts | [F003 card](findings/F003-helmet-headers.md) |
+| F003b | Content-Security-Policy | 🟡 P2 | **deferred** | index.ts (helmet CSP) | [F003b card](findings/F003b-csp-deferred.md) |
+| F004 | No CSRF defense with sameSite=none cookies | 🟠 P1 | **deferred** | index.ts + 3-app FE | [F004 card](findings/F004-csrf-protection-deferred.md) |
+| F005 | Unstructured logging (console.*) | 🟡 P2 | **partial v2 s18** (index.ts migrated to pino; module-level console.* migrates per module pass) | global | _(card pending)_ |
+| F006 | No explicit body size limit | 🟡 P2 | **fixed v2 s18** | index.ts | [F006 card](findings/F006-body-size-limit.md) |
 | F007 | http:// admin domain in CORS allowlist | 🟡 P2 | open | index.ts | _(pending card)_ |
 | F008 | Courier webhook signature verification | 🔴 P0 if missing | open | order/webhook | _(pending verify)_ |
 | F009 | File upload mime/size audit | 🟡 P2 | open | helpers/image.upload | _(pending audit)_ |
@@ -190,4 +191,20 @@ Each finding lives in `findings/F<NNN>-<slug>.md`. Index regenerated as cards ar
 - Created this doc + master plan + work folder
 - Recon pass: read index.ts, both verify middlewares, auth.tokens, auth.otp
 - Captured 12 preliminary findings (F001–F012) from recon alone
-- **Next session pointer:** Open per-finding cards for F001–F004 (highest impact + easy), then begin module pass starting with `adminRegLog` + `user`
+
+### Session 18 — 2026-06-03 (quick wins shipped)
+- Owner-approved tool choices: `express-rate-limit` (in-memory), `pino`+`pino-http`, `helmet` defaults (CSP off)
+- Wrote finding cards: F001, F002, F003, F003b (CSP defer), F004 (CSRF defer — earlier), F006
+- Installed deps: `helmet`, `express-rate-limit`, `pino`, `pino-http`, `pino-pretty` (dev)
+- New files:
+  - `src/utils/env.ts` — fail-fast guard for MONGO_URI/ACCESS_TOKEN/S3_*
+  - `src/utils/logger.ts` — pino instance (JSON prod, pretty dev)
+  - `src/middlewares/rate.limit.ts` — 5 limiters (auth/otpSend/signup/order/review)
+- `index.ts` rewired: env validate first, then helmet, json limit 200kb, trust proxy 1, pino-http, console.* migrated to logger
+- Rate limiters applied:
+  - `user.routes.ts`: signup, login, verifyOTP, forgetPassword, resend_otp, setNewPassword
+  - `admin.routes.ts`: login, forgot-password, reset-password
+  - `order.routes.ts`: POST `/` + POST `/single_order`
+  - `review.routes.ts`: POST `/`
+- BE tsc EXIT 0 ✓
+- **Next:** push to BE v2, owner smoke-test live, then start module-by-module pass (adminRegLog/user controllers + services)

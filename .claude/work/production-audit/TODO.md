@@ -16,7 +16,7 @@
 - [ ] F006 — `express.json({ limit: '1mb' })` + `express.urlencoded({ extended: true, limit: '1mb' })`
 
 ### Verification pass (need to actually read code, not just preliminary)
-- [ ] F004 — Audit every state-changing POST/PATCH/DELETE for CSRF posture; propose fix
+- [x] F004 — DEFERRED to dedicated session after Stage 1.5a module pass (decided session 18; full plan in F004 card)
 - [ ] F007 — Remove http:// CORS entries (or document why kept)
 - [ ] F008 — Pathao + Steadfast webhook handlers: read code, check signature verify presence
 - [ ] F009 — image.upload.ts: read multer config, check size/mime/key collision
