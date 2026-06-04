@@ -9,6 +9,21 @@
 
 ---
 
+## 🔒 Decisions LOCKED (2026-06-04, post edge-audit)
+
+After consolidated edge-audit on all BE-layer items, owner approved 3 critical decisions + clarified anonymous checkout must remain working.
+
+| # | Decision | Why |
+|---|---|---|
+| **D1** | Multi-product cart shipping = **per-line-additive** | Each product contributes own shipping; sum to final. Matches Shopify behavior. Clearer cart line notes. |
+| **D2** | Zone-detection axis = **`billing_state`** (FE convention = division) | FE detects `division === "Dhaka"`; BE field swap is legacy (line 285-286 user_division ← billing_city). DO NOT fix the swap (breaks legacy data) — read `billing_state` in recompute. |
+| **D3** | **Kill auto-password-set in `/login` path** | Security hole: any phone + any password silently sets password if account has none. Replace with OTP-gated set-password only. |
+| **CRITICAL** | **Anonymous checkout MUST keep working** | FB ads → cart → checkout → order place WITHOUT login. `findOrCreateUser` flow stays intact. D3 only patches the `/login` endpoint hole, NOT the order placement flow. |
+
+**M28 status (already shipped):** currency_name field + 3 helpers + Admin tri-field form + FE `formatCurrency` utility live on v2 (BE `4be57b2`, Admin `5fcd528`, FE `aa86cee`). FE search-replace deferred to natural FE-layer touches.
+
+---
+
 ## ✅ Already shipped this session
 
 **Phase 0 critical bugs** (BE v2 `6a2eb5a` + Admin v2 `0f9fdcd`):
@@ -84,30 +99,36 @@
 
 #### **M18 — Coupon date-range server-side validation** 🟠 P1
 
-**Why:** [coupon.model.ts](FruitSnacksBackend/src/app/coupon/coupon.model.ts) has `coupon_start_date` + `coupon_end_date` (String). `order.recompute.ts` validates coupon active status + per-user usage, but not date range. Expired coupon still apply.
+**Why:** [coupon.model.ts](FruitSnacksBackend/src/app/coupon/coupon.model.ts) has `coupon_start_date` + `coupon_end_date` (String). `order.recompute.ts` already validates coupon active status + per-user usage. Edge-audit found `recompute.ts:248-255` already has date window check (shipped earlier). The gap is `findACoupon` controller (lines 51-104) — checks `coupon_available` + `coupon_status` but NEVER checks dates. Cart UI claims coupon valid → user proceeds → server recompute strips it → bad UX.
+
+**Audit amendment 2026-06-04:** Real scope = `findACoupon` controller, not recompute (already done).
 
 **Contract — BE:**
-- In `order.recompute.ts` (or wherever coupon discount applied), add:
+- In `coupon.controllers.ts findACoupon`, add date check matching recompute:
   ```ts
-  const today = new Date().toISOString().split("T")[0];
-  if (coupon.coupon_start_date > today) throw new ApiError(400, "Coupon not yet active");
-  if (coupon.coupon_end_date < today) throw new ApiError(400, "Coupon expired");
+  const now = new Date();
+  const start = result?.coupon_start_date ? new Date(result.coupon_start_date) : null;
+  const end = result?.coupon_end_date ? new Date(result.coupon_end_date) : null;
+  // Match recompute's end-of-day grace: end_date is inclusive
+  if (start && now < start) throw new ApiError(400, "Coupon not yet active");
+  if (end && now > new Date(end.getTime() + 86400000)) throw new ApiError(400, "Coupon expired");
   ```
-- Same check in any standalone coupon-validate endpoint (e.g., `/coupon/check`)
+- Cart-side claim and server-side recompute now agree on the same valid window.
 
-**Contract — Admin:** no change (existing date inputs save correctly per coupon.model)
+**Contract — Admin:** no change (date inputs save correctly)
 
-**Contract — FE:** no change (server now rejects, FE just shows error toast)
+**Contract — FE:** no change (existing error toast handles new error message)
 
 **Acceptance:**
-- Apply expired coupon at checkout → server rejects with "Coupon expired"
+- Apply expired coupon → "Coupon expired" at cart UI (not just at checkout submit)
 - Apply future-dated coupon → "Coupon not yet active"
-- Apply valid in-range coupon → discount applies (unchanged path)
+- Apply valid in-range coupon → discount applies (unchanged)
+- Recompute path also rejects expired (already done — verify still works)
 
 **Files:**
-- BE: `order/order.recompute.ts`, `coupon/coupon.controllers.ts` (if check endpoint exists)
+- BE: `coupon/coupon.controllers.ts` (findACoupon)
 
-**Effort:** S (1h)
+**Effort:** S (30min — small one-controller patch)
 
 ---
 
@@ -122,6 +143,18 @@
   - **delivery_flat_amount** (number) — used when mode=flat
   - **delivery_free_after_qty** (number) — used when mode=qty_threshold (e.g. 3 means: 3rd+ unit = free shipping for this line)
 
+**Audit amendments 2026-06-04 (D1 + D2):**
+- **Strategy = per-line-additive** (D1). Each product contributes own shipping; sum to final.
+- **Zone axis = `requestData.billing_state`** (D2 — FE convention = division name). DO NOT fix the known BE field-name swap in user-doc write (line 285-286 user_division ← billing_city) — legacy data risk.
+- **Global free-delivery rule applies ONLY to `inherit` lines.** Lines with explicit override (free/flat/qty_threshold) bypass the global min_order rule.
+- **Customer-group shipping = YAGNI**, add TODO comment in helper.
+- **Per-line formula:**
+  - `free` → line shipping = 0
+  - `flat` → line shipping = `product.delivery_flat_amount`
+  - `qty_threshold` → if `line.qty >= product.delivery_free_after_qty` → 0; else line shipping = `zone_charge / N_inherit_lines`
+  - `inherit` → line shipping = `zone_charge / N_inherit_lines` (split evenly across all inherit lines so they share, not multiply)
+- Final `shipping_cost = Σ per-line costs`. If global `free_delivery_enabled + min_order` rule matches → set inherit-line shipping = 0; override lines unchanged.
+
 **Contract — BE:**
 - Add fields to `product.model.ts` + `product.interface.ts`:
   ```ts
@@ -129,16 +162,45 @@
   delivery_flat_amount?: number;
   delivery_free_after_qty?: number;
   ```
-- Build `recomputeShippingCost(order, lines)` helper in order.recompute.ts:
-  1. Compute base zone charge from settings (inside vs outside Dhaka by `order.shipping_address.district`)
-  2. Apply global free-delivery rules (always / min_order)
-  3. For each line, check product.delivery_mode:
-     - `inherit` → contributes to global rule
-     - `free` → that line contributes 0 to shipping
-     - `flat` → that line contributes `delivery_flat_amount` (replaces zone share for that line)
-     - `qty_threshold` → if `line.qty >= delivery_free_after_qty` → 0 for that line, else normal
-  4. Strategy decision: per-order final shipping = max(per-line contributions) for simple shops; or sum if line-additive. **Need owner decision at impl start** (see open question).
-- Server overrides `shipping_cost` regardless of client value
+- Build `recomputeShippingCost(requestData, lines, settings)` helper in order.recompute.ts:
+  ```ts
+  // 1. Detect zone from billing_state (D2 lock)
+  const isInsideDhaka = String(requestData?.billing_state || "").trim().toLowerCase() === "dhaka";
+  const zoneCharge = isInsideDhaka
+    ? Number(settings?.inside_dhaka_shipping_charge) || 0
+    : Number(settings?.outside_dhaka_shipping_charge) || 0;
+
+  // 2. Split lines into inherit vs override
+  const inheritLines = lines.filter(l => !l.product.delivery_mode || l.product.delivery_mode === "inherit");
+  const overrideLines = lines.filter(l => l.product.delivery_mode && l.product.delivery_mode !== "inherit");
+
+  // 3. Global free-delivery rule applies ONLY to inherit lines
+  const inheritSubtotal = inheritLines.reduce((s, l) => s + l.product_grand_total_price, 0);
+  const globalFreeApplies = settings?.free_delivery_enabled && (
+    settings?.free_delivery_type === "always" ||
+    (settings?.free_delivery_type === "min_order" && inheritSubtotal >= (settings?.free_delivery_min_amount || 0))
+  );
+
+  // 4. Per-line costs
+  const perInheritShare = inheritLines.length > 0 && !globalFreeApplies
+    ? Math.round(zoneCharge / inheritLines.length)
+    : 0;
+  let total = 0;
+  for (const line of inheritLines) total += perInheritShare;
+  for (const line of overrideLines) {
+    const mode = line.product.delivery_mode;
+    if (mode === "free") total += 0;
+    else if (mode === "flat") total += Number(line.product.delivery_flat_amount) || 0;
+    else if (mode === "qty_threshold") {
+      const threshold = Number(line.product.delivery_free_after_qty) || 0;
+      total += (threshold > 0 && line.product_quantity >= threshold) ? 0 : (inheritLines.length > 0 ? perInheritShare : zoneCharge);
+    }
+  }
+  // TODO (post-sprint): per-customer-group shipping interaction
+  return total;
+  ```
+- Wire into `recomputeOrderTotals` — replace `const shipping_cost = Number(requestData?.shipping_cost) || 0;` (line 292) with helper call.
+- Server overrides `shipping_cost` regardless of client value.
 
 **Contract — Admin:**
 - Product form: new "Delivery" section (collapsible, after pricing):
@@ -158,9 +220,7 @@
 - Product with delivery_free_after_qty=3 → cart qty 2 = normal charge; qty 3+ = free
 - Product with delivery_mode=flat=60 → shipping 60 for that product
 
-**Open questions for impl day:**
-1. Multi-product cart with mixed delivery rules — sum or max? Owner picks.
-2. District detection — read `order.shipping_address.district` shape now.
+**Open questions for impl day:** Resolved by audit decisions D1+D2 — see "Decisions LOCKED" section.
 
 **Files:**
 - BE: `product/product.model.ts`, `product/product.interface.ts`, `order/order.recompute.ts`
@@ -173,28 +233,50 @@
 
 #### **B2 — Attribute delete edge case** 🟡 P2
 
-**Why:** Admin deletes attribute that's used in some product's `product_attributes[]` and variation `combination[]`. Today silently orphans the references.
+**Why:** Admin deletes attribute that's used in some product's `product_attributes[]` and variation `combination[]`. Today silently orphans the references (commented-out check in `attribute.controllers.ts:345-349`).
+
+**Audit amendments 2026-06-04:**
+- Existing `getAttributeUsageCount` endpoint already runs the exact `countDocuments({"product_attributes.attribute_id": id})` query. Don't duplicate — extract shared helper.
+- Block delete (sprint card spec OK)
+- Return useful 409 with count + sample product IDs so admin can act.
 
 **Contract — BE:**
-- In `attribute.services.ts` deleteAttributeServices: BEFORE delete:
+- Extract helper in `attribute.services.ts`:
   ```ts
-  const used = await ProductModel.exists({ "product_attributes.attribute_id": id });
-  if (used) throw new ApiError(409, "Attribute is used by N products. Remove from products first.");
+  export const countProductsUsingAttribute = async (id: string): Promise<{ count: number; sample_ids: string[] }> => {
+    const count = await ProductModel.countDocuments({ "product_attributes.attribute_id": id });
+    const sample = count > 0
+      ? await ProductModel.find({ "product_attributes.attribute_id": id })
+          .select("_id").limit(10).lean()
+      : [];
+    return { count, sample_ids: sample.map(p => String(p._id)) };
+  };
   ```
-- Optional: query count + return in error message ("Used by 12 products")
+- Refactor `getAttributeUsageCount` to use it (reduce drift).
+- In `deleteAAttributeInfo` controller, run guard BEFORE delete:
+  ```ts
+  const usage = await countProductsUsingAttribute(_id);
+  if (usage.count > 0) {
+    throw new ApiError(409, `Used by ${usage.count} product(s). Remove from products first.`);
+    // Optionally include sample_ids in response data for "view products" link
+  }
+  ```
 
-**Contract — Admin:** Show error toast properly; no UI change needed
+**Contract — Admin:** Update delete confirmation flow — when 409 returns with sample_ids, show "View products using this" link before requiring delete.
 
 **Contract — FE:** no change
 
 **Acceptance:**
-- Try delete used attribute → 409 with count
-- Delete unused attribute → success (unchanged)
+- Try delete used attribute → 409 with count message
+- Try delete unused attribute → success
+- `getAttributeUsageCount` endpoint still works for the "this change affects N products" warning
+- Race condition (admin A deletes while admin B saves product) — acceptable for single-shop scale; documented
 
 **Files:**
-- BE: `attribute/attribute.services.ts`
+- BE: `attribute/attribute.services.ts` (new helper), `attribute/attribute.controllers.ts` (use helper in both places)
+- Admin: `Attribute` delete confirmation dialog (show count + sample link)
 
-**Effort:** S (1h)
+**Effort:** S (1-2h)
 
 ---
 
@@ -223,25 +305,62 @@
 - Daraz BD (phone-OTP auto-account, force password later)
 - Amazon (separate guest vs registered, no auto-link)
 
+**Audit amendments 2026-06-04 — P0 finding PRE-locked + protected scope:**
+
+**🚨 P0 SECURITY HOLE (D3 — owner approved kill):**
+[user.controllers.ts:130-142](FruitSnacksBackend/src/app/user/user.controllers.ts#L130-L142) — `postLogUser` silently sets password on first login if `user_password` is empty. Any attacker who knows victim's phone can call `/login` with ANY password and own the account. No OTP, no verification.
+
+**Fix:** Remove auto-set block in `postLogUser`. Replace with:
+```ts
+if (!findUser.user_password) {
+  throw new ApiError(400, "Account exists but no password set. Use 'Forgot Password' to set via OTP.");
+}
+```
+Frontend `LoginForm.jsx` handles the error by redirecting to `/forget-password` or showing "Set Password via OTP" link.
+
+**🛡️ ANONYMOUS CHECKOUT PROTECTED:**
+- `findOrCreateUser` in order.controller.ts (lines 69-133) creates `user_type: "guest"` accounts with empty password — **THIS STAYS**.
+- FB ads → cart → checkout → place order WITHOUT login → still works exactly as today.
+- D3 only patches the `/login` endpoint hole, NOT the order placement flow.
+
+**Phone normalization:** [order.controller.ts:83](FruitSnacksBackend/src/app/order/order.controller.ts#L83) uses raw `customer_phone` for lookup. Two formats ("01711-123456" vs "+8801711123456") = duplicate accounts. Memo proposes E.164 normalization helper + backfill script.
+
+**Anonymous-order SMS:** Today `sendOrderSMS_GuestUnverified` only confirms order. Memo proposes adding "Set password to track future orders" CTA link in guest SMS.
+
+**FE three SetPassword pages (LoginForm + SetPassword + SetPasswordModal + AccountModal) all hit same `/setNewPassword` endpoint — OK shared contract.**
+
 **Contract — BE:**
-- ⚠️ Cannot lock upfront; audit first.
-- Document findings in `.claude/work/client-sprint/B1-anon-flow-audit.md`
-- Propose 2-3 alternatives if deviates from market norm
-- Owner picks → write fix (may touch user.controllers, order.controllers, notification)
+- **Kill auto-password-set in `postLogUser`** (D3 fix)
+- **Phone normalization helper** in `utils/phone.ts`: `normalizeBd(phone)` → E.164. Apply in `findOrCreateUser` + login lookup + signup lookup + checkUserPhone
+- **Anonymous-order SMS extension** — `sendOrderSMS_GuestUnverified` includes optional "Set password" link (FE deep-link to `/set-password?phone=X`)
+- Backfill script `scripts/normalize-user-phones.ts` (one-time, idempotent)
+
+**Contract — Admin:**
+- Customer list: add "Type" column showing `user_type` (guest / registered) + `has_password` flag
+- Filter: "Show only guest" / "Show only registered"
 
 **Contract — Admin:** depends on findings (e.g. customer list filter for "guest" vs "registered" status)
 
-**Contract — FE:** depends on findings (likely set-password page polish, post-order CTA improvements, anonymous-order history visibility)
+**Contract — FE:**
+- **`LoginForm.jsx`** — catch the new "no password set" error → redirect to `/forget-password?phone=X` automatically, OR show inline "Set Password via OTP" CTA
+- **Post-order success page** — for guest orders, add prominent "Set a password to track this and future orders" CTA → `/set-password?phone=X` (deep-link prefilled)
+- **`/set-password`** page already exists — verify it works for first-time set (not just forgot flow)
+- **Anonymous-order history visibility** — same phone re-orders later, both as guest → after registration sees both orders (linked by phone)
 
 **Acceptance:**
-- Audit memo written with: current flow diagram, gaps vs market, 2-3 fix alternatives, recommendation
-- Owner picks
-- Fix applied (BE + FE coordinated)
-- End-to-end test: anonymous → place order → notification → set password → login → see order
+- Anonymous FB-ads buyer: cart → checkout → place order → SMS arrives → order in DB with `user_type: "guest"` ✓ (unchanged behavior)
+- Same buyer returns later, tries `/login` with phone + random password → 400 "Set password via OTP" → redirect to OTP flow
+- OTP flow → password set → login → sees prior anonymous orders in `/orders`
+- Old security hole closed: attacker with victim's phone cannot silently own account via `/login`
+- Phone in any format (01711..., +8801711..., 8801711...) → normalized → no duplicates
+- Audit memo at `.claude/work/client-sprint/B1-anon-flow-audit.md` documents all findings + alternatives owner considered
 
-**Effort:** L (6-10h — BIGGEST single item; will spill across Days 5-6)
+**Effort:** L (6-10h — BIGGEST single item; spills across Days 5-6)
 
-**Files:** TBD after audit (likely BE: user/order controllers + Notification; FE: checkout page, post-order page, set-password page, dashboard)
+**Files:**
+- BE: `user/user.controllers.ts` (kill auto-set + add error path), `order/order.controller.ts` (phone normalize in findOrCreateUser), NEW `utils/phone.ts`, `utils/send.order.sms.ts` (CTA link), NEW `scripts/normalize-user-phones.ts`
+- Admin: customer list filter + Type column
+- FE: `LoginForm.jsx`, post-order success page, verify `set-password/page.jsx` first-time flow
 
 ---
 
@@ -293,16 +412,22 @@
 - ADD: `variation_badge_icon_key` (string — curated IconPicker key like "lu:Crown")
 - **NO `variation_badge_color` field** — render uses active theme's primary color
 
+**Audit amendments 2026-06-04:**
+- Field name `variation_badge_icon_key` confirmed consistent with existing IconPicker convention.
+- Cap badge text length at 20 chars (Bangla text overflows otherwise).
+- IconPicker for badge: existing curated set is line-art (Lucide). Document that line-art may render weakly on colored background; owner can pick from theme-friendly subset later.
+
 **Contract — Admin:**
 - In `StepOneVariationTable.jsx` matrix table: new "Badge" column
-- Cell: text input (badge_text) + small IconPicker trigger (badge_icon_key)
+- Cell: text input (badge_text, `maxLength={20}`) + small IconPicker trigger (badge_icon_key)
+- Helper text: "Short label (max 20 chars)"
 - Reuse existing IconPicker component
 - Submit: FormData append per-row `variation_details[i][variation_badge_text]`, `_icon_key`
 
 **Contract — FE:**
 - In PDP `VariationPicker.jsx`: per-chip, if badge_text → render small badge above/corner of chip
 - Use `DynamicIcon` for badge_icon_key
-- Badge style: small rounded pill with icon + text, **bg = theme primary**, text = contrasting (white/dark per primary lightness)
+- Badge style: small rounded pill with icon + text, **bg = theme primary**, text = contrasting (white/dark per primary lightness), `truncate` class on overflow
 
 **Acceptance:**
 - Admin: set "Top Pick" + Crown icon on Red variation → save
@@ -358,31 +483,82 @@
 
 **Why:** Per existing roadmap: "category edit form has move-to-another-parent DISABLED because updateCategoryServices doesn't recompute category_path". Owner has to delete + recreate to move.
 
+**Audit amendments 2026-06-04 (CRITICAL — affects products too):**
+- **Cycle prevention required.** Reject `newParentId === thisCategoryId` AND any case where `newParentId` is a descendant of `thisCategoryId` (`CategoryModel.exists({ _id: newParentId, category_path: thisCategoryId })`).
+- **Products carry `category_path[]` snapshot** ([product.model.ts:78-83](FruitSnacksBackend/src/app/product/product.model.ts#L78-L83)) — re-parent MUST cascade to products too, or storefront subtree filter breaks.
+- **Transaction is mandatory** — categories + descendants + products updated in one session via `bulkWrite`.
+- **`category_serial` collision** when moved into new sibling list → auto-assign `serial = max(siblings) + 1` for moved node.
+
 **Contract — BE:**
 - `category.services.ts` updateCategoryServices: if `parent_id` changed:
-  1. Recompute new `category_path[]` from new parent
-  2. Recompute new `depth`
-  3. Find all descendants (categories where current cat is in their path)
-  4. Update each descendant's path + depth to reflect new ancestor chain
-- Wrap in mongoose transaction (multi-doc update)
+  1. **Cycle guards** — reject self-parent + descendant-parent moves
+  2. Recompute new `category_path[]` + `depth` for this node from new parent
+  3. Find all descendants (`category_path: thisId`)
+  4. For each descendant, build new path (replace old ancestor chain with new)
+  5. Find all products attached to this category OR any descendant — update their `category_path[]` snapshot
+  6. Auto-assign new `category_serial = max(siblings.serial) + 1`
+  7. All writes in single mongoose transaction (bulkWrite for descendants + products)
+- Pseudo-code:
+  ```ts
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    // 1. Cycle guards
+    if (String(newParentId) === String(thisId)) throw new ApiError(400, "Cannot make self parent");
+    if (newParentId) {
+      const isDescendant = await CategoryModel.exists({ _id: newParentId, category_path: thisId });
+      if (isDescendant) throw new ApiError(400, "Cannot move under own descendant");
+    }
+    // 2. Resolve new position
+    const newPos = await resolveTreePosition(newParentId);
+    // 3. Auto-serial in new sibling list
+    const maxSerial = await CategoryModel.findOne({ parent_id: newPos.parent_id }).sort({ category_serial: -1 }).select("category_serial").lean();
+    const newSerial = (maxSerial?.category_serial || 0) + 1;
+    // 4. Update this node
+    await CategoryModel.findByIdAndUpdate(thisId, { ...data, parent_id: newPos.parent_id, depth: newPos.depth, category_path: newPos.category_path, category_serial: newSerial }, { session });
+    // 5. Cascade to descendants
+    const descendants = await CategoryModel.find({ category_path: thisId }, null, { session });
+    const descOps = descendants.map(d => {
+      const oldIdx = d.category_path.findIndex(id => String(id) === String(thisId));
+      const newPath = [...newPos.category_path, thisId, ...d.category_path.slice(oldIdx + 1)];
+      return { updateOne: { filter: { _id: d._id }, update: { category_path: newPath, depth: newPath.length } } };
+    });
+    if (descOps.length) await CategoryModel.bulkWrite(descOps, { session });
+    // 6. Cascade to products
+    const affectedIds = [thisId, ...descendants.map(d => d._id)];
+    const products = await ProductModel.find({ category_id: { $in: affectedIds } }, null, { session });
+    const newPathByCat = new Map([[String(thisId), [...newPos.category_path, thisId]], ...descendants.map(d => {
+      const oldIdx = d.category_path.findIndex(id => String(id) === String(thisId));
+      const newPath = [...newPos.category_path, thisId, ...d.category_path.slice(oldIdx + 1)];
+      return [String(d._id), [...newPath, d._id]];
+    })]);
+    const prodOps = products.map(p => ({ updateOne: { filter: { _id: p._id }, update: { category_path: newPathByCat.get(String(p.category_id)) } } }));
+    if (prodOps.length) await ProductModel.bulkWrite(prodOps, { session });
+    await session.commitTransaction();
+  } catch (err) { await session.abortTransaction(); throw err; }
+  finally { session.endSession(); }
+  ```
 
 **Contract — Admin:**
 - In `CategoryTree` / Category edit form: re-enable "Move to another parent" picker
-- Parent picker: CategoryTreePicker (excludes self + descendants)
-- Confirmation modal: "Moving this category will also move N child categories. Continue?"
+- Parent picker: CategoryTreePicker (excludes self + descendants — FE-side hint; server still validates)
+- Confirmation modal: "Moving this category will also move N child categories and update N products. Continue?"
 
-**Contract — FE:** no change (storefront reads current path)
+**Contract — FE:** no change (storefront reads current path; refreshed naturally)
 
 **Acceptance:**
-- Move category C from root to under A → C's path = [A, C], depth = 2
-- Move C2 (child of C) along with it → C2 path = [A, C, C2], depth = 3
-- Move to descendant of itself → blocked with error
+- Move category C from root to under A → C's path = [A], depth = 1, serial = max(A's children) + 1
+- Move C2 (child of C) along → C2 path = [A, C], depth = 2
+- Move products attached to C or C2 → their `category_path[]` updated
+- Move to self → 400
+- Move to own descendant → 400
+- Transaction failure → all writes rolled back
 
 **Files:**
-- BE: `category/category.services.ts`, `category/category.model.ts` (if helper added)
-- Admin: `CategoryTree` component(s), category edit form
+- BE: `category/category.services.ts` (rewrite updateCategoryServices + cycle helpers)
+- Admin: `CategoryTree` component(s), category edit form (re-enable parent picker)
 
-**Effort:** M (4-6h)
+**Effort:** M-L (5-7h — biggest BE-layer item with transaction logic)
 
 ---
 
@@ -813,15 +989,14 @@ Owner runs full anonymous→register→order→admin→tracking flow. If green:
 Owner-resolved 2026-06-04 (no longer open):
 - ✅ S1: rename `/cart` → `/checkout` (URL + title only; delete duplicate folder if stub)
 - ✅ A4: badge color = theme primary always (no per-badge color)
-- ✅ M20: per-product delivery rules added (4 modes)
+- ✅ M20: per-product delivery rules added (4 modes) + per-line-additive (D1) + billing_state axis (D2)
 - ✅ M28: dynamic symbol + name + code (no hardcoded)
+- ✅ B1 P0 security hole: kill auto-password-set in /login (D3); anonymous checkout protected
 
 Still open (resolve at impl-time):
 1. **A2:** Exact product table columns — owner picks at A2 start (after I show current vs proposed)
-2. **M20:** District detection from address — verify shape at impl time
-3. **M20:** Multi-product cart shipping strategy — sum vs max
-4. **S3b:** Verify product seo_* fields exist; if missing, scope grows
-5. **S6 addresses:** Add to `user.addresses[]` (recommended simpler) vs new collection — at impl start
+2. **S3b:** Verify product seo_* fields exist; if missing, scope grows
+3. **S6 addresses:** Add to `user.addresses[]` (recommended simpler) vs new collection — at impl start
 
 ---
 

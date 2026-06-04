@@ -3,14 +3,19 @@
   "permissions": {
     "allow": [
       "Read",
+      "Read(**)",
       "Glob",
+      "Glob(**)",
       "Grep",
+      "Grep(**)",
       "Edit",
+      "Edit(**)",
       "Write",
-      "Write(c:\\Coding\\Perosnal\\FruitSnacks\\.claude\\work\\**)",
-      "Write(c:\\Coding\\Perosnal\\FruitSnacks\\docs\\**)",
-      "Edit(c:\\Coding\\Perosnal\\FruitSnacks\\.claude\\work\\**)",
-      "Edit(c:\\Coding\\Perosnal\\FruitSnacks\\docs\\**)",
+      "Write(**)",
+      "MultiEdit",
+      "MultiEdit(**)",
+      "NotebookEdit",
+      "NotebookEdit(**)",
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "Bash(npm run start:*)",
@@ -62,7 +67,10 @@
     ],
     "ask": [],
     "additionalDirectories": [
-      "c:\\Coding\\Perosnal\\FruitSnacks\\.claude\\work"
+      "c:\\Coding\\Perosnal\\FruitSnacks\\.claude\\work",
+      "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksBackend",
+      "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksAdmin",
+      "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksFrontend"
     ]
   }
 }

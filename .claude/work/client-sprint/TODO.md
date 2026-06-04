@@ -5,7 +5,7 @@
 **Scope tweaks 2026-06-04:** M20 + per-product delivery rules; M28 + currency_name; B1 BE+FE both; S3 + product SEO field wiring; S4+S5 bundled with Search Console; S6 + addresses CRUD; A4 theme-primary color (no field)
 
 ## Layer 1 — BE
-- [ ] M28 Currency from settings everywhere (BE bits — add `currency_name` field + `getCurrencySymbol()` helper)
+- [x] M28 BE+Admin+util — `currency_name` field + 3 helpers + 3-field Admin form with tri-preview + `formatCurrency()` utility in FE (search-replace deferred to natural FE-layer touches: analytics → S4/S5, order pages → S6/S8, PDP price → S2)
 - [ ] M18 Coupon date-range server validation
 - [ ] M20 Shipping cost server recompute + per-product delivery rules (4 modes)
 - [ ] B2 Attribute delete edge case (409 if used)
@@ -29,8 +29,8 @@
 - [ ] M9 SKU display on PDP
 - [ ] M16 filter URL → PDP query forward
 - [ ] M14 per-variant gallery auto-switch
-- [ ] S2 PDP media audit + fixes
-- [ ] M28 FE — formatCurrency utility (symbol/name/code modes) + replace hardcoded
+- [ ] S2 PDP media audit + fixes + M28 currency replace in PDP price files
+- [x] M28 FE utility built (currency.js); per-component replace folded into S2/S4/S5/S6/S8 cards
 - [ ] A4 FE badge render in VariationPicker (theme primary color)
 - [ ] S6 user dashboard audit + ADD addresses screen
 - [ ] S7 order tracking audit + fix
