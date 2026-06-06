@@ -25,7 +25,7 @@
 - [x] **11β** Coupon BOGO wire-up ✅ SHIPPED 2026-06-05 session 25 — 3 BLOCKERS + 4 HIGH + 2 MEDIUM (M3 + N1) all in. BE + Admin + FE builds green.
 
 ## Bucket 4 — Backend hardening
-- [ ] **H** Auth hardening — Admin FE ForgotPassword page + 3 BE bug fixes (wave 1 contract)
+- [x] **H** Auth hardening ✅ SHIPPED 2026-06-05 session 25 — Admin FE ForgotPassword page + 3 BE bug fixes (SMS-vs-DB-save reorder + 3 modifiedCount guards). BE + Admin builds green.
 - [ ] **C13** 12 shop toggles — includes 2 BLOCKERS remaining (review enum "pending", controller strip+override) + 4 HIGH (server-side hide-OOS, maintain_stock skip-both, min_order_amount server-first, Pending Reviews moderation UI). ⚠ Old BLOCKER 1 ($set fix) already shipped in C12 session 25.
 
 ## Bucket 5 — Admin daily-use
@@ -49,8 +49,8 @@
 
 ## NEXT — Resume here
 
-**On RESUME: start coding H Auth hardening** — owner-locked Sprint 2 execution order: ~~C12~~ → ~~Item 5~~ → ~~D15~~ → ~~11β~~ → **H ← next code** → C13 → E20 → D18.
+**On RESUME: start coding C13 Shop toggles** — owner-locked Sprint 2 execution order: ~~C12~~ → ~~Item 5~~ → ~~D15~~ → ~~11β~~ → ~~H~~ → **C13 ← next code** → E20 → D18.
 
-H: Admin FE ForgotPassword page (~2-3h) + 3 BE bug fixes (~1h) — wave 1 contract preserved in CLIENT_SPRINT_2.md H section. ~3-4h total.
+C13: 12 shop toggles (Tier A+B per D5 lock) + 2 BLOCKERS remaining (review enum "pending", controller strip+override) + 4 HIGH (server-side hide-OOS, maintain_stock skip-both, min_order_amount server-first, Pending Reviews moderation UI). ⚠ Old BLOCKER 1 ($set fix in updateSettingServices) already shipped in C12. ~8-10h. Full contract in CLIENT_SPRINT_2.md C13 section.
 
-First step on resume: check OWNER_TEST_STATUS.md for any C12 / D15 / 11β P2 failures from owner's in-between testing — those take priority over H.
+First step on resume: check OWNER_TEST_STATUS.md for any C12 / D15 / 11β / H P2 failures from owner's in-between testing — those take priority over C13.

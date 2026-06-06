@@ -32,6 +32,7 @@
 | Sprint 2 — C12 SMS settings runtime read | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — D15 Wishlist BE wire-up | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — 11β Coupon BOGO wire-up | ✅ Shipped session 25 | ⏸ PENDING |
+| Sprint 2 — H Auth hardening (Admin ForgotPassword + 3 BE fixes) | ✅ Shipped session 25 | ⏸ PENDING |
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
@@ -70,6 +71,21 @@ If P1 passes, proceed to specific feature tests below.
 | C12.6 | **Silent no-op when disabled** — Admin toggles `sms_enabled: false` → place a guest order → order succeeds 200, no BulkSMS network call, no error toast. Toggle back ON → next order sends SMS again | ⏸ |
 | C12.7 | **Anonymous checkout regression** — Owner-locked rule: guest checkout must still work with these SMS changes. Place anonymous order → success page reached, SMS attempted (or silently skipped if disabled) | ⏸ |
 | C12.8 | **Wrong API key graceful failure** — Admin sets a bogus key → place order → order still 200, BE log has BulkSMS error response (`response_code !== 202`), customer sees normal success page | ⏸ |
+
+#### Sprint 2 — H: Auth hardening (Admin ForgotPassword + 3 BE bugs, ~3-4h, session 25)
+**Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) H section
+**Touches:** BE `admin.controllers.ts` (forgotPasswordAdmin + resetPasswordAdmin); Admin new `pages/ForgetPasswordPage/ForgetPasswordPage.jsx` + `Route.jsx` + `SignInPage.jsx`
+
+| # | Scenario | Status |
+|---|----------|--------|
+| H.1 | **Happy path** — admin `/sign-in` → click "Forgot password?" → /forget-password → enter phone → "OTP sent" toast → step 2 → enter OTP + new password → "Password reset successfully" → redirected to /sign-in → login with NEW password works | ⏸ |
+| H.2 | **Wrong OTP 5 times** — enter wrong OTP 5 times → 6th attempt blocked: "Too many wrong attempts. Please request a new OTP." | ⏸ |
+| H.3 | **Expired OTP** — wait 11 min after step-1 → enter (correct) OTP → "OTP has expired. Please request a new one." | ⏸ |
+| H.4 | **Cooldown** — request 2nd OTP within 60s → 429 "Please wait Xs before requesting another OTP." | ⏸ |
+| H.5 | **Resend works** — step 2 → click "Resend OTP" (after 60s cooldown) → new OTP arrives → new code accepted | ⏸ |
+| H.6 | **Inactive admin** — admin_status:"in-active" tries forgot → 403 "Admin is inactive." | ⏸ |
+| H.7 | **BE fix-A ordering** — verify in BE log: DB save fires BEFORE BulkSMS call (was reversed previously) | 🔵 STATIC-VERIFIED (code-level grep confirms `AdminModel.updateOne` precedes `SendPhoneOTP`) |
+| H.8 | **Anonymous checkout regression** — owner-locked: anonymous order placement still works (admin auth changes don't touch user flow) | ⏸ |
 
 #### Sprint 2 — 11β: Coupon BOGO wire-up (~6h, session 25)
 **Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) 11β section (3 BLOCKERS + 4 HIGH + 2 MEDIUM)

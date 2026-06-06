@@ -16,7 +16,7 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | A1 | `specifications` populate bug | ⚠️ Specifications module retired during attribute-linked variation work; bug moot |
 | A2 | Product UPDATE drops `attributes_details` | ✅ DONE — Item 10 audit found controller rebuilds attributes_details on every PATCH (line 1287+); separately FK-clear bug fixed (BE `61a9631`) |
 | A3 | Coupon date-range server-side validation | ✅ DONE (M18, BE `8873f56`) |
-| A4 | OTP/JWT hardening | ⚠️ Partial — D3 security fix shipped (kill auto-password-set in `/login`, BE `8873f56`) + Phase 1 analytics added per-user CAPI quality; full JWT shortening still pending |
+| A4 | OTP/JWT hardening | ✅ DONE (Sprint 2 H session 25) — D3 security fix shipped earlier; JWT 7d/30d already shipped in auth.tokens; Sprint 2 H added Admin ForgotPassword UI + 3 BE bug fixes (SMS-vs-DB-save reorder + modifiedCount guards on attempt counter + password-set) |
 | B5 | `product.video_link` | ✅ DONE |
 | B6 | `product.condition` | ✅ DONE |
 | B7 | `product.sold_count` / `view_count` | ✅ DONE |

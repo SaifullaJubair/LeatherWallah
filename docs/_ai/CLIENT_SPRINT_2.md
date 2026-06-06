@@ -217,12 +217,28 @@ Audit reality check: BE module + sync utility + login-flow wiring **already exis
 
 ---
 
-### **H — Auth hardening (revised after audit)** 🟡 small-medium (~3-4h, wave 1 contract unchanged)
+### **H — Auth hardening (revised after audit)** ✅ SHIPPED 2026-06-05 (session 25)
 
-(a) Admin FE — new ForgotPassword page (~2-3h)
-(b) Backend bug fixes (~1h, found by auditor)
+(a) Admin FE — new ForgotPassword page ✅
+(b) Backend bug fixes ✅
 
-Full contract in prior section, no wave-2 changes.
+**What shipped:**
+- ✅ BE fix-A — `forgotPasswordAdmin`: reorder OTP-save BEFORE SMS-send (was SMS first, DB after — silent DB failure → admin saw "OTP sent" but reset always failed). Pattern now mirrors user-side reset.
+- ✅ BE fix-B — `forgotPasswordAdmin`: `modifiedCount > 0` guard on OTP save; throws 500 "Could not save OTP. Please try again." if write didn't update.
+- ✅ BE fix-C — `resetPasswordAdmin`: `modifiedCount` guards on both attempt-counter increment AND password-set write. Counter-increment failure → 500 (prevents 5-attempt cap bypass / brute-force risk). Password-set failure → 500 (prevents "Password reset successfully" lie when password didn't actually change).
+- ✅ Admin FE — new `ForgetPasswordPage.jsx` 2-step flow: step 1 phone → POST `/admin_reg_log/forgot-password` → step 2 OTP + new password → POST `/admin_reg_log/reset-password` → redirect to `/sign-in`. Includes resend-OTP + change-phone buttons + phone-locked display in step 2.
+- ✅ Admin FE — route wired at `/forget-password` in `Route.jsx`.
+- ✅ Admin FE — "Forgot password?" link added below the Login button in `SignInPage.jsx`.
+
+**Builds:** BE tsc EXIT 0, Admin Vite EXIT 0 (6.13s, 3772 modules — +1 from new page).
+
+**Tests:** See OWNER_TEST_STATUS.md → P2 H.1-H.7.
+
+**Anonymous checkout impact:** None.
+
+**Deferred:**
+- JWT cookie shortening — already shipped in auth.tokens (7d/30d per wave-1 audit, not 365d)
+- Account lockout after N failed logins — Sprint 3+ candidate
 
 ---
 
