@@ -1,11 +1,41 @@
 # Clone-Now Fixes & Improvements (no big-bone surgery)
 
-**Date:** 2026-05-25
+**Date:** 2026-05-25, last updated 2026-06-05
 **Context:** The product ships **clone-per-client** now (multi-tenant SaaS is future — see [SAAS_FUTURE_PLAN.md](SAAS_FUTURE_PLAN.md)). This doc lists what we can **fix / improve / add right now** on the current codebase **without** ripping out the core structure (variation engine, category model, etc. stay as-is). These are isolated bug-fixes + additive features that make each clone better today and carry forward to SaaS later.
 
 > The big structural changes (attribute-linked variation engine, self-referencing category, backend price-resolver) are deliberately NOT here — they're "main bone" work, tracked in [BACKEND_AUDIT.md](BACKEND_AUDIT.md) and done as dedicated phases. This doc = safe, incremental wins.
 
 Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
+
+---
+
+## Progress snapshot (2026-06-05)
+
+| ID | Item | Status |
+|----|------|--------|
+| A1 | `specifications` populate bug | ⚠️ Specifications module retired during attribute-linked variation work; bug moot |
+| A2 | Product UPDATE drops `attributes_details` | ✅ DONE — Item 10 audit found controller rebuilds attributes_details on every PATCH (line 1287+); separately FK-clear bug fixed (BE `61a9631`) |
+| A3 | Coupon date-range server-side validation | ✅ DONE (M18, BE `8873f56`) |
+| A4 | OTP/JWT hardening | ⚠️ Partial — D3 security fix shipped (kill auto-password-set in `/login`, BE `8873f56`) + Phase 1 analytics added per-user CAPI quality; full JWT shortening still pending |
+| B5 | `product.video_link` | ✅ DONE |
+| B6 | `product.condition` | ✅ DONE |
+| B7 | `product.sold_count` / `view_count` | ✅ DONE |
+| B8 | `product.weight_grams` + dimensions | ✅ DONE (`product_weight_grams`, `product_dimensions: {l,w,h}`) |
+| B9 | `product.unit` | ✅ DONE |
+| B10 | `custom_fields` repeater | ✅ DONE |
+| C11 | Currency from settings | ✅ DONE (M28, BE+Admin+FE — `currency_code/symbol/name` + `getCurrencyCode()` + FE `formatCurrency()`) |
+| C12 | SMS from settings | ✅ DONE (Sprint 2 session 25 — `getSmsConfig()` helper, settings DB-first / .env-fallback, sms_enabled silent no-op, split secret save endpoint, masked last-4 display, https upgrade, `storefront_base_url` field, $set+strip-empty-secret guard in updateSettingServices) |
+| C13 | Shop-settings toggles | 🟡 Some shipped (`free_delivery_*`, `inside_dhaka_shipping_charge`, `vat_percentage`, advance-payment toggles); not all from ZatiqEasy list |
+| C14 | Delivery zones beyond inside/outside Dhaka + per-product override | ✅ DONE (M20 — per-product `delivery_mode: inherit/free/flat/qty_threshold` + per-line-additive shipping + free-delivery rule on inherit only) |
+| D15 | Wishlist backend module | ❌ Still localStorage-only |
+| D16 | Online payment gateway | ⚠️ Partial — order has `payment_method/payment_status/advance_amount` fields + SSLCommerz gateway scaffolding; full IPN/callback flow not verified |
+| D17 | FB Product Feed XML | ✅ DONE (`productFeed.controllers.ts` confirmed live) |
+| D18 | Richer order status + admin order create | 🟡 Partial — admin order edit/courier flow exists; admin "create order" POS not built |
+| E19 | Customer list improvements | ✅ DONE (B1 admin — Type column + guest/registered filter, sessions 20-21) |
+| E20 | Dashboard widgets | 🟡 Some built (S6/S7/S8 dashboards); full ZatiqEasy widget set not done |
+| E21 | Product list polish | ✅ DONE (A2 — list-page rewrite with 5 column modals, BE `318de36` + Admin `2851d17`) |
+
+Many "🔴 must" items from this doc shipped during the Client Sprint (sessions 19-21) plus the analytics work (session 23) and Sprint 2 quick wins (session 25 onward). Big remaining buckets: **Wishlist backend (D15)**, **Payment gateway IPN/verify flow (D16)**, **Online payment full E2E**.
 
 ---
 
@@ -32,7 +62,7 @@ These are **new optional fields** on the existing product/variation schema — n
 These turn hardcoded assumptions into `setting` toggles — small wins now, essential for SaaS later. (Aligns with "write multi-tenant-ready" — [[architecture-clone-now-saas-ready]].)
 
 11. **🔴 M — Currency from settings, not hardcoded "BDT".** `order.controller.ts:260,381` hardcodes BDT; `setting` already has `currency_symbol`/`currency_code` — just use them. Non-BD clone then only changes a setting.
-12. **🟡 S — SMS reads from `setting` (with .env fallback).** `middlewares/send.otp.phone.ts` + `utils/send.order.sms.ts` ignore `setting.sms_*` and always use `.env`. Read settings first → admin SMS screen becomes real, clone swaps sender-id without code edit.
+12. ~~**🟡 S — SMS reads from `setting` (with .env fallback).**~~ ✅ DONE (Sprint 2 C12 session 25). Both callers now go through `getSmsConfig()` (DB first, .env fallback, `sms_enabled:false` silent no-op). Plus: split secret save to `/setting/secrets`, masked last-4 display in Admin, `http://` → `https://` upgrade for OTP path, new `storefront_base_url` settings field replaces hardcoded `SITE_URL`.
 13. **🟡 M — Shop-settings toggles (ZatiqEasy pattern):** add to `setting`: `maintain_stock`, `show_sold_count`, `allow_image_download`, `show_email_field_checkout`, `enable_promo_at_checkout`, `show_popularity_filter`, `vat_tax_percentage`, `verify_phone_on_order` (OTP at checkout). Each gates existing behavior. Frontend reads them.
 14. **🟡 M — Delivery zones beyond inside/outside Dhaka.** ZatiqEasy supports zone/district/upazila-level specific charges + weight-based extra + per-product override + COD toggle. We have only inside/outside Dhaka flat. Extend `setting` (and optional per-product `delivery_charge`) — additive.
 

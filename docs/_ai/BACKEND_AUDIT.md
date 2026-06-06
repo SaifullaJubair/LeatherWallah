@@ -1,11 +1,38 @@
 # Backend Audit — Making FruitSnacks a Production-Grade, Resellable E-Commerce Backbone
 
-**Date:** 2026-05-24
+**Date:** 2026-05-24, last updated 2026-06-05
 **Goal:** Audit the whole backend (catalog, variations, pricing, filter, cart/wishlist, auth, order, settings) and lay out the structural changes needed so this codebase can be **cloned and resold to any kind of store** — single-product shops, fruit/grocery, apparel (Color × Size), electronics like StarTech (RAM × Storage × Color), Daraz-style catalogs — with a **dynamic filter system** and a **flexible variation + pricing engine**.
 
 > **Scope clarification (important):** "Multi-client" here means **resellable** — one clone = one store (single deployment per client). It does **NOT** mean multi-tenant (many stores in one DB). So we do **NOT** need `store_id` on every model. We need **flexibility** so each clone fits its store type without code edits. (The audit agents flagged "multi-tenant" gaps — those are intentionally out of scope; ignore `store_id`/tenant recommendations.)
 
-This doc is the source of truth for the backend hardening effort. Nothing here is implemented yet — it's the plan. Owner has approved structural / "main bone" changes if needed.
+This doc is the source of truth for the backend hardening effort. Owner has approved structural / "main bone" changes. Several keystone phases are **already shipped** (see Progress Snapshot below); remaining phases are payment/wishlist/auth-hardening.
+
+---
+
+## Progress snapshot (2026-06-05)
+
+| Phase | Item | Status |
+|-------|------|--------|
+| **A** | Variation engine (attribute-linked, matrix builder, storefront picker) | ✅ DONE — see [[variation-attribute-filter-shipped]] memory + `variations.combination[]`, `product.product_attributes`, `product.variant_axes`. Combo variations + admin matrix builder + frontend variant picker all live |
+| **B** | Backend price-resolver (single source of truth + server-side order totals) | ✅ DONE — `product/product.price.resolver.ts` (pure unit price: base + variation + flash) + `order/order.recompute.ts` (server-trusted: campaign + tier + customer-group + coupon + loyalty + VAT + advance + shipping). Item 11α (2026-06-05) cleaned up the resolver doc/interface |
+| **C** | Dynamic filter (auto-discover attribute facets per category) | ✅ DONE — `productFilter.services.ts` uses `product.product_attributes` for auto-discovery + `category_path` for subtree match. Price-range computed from effective price (variation-aware). Per-attribute `show_in_filter` toggle live |
+| **D** | Wishlist module | ❌ STILL MISSING — frontend localStorage only |
+| **E** | Payment | 🟡 Partial — order has `payment_method/payment_status/advance_amount/advance_method`; SSLCommerz init/redirect scaffolded; full IPN/callback/verify flow not E2E-verified |
+| **F** | Order hardening (server recompute + stock decrement in txn) | ✅ DONE — `order.recompute.ts` recomputes every line + totals; stock decrement runs inside the order placement transaction; client totals overwritten not rejected |
+| **G** | SMS from settings | ✅ DONE (Sprint 2 C12 session 25) — `getSmsConfig()` helper centralizes DB-first / .env-fallback; both OTP + order SMS callers refactored; `sms_enabled:false` silent no-op; split secret save endpoint; masked last-4 admin display; http→https for OTP path; new `storefront_base_url` field replaces hardcoded SITE_URL; `$set`+strip-empty-secret guard in `updateSettingServices` |
+| **H** | Auth hardening (JWT user_id, shorter expiry, OTP rate limit) | 🟡 Partial — D3 fix shipped (kill auto-password-set in `/login`, 2026-06-04) + rate-limit tune (F001-F006); JWT shortening + OTP hashing still pending |
+| **I** | Catalog integrity + bug fixes | ✅ DONE — Item 8 audit shipped 6 fixes (sibling-scoped serial, dead-join purge, RBAC cleanup, etc.) |
+| 6b | Self-referencing nested category | ✅ DONE — single `categories` collection with `parent_id` + `category_path`. Sub/child collections retired. Re-parent with cycle guards + descendant cascade + product cascade in transaction |
+| Phase L | Category-optional products | ✅ DONE — `product.category_id` is no longer `required` |
+| #1 (matrix) | Attribute-linked variations + combo + axis picker | ✅ DONE |
+| #2 (flash sale) | Real flash sale module | ✅ DONE — `flashsale/` module + `findActiveFlashForProduct` + resolver applies flash on top |
+| #5 (currency from settings) | | ✅ DONE (M28) |
+| #6 (specification populate bug) | | ⚠️ Specifications module retired during attribute-linked work; bug moot |
+| #9 (payment fields on order) | | ✅ DONE (fields present); full provider flow partial |
+| #10 (order total recompute) | | ✅ DONE (overlap with B/F) |
+| #14 (supplier purchase orders) | | ❌ Not started (only client-pull request would trigger) |
+
+**Big remaining items:** Wishlist backend (D), Payment full E2E (E), Auth hardening rest (H), Supplier purchase-orders (only when needed).
 
 ---
 
@@ -192,11 +219,13 @@ resource×action permissions; JWT/user-id/expiry hardening.
 
 Pathao + Steadfast are integrated and BD-appropriate (Pathao city/zone enums, `+88` phone normalize, webhooks). For a BD resellable backbone this is **acceptable as-is** — just note that `pathao_city_id/zone_id` are `required` on every order even when using Steadfast (minor; could relax). Courier abstraction for other countries is out of scope unless a specific client needs it.
 
-## 12. SMS / OTP — 🟡 hardcoded BulkSMS, ignores settings config
+## 12. SMS / OTP — ✅ DONE (Sprint 2 C12, session 25)
 
-**Today:** OTP + order SMS go through **BulkSMS BD hardcoded** in `middlewares/send.otp.phone.ts` and `utils/send.order.sms.ts` (hardcoded `bulksmsbd.net`, message text, `+88` formatting). Meanwhile `setting` HAS `sms_provider_name/api_key/api_secret/sms_sender_id/sms_enabled` fields that are **never read** — the code always uses `.env`. So the admin "SMS settings" screen is currently cosmetic.
+**Was:** OTP + order SMS hardcoded BulkSMS BD, ignored `setting.sms_*` fields, always used `.env`. Admin SMS screen was cosmetic.
 
-**Recommended:** make the SMS sender read from `setting` (with `.env` fallback) so a clone can swap credentials/sender-id without code edits; keep BulkSMS as the default provider (fine for BD). A light provider-interface (BulkSMS now, others later) is nice-to-have.
+**Now:** Single `getSmsConfig()` helper in `setting.services.ts` is the source of truth — settings DB first (via the existing `settingCache`), `.env` as fallback. Both callers (`middlewares/send.otp.phone.ts`, `utils/send.order.sms.ts`) refactored to use it. `sms_enabled: false` short-circuits to silent no-op. Side fixes shipped together: split secret save endpoint (non-secret `PATCH /setting` vs secret `PATCH /setting/secrets`); admin sees masked last-4 of API key via `secrets_summary`; OTP path upgraded `http://` → `https://bulksmsbd.net/...`; new `storefront_base_url` settings field replaces hardcoded `SITE_URL`; `updateSettingServices` now uses `$set: patch` with `_id`/timestamps stripped and `SETTING_SECRET_FIELDS` whose incoming value is empty stripped — prevents cross-tab save from wiping unrelated secrets.
+
+A light provider-interface (BulkSMS now, others later) is still nice-to-have but deferred — no current client need.
 
 ## 13. Auth security — 🟡 several hardening items
 
@@ -226,7 +255,7 @@ Keystone block first, then commerce hardening:
 - **D — Wishlist** (🔴 small backend module)
 - **E — Payment** (🔴 order payment fields + SSLCommerz/bKash/Nagad + advance payment) — pairs with B
 - **F — Order hardening** (🟡 server-side total recompute + stock decrement in txn) — overlaps B/E
-- **G — SMS from settings** (🟡 read provider config from `setting`)
+- ~~**G — SMS from settings**~~ ✅ DONE (Sprint 2 C12, session 25)
 - **H — Auth hardening** (🟡 JWT user_id, shorter expiry, OTP rate-limit, admin password reset)
 - **I — Catalog integrity + bug fixes** (🟡 hierarchy validation, specification populate bug)
 - **J — Inventory/Purchasing** (🟢 only if a client needs stock-in/PO)
