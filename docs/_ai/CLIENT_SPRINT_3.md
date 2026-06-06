@@ -24,12 +24,12 @@
 
 **SCOPE EXPANDED 2026-06-05 (session 24 end):** Sprint 3 is now a real 2-3 week sprint, not a single item. Splits into 4 tracks:
 
-| Track | Doc | Effort |
-|---|---|---|
-| **A. Product Strip API audit + fix** (prerequisite — bestsellers actually bestsellers, etc.) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 2 | ~12-15h |
-| **B. Global Search 4-tier dropdown** (recent + popular keywords + live products + recommended) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 1 | ~11-13h |
-| **C. View More dedicated routing** (`/shop?sort=popular` etc, single canonical filtered listing) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 3 | ~3-5h |
-| **D. Home Layout Control + redesign** (74 owner toggles + 2 new modules + section variants) | [SPRINT_3_HOME_LAYOUT_TOGGLES.md](SPRINT_3_HOME_LAYOUT_TOGGLES.md) | ~35-45h |
+| Track | Doc | Effort | Status |
+|---|---|---|---|
+| **A. Product Strip API audit + fix** (prerequisite — bestsellers actually bestsellers, etc.) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 2 | ~12-15h | 🟡 BE done; FE deferred to FE redesign |
+| **B. Global Search 4-tier dropdown** (recent + popular keywords + live products + recommended) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 1 | ~11-13h | 🟡 Deferred to FE redesign (do FE+API together) |
+| **C. View More dedicated routing** (`/shop?sort=popular` etc, single canonical filtered listing) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 3 | ~3-5h | 🟡 Deferred to FE redesign |
+| **D. Home Layout Control + redesign** (74 owner toggles + 2 new modules + section variants) | [SPRINT_3_HOME_LAYOUT_TOGGLES.md](SPRINT_3_HOME_LAYOUT_TOGGLES.md) | ~35-45h | ✅ **DONE** (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`) |
 
 **Order matters:** A → B → C → D. Strip fix is foundation; toggling broken strips just hides the bug.
 

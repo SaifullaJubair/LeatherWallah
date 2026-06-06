@@ -25,7 +25,7 @@ ticked off as shipped, with the commit hash next to them.
 | 10 | Product UPDATE round-trip | ✅ DONE (BE `61a9631` — optional-FK clear fix) |
 | 11 | Pricing resolver (campaign/coupon/offer/combo) | 🟡 PARTIAL — Option α shipped (BE `50a4926` + FE `9a53444`): resolver doc-cleanup + FE cart parity helper + PDP offer-discovery banner. Offer-in-cart, BOGO, combo all deferred |
 | 12 | Page-content editor friendlier | ⏭ Deferred to Admin 2.0 |
-| Home redesign | ❌ Pending (after the above) |
+| Home redesign Track D | ✅ DONE — dynamic home_section_array + 2 new modules + 5 new FE sections (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`). FE redesign visual pass + Track B/C deferred to FE redesign sprint. |
 
 Anything marked "Deferred to Admin 2.0" lives in the [[admin-2-rebuild-backlog]]
 memory — owner-locked decision: do those in the ground-up admin rebuild, not

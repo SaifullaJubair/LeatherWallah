@@ -21,6 +21,7 @@
 
 | Work area | Code status | Test status |
 |-----------|-------------|-------------|
+| **Sprint 3 Track D — Home Layout Builder (BE+Admin+FE)** | ✅ Shipped session 30 (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`) | ⏸ PENDING |
 | Client Sprint Layer 1 BE (7 items) | ✅ Shipped session 19 | ⏸ PENDING |
 | Client Sprint Layer 2 Admin (6 items) | ✅ Shipped session 20 | ⏸ PENDING |
 | Client Sprint Layer 3 FE (13 items) | ✅ Shipped session 21 | ⏸ PENDING |
@@ -49,6 +50,83 @@
 ## Test backlog (priority order)
 
 ### 🔴 P1 — Smoke test before any deploy (~5 min)
+
+> ⚠️ **Sprint 3 Track D shipped (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`, 2026-06-06). New P2 scenarios added below.**
+
+---
+
+### 🟠 P2 — Sprint 3 Track D: Home Layout Builder (session 30, 2026-06-06)
+
+**Commits:** BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`
+**Touches:** BE setting schema+model+services+routes (60 new fields + home_section_array), siteFaq CRISM module, newsletterSubscriber CRISM+CSV+rate-limit, review/by-ids endpoint, role 7 new RBAC flags; Admin HomeLayoutTab (dnd-kit drag-drop), SiteFaqPage CRUD, NewsletterPage list+export, SettingPage+SettingS+SideNavBar+Route+permissionData; FE Home.jsx (server component rewrite), SectionRenderer (client), BrandStory, ReviewsCarousel, SiteFaqSection, NewsletterForm, ChatWidgetStacker, layout.js, FlashSale+getFlashSaleProducts (null-return fix), getServerSettingData (60s revalidate)
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| D1.1 | **Admin → Settings → Home Layout tab** — loads without error; 15 section rows visible with drag handles + toggles | Tab renders, all sections listed | ⏸ |
+| D1.2 | **Drag-drop reorder** — drag "Trending Products" above "New Arrivals" → Save → FE homepage: trending appears first | Sections reordered within ~60s | ⏸ |
+| D1.3 | **Section toggle off** — disable "Newsletter" section → Save → FE home: newsletter form gone | Toggle works end-to-end | ⏸ |
+| D1.4 | **Fresh DB backfill** — drop `home_section_array` from settings doc → reload FE → page still shows default sections (BE-side L9 backfill activates) | No crash; defaults render | ⏸ |
+| D1.5 | **Site FAQ round-trip** — Admin `/site-faq` → Add FAQ q+a → Save → FE home FAQ accordion shows it | FAQ CRUD + public endpoint works | ⏸ |
+| D1.6 | **FAQ toggle inactive** — Admin toggles FAQ status to inactive → FE home: FAQ hidden | Status filter working | ⏸ |
+| D1.7 | **Newsletter subscribe** — FE home newsletter form → enter email → Subscribe → "Thank you!" message | Public POST endpoint + form work | ⏸ |
+| D1.8 | **Newsletter validation** — submit empty form → shows error (not 500) | Client-side validation | ⏸ |
+| D1.9 | **Newsletter rate limit** — same IP submits 11 times in 1 hour → 11th gets 429 error | Rate limiter (10/hr) active | ⏸ |
+| D1.10 | **Admin → Newsletter Subscribers** — list shows subscribed emails; Export CSV downloads .csv file | List + CSV export work | ⏸ |
+| D1.11 | **Admin Newsletter delete** — delete one subscriber → removed from list | Delete works | ⏸ |
+| D1.12 | **Reviews Carousel auto_featured** — Admin Settings Home Layout → reviews_carousel config → mode: `auto_featured` → Save → FE shows 5-star reviews with photos | Auto-featured mode works | ⏸ |
+| D1.13 | **Reviews Carousel manual_pick** — enter JSON array of review _ids → FE shows only those reviews | Manual-pick mode works | ⏸ |
+| D1.14 | **Brand Story section** — Admin Settings → brand_story config: title + text + image URL → FE home shows brand story block | Brand story renders | ⏸ |
+| D1.15 | **Chat Messenger button** — Admin settings → enable Messenger, set page_id → FE bottom-right shows Messenger icon | ChatWidgetStacker works | ⏸ |
+| D1.16 | **Permission gate** — role without `site_faq_show` → no "Site FAQ" sidebar link; direct GET returns 403 | RBAC works | ⏸ |
+| D1.17 | **Flash sale section still works** — Flash Sale still renders/hides properly on home page | No regression from Home.jsx rewrite | ⏸ |
+
+---
+
+### 🟠 P2 — Sprint 3 Track A: Strip API + Seed Review + Analytics Seed (session 29, 2026-06-06)
+
+**Commits:** BE `9069064`, Admin `ad471bf`, FE `0d685e3`
+**Touches:** BE product.services/controllers/routes + productCountHistory model + review model/interface/services/controllers/routes + role model/interface + setting model/interface; Admin StorefrontBehaviourTab + permissionData + ProductListTablePage + SeedReviewPage + Route + SideNavBar; FE all strip consumers (6 files)
+
+**Pre-test:** For seed review RBAC, tick `review_seed_bulk` + `review_seed_manual` on super admin role. For analytics seed, tick `product_update` on super admin role.
+
+#### Strip API migration
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| S3.1 | **GET /top_selling** — `curl /api/v1/product/top_selling?page=1&limit=8` → products sorted by `sold_count` desc | Field `sold_count` descending; products with 0 sold_count in order at bottom | ⏸ |
+| S3.2 | **GET /new_arrival** — `curl /api/v1/product/new_arrival?page=1&limit=8` → products sorted by `createdAt` desc | Newest products first | ⏸ |
+| S3.3 | **GET /most_viewed** — `curl /api/v1/product/most_viewed?page=1&limit=8` → products sorted by `view_count` desc | Field `view_count` descending | ⏸ |
+| S3.4 | **Deprecated routes still respond** — `curl /api/v1/product/popular_product` + `curl /api/v1/product/ecommerce_choice_product` → both return 200 (backward compat) | No 404 on old routes | ⏸ |
+| S3.5 | **Storefront LatestProducts section** — homepage "New Arrival" section shows newest products by creation date (not most-sold) | Semantically correct now | ⏸ |
+| S3.6 | **Storefront TopProduct page** (`/top-product`) and ECommerceChoice section — both now show top-selling products | No crash; products load | ⏸ |
+| S3.7 | **/top_selling with category_id filter** — `curl /api/v1/product/top_selling?category_id=<id>` → products filtered to that category | Only products in that category returned | ⏸ |
+| S3.8 | **Average rating in strip results** — products in strip lists show correct avg rating (only `review_status:"active"` reviews counted — H1 fix) | No inflated ratings from pending/inactive reviews | 🔵 STATIC-VERIFIED |
+
+#### Analytics seed (sold_count / view_count)
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| S3.9 | **Admin clicks Sold/Views column** — Admin → Products list → click the "Sold/Views" cell on any product → `ProductAnalyticsSeedModal` opens with current values | Modal opens; inputs show current sold_count + view_count | ⏸ |
+| S3.10 | **Seed sold_count** — enter 50 in sold_count → Save → product card now shows "50 sold"; check DB `productcounthistories` collection → entry logged | sold_count updated; audit trail written | ⏸ |
+| S3.11 | **Dashboard real data unaffected** — seed sold_count/view_count on a product → Dashboard top-selling chart still reads from ORDERS collection, not from sold_count field | Dashboard not polluted by seed data | 🔵 STATIC-VERIFIED |
+| S3.12 | **No product_update permission** — limited admin without `product_update` → Product list Sold/Views cell NOT a clickable button; click does nothing | Permission gate working | ⏸ |
+
+#### Seed Review system
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| S3.13 | **Admin → Seed Reviews page** — sidebar "Seed Reviews" link visible when admin has `review_seed_bulk` or `review_seed_manual` → click → page loads with 3 tabs | Page accessible, tabs render | ⏸ |
+| S3.14 | **Bulk upload dry run** — Bulk tab → paste JSON array → tick "Dry Run" → Submit → result shows inserted/skipped/failed counts but NO DB write | Count feedback shown; no reviews in DB | ⏸ |
+| S3.15 | **Bulk upload live** — untick dry run → Submit → result shows inserted count; Admin → Reviews list → seeded reviews appear with `is_seeded:true` | Reviews written to DB with source:"csv_bulk" | ⏸ |
+| S3.16 | **Dedup guard** — submit same bulk JSON twice → second submit: all rows skipped (0 inserted); no duplicate reviews in DB | Dedup by (product_id + reviewer_name + review_description) | ⏸ |
+| S3.17 | **500 row limit** — submit bulk with 501 rows → rejected with "max 500 rows" error before DB write | Guard fires at input | ⏸ |
+| S3.18 | **Manual add** — Manual tab → fill form → Submit → review appears in Seeded Reviews List tab | Single seeded review created with source:"manual_admin" | ⏸ |
+| S3.19 | **Seeded Reviews List** — Seeded tab → paginated list shows all `is_seeded:true` reviews; delete one → row removed | Pagination + delete works | ⏸ |
+| S3.20 | **`enable_seeded_reviews=false` toggle** — Admin → Settings → Storefront Behaviour → "Show Seeded Reviews" OFF → Save → FE PDP review section shows only REAL customer reviews; seeded ones hidden | Storefront toggle works | ⏸ |
+| S3.21 | **`enable_seeded_reviews=true` (default)** — toggle ON → PDP shows all reviews including seeded | Default behavior; real + seeded shown | ⏸ |
+| S3.22 | **Permission gate** — admin with `review_show` only (no seed_bulk/seed_manual) → sidebar link absent; direct GET `/api/v1/review/seed/list` returns 403 for POST seed routes | RBAC enforced | ⏸ |
+
+---
 
 Run these first; if any fail, do NOT proceed to other tests:
 
