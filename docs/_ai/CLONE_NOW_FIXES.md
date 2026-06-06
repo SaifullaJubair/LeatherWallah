@@ -25,7 +25,7 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | B10 | `custom_fields` repeater | ✅ DONE |
 | C11 | Currency from settings | ✅ DONE (M28, BE+Admin+FE — `currency_code/symbol/name` + `getCurrencyCode()` + FE `formatCurrency()`) |
 | C12 | SMS from settings | ✅ DONE (Sprint 2 session 25 — `getSmsConfig()` helper, settings DB-first / .env-fallback, sms_enabled silent no-op, split secret save endpoint, masked last-4 display, https upgrade, `storefront_base_url` field, $set+strip-empty-secret guard in updateSettingServices) |
-| C13 | Shop-settings toggles | 🟡 Some shipped (`free_delivery_*`, `inside_dhaka_shipping_charge`, `vat_percentage`, advance-payment toggles); not all from ZatiqEasy list |
+| C13 | Shop-settings toggles | ✅ DONE (Sprint 2 session 26 — 13 Tier A+B toggles: setting schema+model, review enum+controller, order guards, productFilter OOS, Admin StorefrontBehaviourTab+PendingReviews, FE PDP+checkout+WhatsApp gates) |
 | C14 | Delivery zones beyond inside/outside Dhaka + per-product override | ✅ DONE (M20 — per-product `delivery_mode: inherit/free/flat/qty_threshold` + per-line-additive shipping + free-delivery rule on inherit only) |
 | D15 | Wishlist backend module | ✅ DONE (Sprint 2 session 25 — BE module already existed; FE wired: 2 remote helpers + WishlistLoader + 4 call-sites add/remove → cross-device sync working) |
 | D16 | Online payment gateway | ⚠️ Partial — order has `payment_method/payment_status/advance_amount` fields + SSLCommerz gateway scaffolding; full IPN/callback flow not verified |

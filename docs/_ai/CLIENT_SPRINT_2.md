@@ -242,7 +242,7 @@ Audit reality check: BE module + sync utility + login-flow wiring **already exis
 
 ---
 
-### **C13 — Shop toggles (EXPANDED, Tier A+B, ~8-10h, was 5-7h)** 🟡
+### **C13 — Shop toggles (EXPANDED, Tier A+B, ~8-10h, was 5-7h)** ✅ DONE 2026-06-06
 
 **Audit findings absorbed: 3 BLOCKERS + 4 HIGH + 4 MEDIUM**
 

@@ -33,6 +33,7 @@
 | Sprint 2 — D15 Wishlist BE wire-up | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — 11β Coupon BOGO wire-up | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — H Auth hardening (Admin ForgotPassword + 3 BE fixes) | ✅ Shipped session 25 | ⏸ PENDING |
+| Sprint 2 — C13 Storefront Behaviour toggles (13 toggles, all 3 apps) | ✅ Shipped session 26 | ⏸ PENDING |
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
@@ -56,6 +57,26 @@ If P1 passes, proceed to specific feature tests below.
 ---
 
 ### 🟠 P2 — Recently shipped (this session 23-cont — 2026-06-05)
+
+#### Sprint 2 — C13: Storefront Behaviour toggles (~10h, session 26)
+**Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) C13 section (3 BLOCKERS + 4 HIGH + 2 MEDIUM absorbed)
+**Touches:** BE setting schema+model, review model+interface+controller, order controller, productFilter services; Admin StorefrontBehaviourTab, PendingReviews page, Route, SideNavBar; FE PdpPriceMeta, ProductHighlightSection, both SingleProduct.jsx, ProductThemedSections, CartSummary, DeliveryInformation, AddToCart, FloatingWhatsApp, (frontend)/layout.js
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| C13.1 | Admin → Settings → Storefront Behaviour tab visible + saves 13 toggles | Tab appears in sidebar Settings; all 13 fields save; reload persists | ⏸ |
+| C13.2 | `auto_approve_reviews=false` → customer submits review → status = pending | Review in DB has `review_status:"pending"`, not "active" | ⏸ |
+| C13.3 | Admin → Pending Reviews → approve a pending review | Review shows on PDP after approve | ⏸ |
+| C13.4 | `maintain_stock=false` → place order for OOS product | Order succeeds; stock count unchanged in DB | ⏸ |
+| C13.5 | `min_order_amount=500` → attempt order with ৳300 cart | BE returns 400 "Minimum order ৳500"; FE shows hint in CartSummary | ⏸ |
+| C13.6 | `hide_out_of_stock_products=true` → OOS products hidden in /shop | OOS products absent from listing; in-stock appear normally | ⏸ |
+| C13.7 | `show_sold_count=false` → PDP sold count badge hidden | No "X জন কিনেছে" badge visible on standard + themed PDP | ⏸ |
+| C13.8 | `show_stock_count_on_pdp=true` → PDP shows exact stock number | "Only N left!" shows on standard PDP; stock count shows on themed order section | ⏸ |
+| C13.9 | `enable_reviews=false` → PDP review section hidden | Review accordion absent on standard PDP; ReviewsSection absent on themed PDP | ⏸ |
+| C13.10 | `allow_image_download=false` → right-click on product image blocked | Context menu suppressed on product photo area (right-click shows nothing) | ⏸ |
+| C13.11 | `enable_whatsapp_chat=true` + `whatsapp_number=01XXXXXXXXX` → floating button appears | Green WhatsApp button at bottom-right; click opens wa.me link | ⏸ |
+| C13.12 | `show_email_field_checkout=false` → email input absent at checkout | No email input in DeliveryInformation form | ⏸ |
+| C13.13 | `enable_promo_at_checkout=false` → coupon section hidden at checkout | No coupon Apply section in CartSummary | ⏸ |
 
 #### Sprint 2 — C12: SMS settings runtime read (~3h, session 25)
 **Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) C12 section (2 BLOCKERS + 3 HIGH)
