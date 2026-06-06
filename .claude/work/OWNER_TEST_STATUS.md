@@ -31,6 +31,7 @@
 | Group B — Item 10 UPDATE round-trip | ✅ Shipped session 23-cont | ⏸ PENDING |
 | Sprint 2 — C12 SMS settings runtime read | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — D15 Wishlist BE wire-up | ✅ Shipped session 25 | ⏸ PENDING |
+| Sprint 2 — 11β Coupon BOGO wire-up | ✅ Shipped session 25 | ⏸ PENDING |
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
@@ -69,6 +70,22 @@ If P1 passes, proceed to specific feature tests below.
 | C12.6 | **Silent no-op when disabled** — Admin toggles `sms_enabled: false` → place a guest order → order succeeds 200, no BulkSMS network call, no error toast. Toggle back ON → next order sends SMS again | ⏸ |
 | C12.7 | **Anonymous checkout regression** — Owner-locked rule: guest checkout must still work with these SMS changes. Place anonymous order → success page reached, SMS attempted (or silently skipped if disabled) | ⏸ |
 | C12.8 | **Wrong API key graceful failure** — Admin sets a bogus key → place order → order still 200, BE log has BulkSMS error response (`response_code !== 202`), customer sees normal success page | ⏸ |
+
+#### Sprint 2 — 11β: Coupon BOGO wire-up (~6h, session 25)
+**Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) 11β section (3 BLOCKERS + 4 HIGH + 2 MEDIUM)
+**Touches:** BE `coupon.model.ts`/`coupon.controllers.ts`/`coupon.services.ts`/`order.controller.ts`/`order.recompute.ts`; Admin `AddCoupon.jsx`/`UpdateCoupon.jsx`; FE `applyCartLayers.js`/`CouponSection.jsx`/`CartSummary.jsx`
+**Pre-test:** create a BOGO coupon in admin first (`/your-coupon` → Create → type=BOGO → buy 2 get 1 at 100% off, total avail = 5).
+
+| # | Scenario | Status |
+|---|----------|--------|
+| 11β.1 | **Admin creates BOGO coupon** — `/your-coupon` → Create → type=BOGO → fill buy_qty=2 get_qty=1 discount_pct=100 → saves OK (previously rejected by `coupon_amount required`) | ⏸ |
+| 11β.2 | **Admin edits BOGO coupon** — open Update modal → change discount_pct to 50 → save → reopen → field shows 50 (previously silent no-op; only status saved) | ⏸ |
+| 11β.3 | **Anonymous BOGO applies** — Guest user: add 3 items to cart (৳300/৳200/৳100) → open `/cart` → coupon input visible (no login gate) → enter BOGO code → cart shows ৳100 discount on cheapest line | ⏸ |
+| 11β.4 | **Anonymous BOGO checkout** — place anon order with applied BOGO → order succeeds → BE order has `discount_amount: 100`, `coupon_id` set | ⏸ |
+| 11β.5 | **Atomic decrement race** — set coupon_available=1; place 2 concurrent BOGO orders → one succeeds, the other gets 409 "Coupon stock exhausted" toast; coupon_available ends at 0 (NOT -1) | ⏸ |
+| 11β.6 | **Campaign-zero line skip (M3)** — cart has 1 line at ৳0 (campaign brought to zero) + 1 line at ৳200 → BOGO targets the ৳200 line, not the ৳0 line | ⏸ |
+| 11β.7 | **Specific-product BOGO scope** — BOGO created with `coupon_specific_product=[X]`; cart has X + Y items → discount only applies to X line | ⏸ |
+| 11β.8 | **Non-BOGO anon coupon rejection** — Guest user enters a fixed/percent (non-BOGO) code → BE recompute rejects (no customer_id) → toast surfaces; no order placed with bogus discount | ⏸ |
 
 #### Sprint 2 — D15: Wishlist BE wire-up (~3h, session 25)
 **Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) D15 section (wave-1 audit: BE module already correct; FE wire missing)

@@ -22,7 +22,7 @@
 - [x] **D15** Wishlist fix + complete ✅ SHIPPED 2026-06-05 session 25 — 3 BLOCKERS fixed (WishlistLoader + add/remove BE wire). BE module untouched (already correct).
 
 ## Bucket 3 — Schema-ready
-- [ ] **11β** Coupon BOGO wire-up — includes 3 BLOCKERS (FE applyBogoCoupon, schema required guard, admin form bogo option) + 4 HIGH (updateCouponServices fix, anonymous wire, findACoupon optional customer_id, atomic decrement)
+- [x] **11β** Coupon BOGO wire-up ✅ SHIPPED 2026-06-05 session 25 — 3 BLOCKERS + 4 HIGH + 2 MEDIUM (M3 + N1) all in. BE + Admin + FE builds green.
 
 ## Bucket 4 — Backend hardening
 - [ ] **H** Auth hardening — Admin FE ForgotPassword page + 3 BE bug fixes (wave 1 contract)
@@ -49,8 +49,8 @@
 
 ## NEXT — Resume here
 
-**On RESUME: start coding 11β Coupon BOGO wire-up** — owner-locked Sprint 2 execution order: ~~C12~~ → ~~Item 5~~ → ~~D15~~ → **11β ← next code** → H → C13 → E20 → D18.
+**On RESUME: start coding H Auth hardening** — owner-locked Sprint 2 execution order: ~~C12~~ → ~~Item 5~~ → ~~D15~~ → ~~11β~~ → **H ← next code** → C13 → E20 → D18.
 
-11β: 3 BLOCKERS (FE applyBogoCoupon, schema required guard, admin bogo option) + 4 HIGH (updateCouponServices fix, anonymous wire D6, findACoupon optional customer_id, atomic decrement) — see CLIENT_SPRINT_2.md 11β section. ~6h.
+H: Admin FE ForgotPassword page (~2-3h) + 3 BE bug fixes (~1h) — wave 1 contract preserved in CLIENT_SPRINT_2.md H section. ~3-4h total.
 
-First step on resume: check OWNER_TEST_STATUS.md for any C12 or D15 P2 failures from owner's in-between testing — those take priority over 11β.
+First step on resume: check OWNER_TEST_STATUS.md for any C12 / D15 / 11β P2 failures from owner's in-between testing — those take priority over H.

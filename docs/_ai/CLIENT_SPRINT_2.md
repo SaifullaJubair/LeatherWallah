@@ -155,9 +155,31 @@ Audit reality check: BE module + sync utility + login-flow wiring **already exis
 
 ---
 
-### **11β — Coupon BOGO wire-up** 🟡 medium (~6h, was 4h)
+### **11β — Coupon BOGO wire-up** ✅ SHIPPED 2026-06-05 (session 25)
 
 **Audit findings absorbed: 3 BLOCKERS + 4 HIGH + 5 MEDIUM**
+
+**Status:** 3 BLOCKERS + 4 HIGH + 2 MEDIUM (M3 + N1) all landed. Builds: BE tsc EXIT 0, Admin Vite EXIT 0 (6.23s), FE Next compile EXIT 0 (27.3s). Commits: BE `7238bd0` (batch 1) + Admin batch 2 + FE batch 2.
+
+**What shipped:**
+- ✅ BLOCKER 1 → FE `applyCartLayers.js` adds `applyBogoCoupon()` mirror of BE recompute (cheapest qualifying line × get_qty × pct), inserted as layer 6 after cart-level coupon; cart now shows the same BOGO discount BE will compute
+- ✅ BLOCKER 2 → `coupon.model.ts` `coupon_amount` is now `required: function() { return this.coupon_type !== 'bogo' }` + `default: 0`; admin BOGO save no longer rejected by Mongoose validator
+- ✅ BLOCKER 3 → Admin `AddCoupon.jsx` adds `<option value="bogo">BOGO</option>` + 3 conditional fields (`bogo_buy_qty`/`bogo_get_qty`/`bogo_get_discount_pct`) with FE validators; `UpdateCoupon.jsx` rewritten from status-only modal to full editable form mirroring Add
+- ✅ HIGH 4 → `updateCouponServices` rewrite: was `coupon_status`-only (silent no-op on every other edit); now `$set` on allowlisted editable fields incl. bogo_*
+- ✅ HIGH 5 → FE `CouponSection.jsx` + `CartSummary.jsx`: login gate removed; coupon input always shown so anon FB-ad traffic can enter BOGO codes
+- ✅ HIGH 6 → `findACoupon` controller: `customer_id` now optional; specific-customer allowlist + per-user usage cap skip when no customer_id
+- ✅ HIGH 7 → `handleCouponUsage`: atomic `findOneAndUpdate({_id, coupon_available:{$gt:0}}, {$inc:-1})`; race-lost path throws 409 "Coupon stock exhausted"; coupon_used row skip when anon
+- ✅ M3 (campaign-stacking guard) → BOGO recompute skips lines where `product_unit_final_price <= 0` so it can't double-discount a campaign-zeroed line
+- ✅ N1 (validators) → `bogo_buy_qty`/`bogo_get_qty` `min:1`, `bogo_get_discount_pct` `min:0 max:100`
+- ✅ BE recompute: per-person cap also skips for anon (`customer_id` absent)
+
+**Anonymous checkout impact:** None — anon BOGO is the explicit D6 enable path; non-BOGO codes still fail for anon at recompute (no behavior regression).
+
+**Tests:** See OWNER_TEST_STATUS.md → P2 11β.1-11β.8.
+
+**Deferred:**
+- M2 specific-product scope semantics — documented (default = scope to specific list if set, whole cart otherwise; no extra config)
+- M4 refund accounting (`bogo_discount_line_product_id` snapshot) — operations grep order line for now
 
 **Owner D-locks for 11β: D6 anonymous allowed, D7 stock decrements per order.**
 

@@ -43,7 +43,7 @@ Many "🔴 must" items from this doc shipped during the Client Sprint (sessions 
 
 1. **🔴 S — `specifications` populate bug.** `product.services.ts (~4214)` populates `specifications.specification_id` with `model: "attributes"` — should be `"specifications"`. Breaks spec display. One-line fix.
 2. **🟡 S — Product UPDATE drops `attributes_details`.** The full multipart `PATCH /product` rebuild doesn't carry `attributes_details`, so editing a variation product can wipe its attribute metadata. Add the field to the update payload assembly. (We already split page-content to `/product/page-content`; this is the *full-edit* path — see [[product-update-route-is-full-rebuild]].)
-3. **🟡 S — Coupon date-range not validated server-side.** Coupon relies only on `status` toggle; add `coupon_start_date`/`coupon_end_date` check in `check_coupon`. Add optional min-order-value too.
+3. **🟡 S — Coupon date-range not validated server-side.** Coupon relies only on `status` toggle; add `coupon_start_date`/`coupon_end_date` check in `check_coupon`. Add optional min-order-value too. ✅ Date-range done in M18 (BE `8873f56`). 11β session 25 added: BOGO discount math (cheapest-eligible × get_qty × pct), `updateCouponServices` $set patch on all editable fields (was status-only), atomic `coupon_available` decrement, anonymous BOGO (D6).
 4. **🟢 S — OTP/JWT hardening (low-risk parts):** verify OTP expiry on all paths; put `_id` in user/admin JWT (not just phone); shorten 365d expiry to ~30d. (Bigger refresh-token work deferred.)
 
 ## B. Additive product fields (schema add, back-compat, no rewrite) — like ZatiqEasy
