@@ -35,6 +35,7 @@
 | Sprint 2 — H Auth hardening (Admin ForgotPassword + 3 BE fixes) | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — C13 Storefront Behaviour toggles (13 toggles, all 3 apps) | ✅ Shipped session 26 | ⏸ PENDING |
 | Sprint 2 — E20 Dashboard auth gate + widgets + compound index | ✅ Shipped session 27 | ⏸ PENDING |
+| Sprint 2 — D18 Admin Create Order POS | ✅ Shipped session 28 | ⏸ PENDING |
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
@@ -58,6 +59,24 @@ If P1 passes, proceed to specific feature tests below.
 ---
 
 ### 🟠 P2 — Recently shipped (this session 23-cont — 2026-06-06)
+
+#### Sprint 2 — D18: Admin Create Order POS (~8-10h, session 28)
+**Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) D18 section (3 BLOCKERS + 4 HIGH + 3 MEDIUM)
+**Touches:** BE `role.interface.ts` + `role.model.ts` + `order.interface.ts` + `order.model.ts` + `order.controller.ts` + `order.routes.ts` + `order.service.ts`; Admin `permissionData.js` + new `CreateOrderPage/CreateOrderPage.jsx` + `Route.jsx` + `SideNavBar.jsx` + `OrderPage.jsx`
+**Pre-test:** Tick `order_create_admin: true` on super admin role (via Admin → Role Management, or run: `db.roles.updateMany({}, {$set:{order_create_admin:true}})`).
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| D18.1 | **BLOCKER 1 — limited admin blocked** — create role WITHOUT `order_create_admin` → log in → no "Create POS Order" sidebar link; direct POST `/api/v1/order/create-admin` returns 403 | Permission gate working | ⏸ |
+| D18.2 | **Happy path POS order** — super admin: sidebar "Create POS Order" → search product → add 2 lines, pick variations → enter walk-in name + phone → delivery type = pickup → Submit → "POS Order Created!" toast, redirected to /order?tab=all | Order in DB with `order_source:"admin"`, `admin_created_by:<admin id>` | ⏸ |
+| D18.3 | **Delivery POS order** — same but delivery type = Home Delivery → enter address + shipping zone → Submit → order has `shipping_cost > 0`, `billing_address` saved | Shipping cost from zone selection | ⏸ |
+| D18.4 | **BLOCKER 2 — no userUpdate overwrite** — pick existing registered customer (search by phone) → submit POS order with a DIFFERENT address → open Customer page → customer's original `user_division`/`user_district`/`user_address` unchanged in DB | Returning customer's saved address not overwritten | ⏸ |
+| D18.5 | **Manual discount (D11)** — enter ৳50 discount + reason "Staff discount" → order saved with `admin_manual_discount: 50`, `discount_amount: 50`, `manual_discount_reason: "Staff discount"`, `grand_total = sub_total + shipping - 50` | Correct total, coupon not touched | ⏸ |
+| D18.6 | **No Meta/TikTok CAPI (D10)** — place POS order → Meta Pixel debug tool / network tab shows NO "Purchase" event fired | Pixel audience not polluted | 🔵 STATIC-VERIFIED |
+| D18.7 | **No SMS (D10)** — place POS order → BE logs show no BulkSMS call fired | Walk-in doesn't receive SMS | 🔵 STATIC-VERIFIED |
+| D18.8 | **POS Orders tab** — Order List page → click "POS Orders" tab → shows only orders with `order_source: "admin"` | Filtered correctly; regular storefront orders not shown | ⏸ |
+| D18.9 | **BLOCKER 3 — Pathao zone optional** — POS walk-in order saved without `pathao_city_id` / `pathao_zone_id` → Mongoose does NOT throw validation error; order persists | No required-field crash | ⏸ |
+| D18.10 | **Storefront order not affected** — place regular storefront order → `order_source: "storefront"` (or absent/default) → SMS fired, Meta Purchase event fires, userUpdate runs normally | Regression: POS branch only for admin route | ⏸ |
 
 #### Sprint 2 — E20: Dashboard auth gate + widgets (~6-7h, session 27)
 **Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) E20 section (2 BLOCKERS + 4 HIGH + 2 MEDIUM)

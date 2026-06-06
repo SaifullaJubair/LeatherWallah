@@ -390,7 +390,7 @@ Audit reality check: BE module + sync utility + login-flow wiring **already exis
 
 ---
 
-### **D18 — Admin "Create Order" POS** 🟢 medium-large (~8-10h, was 6-8h)
+### **D18 — Admin "Create Order" POS** ✅ DONE 2026-06-06 (session 28)
 
 **Audit findings absorbed: 3 BLOCKERS + 4 HIGH + 5 MEDIUM**
 

@@ -30,7 +30,7 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | D15 | Wishlist backend module | ✅ DONE (Sprint 2 session 25 — BE module already existed; FE wired: 2 remote helpers + WishlistLoader + 4 call-sites add/remove → cross-device sync working) |
 | D16 | Online payment gateway | ⚠️ Partial — order has `payment_method/payment_status/advance_amount` fields + SSLCommerz gateway scaffolding; full IPN/callback flow not verified |
 | D17 | FB Product Feed XML | ✅ DONE (`productFeed.controllers.ts` confirmed live) |
-| D18 | Richer order status + admin order create | 🟡 Partial — admin order edit/courier flow exists; admin "create order" POS not built |
+| D18 | Richer order status + admin order create | ✅ DONE (Sprint 2 session 28 — order_create_admin flag 4-point sync, postAdminOrder endpoint, skip CAPI+SMS+userUpdate, admin_manual_discount schema, Pathao fields optional, CreateOrderPage POS form, POS Orders tab) |
 | E19 | Customer list improvements | ✅ DONE (B1 admin — Type column + guest/registered filter, sessions 20-21) |
 | E20 | Dashboard widgets | ✅ DONE (Sprint 2 session 27 — dashboard_show flag 4-point sync, auth gate on all 3 routes, 2 widget endpoints top-selling+orders-by-status, BST timezone, revenue excl. cancel/return, compound index on orders, dummy data purged, period selector 7/30/90) |
 | E21 | Product list polish | ✅ DONE (A2 — list-page rewrite with 5 column modals, BE `318de36` + Admin `2851d17`) |
