@@ -27,7 +27,7 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | C12 | SMS from settings | ✅ DONE (Sprint 2 session 25 — `getSmsConfig()` helper, settings DB-first / .env-fallback, sms_enabled silent no-op, split secret save endpoint, masked last-4 display, https upgrade, `storefront_base_url` field, $set+strip-empty-secret guard in updateSettingServices) |
 | C13 | Shop-settings toggles | 🟡 Some shipped (`free_delivery_*`, `inside_dhaka_shipping_charge`, `vat_percentage`, advance-payment toggles); not all from ZatiqEasy list |
 | C14 | Delivery zones beyond inside/outside Dhaka + per-product override | ✅ DONE (M20 — per-product `delivery_mode: inherit/free/flat/qty_threshold` + per-line-additive shipping + free-delivery rule on inherit only) |
-| D15 | Wishlist backend module | ❌ Still localStorage-only |
+| D15 | Wishlist backend module | ✅ DONE (Sprint 2 session 25 — BE module already existed; FE wired: 2 remote helpers + WishlistLoader + 4 call-sites add/remove → cross-device sync working) |
 | D16 | Online payment gateway | ⚠️ Partial — order has `payment_method/payment_status/advance_amount` fields + SSLCommerz gateway scaffolding; full IPN/callback flow not verified |
 | D17 | FB Product Feed XML | ✅ DONE (`productFeed.controllers.ts` confirmed live) |
 | D18 | Richer order status + admin order create | 🟡 Partial — admin order edit/courier flow exists; admin "create order" POS not built |
@@ -35,7 +35,7 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | E20 | Dashboard widgets | 🟡 Some built (S6/S7/S8 dashboards); full ZatiqEasy widget set not done |
 | E21 | Product list polish | ✅ DONE (A2 — list-page rewrite with 5 column modals, BE `318de36` + Admin `2851d17`) |
 
-Many "🔴 must" items from this doc shipped during the Client Sprint (sessions 19-21) plus the analytics work (session 23) and Sprint 2 quick wins (session 25 onward). Big remaining buckets: **Wishlist backend (D15)**, **Payment gateway IPN/verify flow (D16)**, **Online payment full E2E**.
+Many "🔴 must" items from this doc shipped during the Client Sprint (sessions 19-21) plus the analytics work (session 23) and Sprint 2 quick wins (session 25 onward). Big remaining buckets: **Payment gateway IPN/verify flow (D16)**, **Online payment full E2E**.
 
 ---
 

@@ -30,6 +30,7 @@
 | Group B — Item 11α Pricing resolver | ✅ Shipped session 23-cont | ⏸ PENDING |
 | Group B — Item 10 UPDATE round-trip | ✅ Shipped session 23-cont | ⏸ PENDING |
 | Sprint 2 — C12 SMS settings runtime read | ✅ Shipped session 25 | ⏸ PENDING |
+| Sprint 2 — D15 Wishlist BE wire-up | ✅ Shipped session 25 | ⏸ PENDING |
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
@@ -68,6 +69,22 @@ If P1 passes, proceed to specific feature tests below.
 | C12.6 | **Silent no-op when disabled** — Admin toggles `sms_enabled: false` → place a guest order → order succeeds 200, no BulkSMS network call, no error toast. Toggle back ON → next order sends SMS again | ⏸ |
 | C12.7 | **Anonymous checkout regression** — Owner-locked rule: guest checkout must still work with these SMS changes. Place anonymous order → success page reached, SMS attempted (or silently skipped if disabled) | ⏸ |
 | C12.8 | **Wrong API key graceful failure** — Admin sets a bogus key → place order → order still 200, BE log has BulkSMS error response (`response_code !== 202`), customer sees normal success page | ⏸ |
+
+#### Sprint 2 — D15: Wishlist BE wire-up (~3h, session 25)
+**Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) D15 section (wave-1 audit: BE module already correct; FE wire missing)
+**Touches:** FE `wishlistSync.js` (2 new helpers), `Providers.jsx` (WishlistLoader), `singeProduct/SingleProduct.jsx`, `themedProduct/singeProduct/SingleProduct.jsx`, `WishList.jsx`, `UserDashboardWishList.jsx`
+**Pre-test:** ensure 2 devices/browsers signed in as same user. Each device starts with empty localStorage `wishlist`.
+
+| # | Scenario | Status |
+|---|----------|--------|
+| D15.1 | **Guest → login cross-device** — Device A logged-out: add 2 products to wishlist (PDP heart). Then log in on Device A → page automatically syncs. Now log in on Device B (fresh browser, empty local) → wishlist page shows both items | ⏸ |
+| D15.2 | **Logged-in add on Device A** — Both devices logged in. Device A: add product to wishlist via PDP heart icon → see Network tab fires `POST /wishlist/add` (200). Device B: reload → wishlist page shows the new item | ⏸ |
+| D15.3 | **Logged-in remove on Device A** — Both devices have same item in wishlist. Device A: visit `/wishlist` → click trash → Network fires `POST /wishlist/remove`. Device B reload → item gone | ⏸ |
+| D15.4 | **Guest local + login union-merge** — Device A logged-out: add product X. Device B logged-in: add product Y. Now log in on Device A → both X and Y present (no duplicate, no loss) | ⏸ |
+| D15.5 | **Anonymous PDP heart still works** — Logged-out user: PDP heart click → toast appears, localStorage updated, NO `/wishlist/add` POST fired (verify Network tab is empty for that call). Guest-only wishlist preserved | ⏸ |
+| D15.6 | **BE down resilience** — Stop backend → logged-in user clicks PDP heart → UI still shows "Added to wishlist" toast (localStorage wins) → no error toast surfaces. Restart BE → next add succeeds | ⏸ |
+| D15.7 | **WishlistLoader fires once per login** — Open fresh tab as logged-in user → Network tab shows exactly one `GET /wishlist` on mount. Refresh page → fires again. Same userInfo across re-renders → does not refire | ⏸ |
+| D15.8 | **UserDashboard remove also fires BE** — Visit `/user/wishlist` (UserDashboardWishList) → click trash → both localStorage AND BE removed (verify next-load on Device B) | ⏸ |
 
 #### Post-hoc audit follow-ups — 5 BLOCKERS + 6 HIGH fixed
 **Source:** 4 plan-edge-auditor sub-agents run on already-shipped code

@@ -134,11 +134,24 @@ Owner manual test only. Document in OWNER_TEST_STATUS. If bug found, file as sep
 
 ---
 
-### **D15 — Wishlist (revised after audit)** 🔴 medium (~5-6h, wave 1 contract unchanged)
+### **D15 — Wishlist (revised after audit)** ✅ SHIPPED 2026-06-05 (session 25)
 
-Audit reality check: BE module + sync utility + login-flow wiring **already exist on disk**. Plan = fix + complete missing pieces. 8-step fix list in original plan section retained as-is — see prior commit.
+Audit reality check: BE module + sync utility + login-flow wiring **already exist on disk**. Plan = fix + complete missing pieces.
 
-**Anonymous checkout impact:** None.
+**What shipped (4 code changes, ~3h, BE untouched):**
+1. **`wishlistSync.js`** — added 2 helpers: `addToWishlistRemote(productId, variation_product_id, isLoggedIn)` + `removeFromWishlistRemote(...)`. Fire-and-forget POSTs that BE upsert/delete; guest skips, errors silent (localStorage already winner)
+2. **`Providers.jsx`** — added `<WishlistLoader />` (mirror of CartLoader): on `userInfo._id` change → `loadWishlistFromDB()` union-merges BE → localStorage. Resolves BLOCKER 1 (no Loader) + login race (#4)
+3. **PDP heart toggle (regular + themed)** — both `singeProduct/SingleProduct.jsx` and `themedProduct/singeProduct/SingleProduct.jsx` now call `addToWishlistRemote` / `removeFromWishlistRemote` alongside the localStorage write. Resolves BLOCKER 2
+4. **`WishList.jsx` + `UserDashboardWishList.jsx`** — trash button on both wishlist pages calls `removeFromWishlistRemote`. Resolves BLOCKER 3
+
+**Anonymous checkout impact:** None. Guest PDP heart skip path verified (D15.5 scenario).
+
+**Tests:** See OWNER_TEST_STATUS.md → P2 D15.1-D15.8.
+
+**Deferred (not in scope):**
+- `notify_back_in_stock` UI — schema flag exists, UI build later
+- Admin Wishlist viewer page — BE route exists; out of Sprint 2 D15 scope
+- Push-back of local-only items on load (rare edge case — local adds always go through remote helper now anyway)
 
 ---
 

@@ -19,7 +19,7 @@
 - [ ] **Item 5** `/products-original` regression verify (owner test, document only)
 
 ## Bucket 2 — Cross-app feature
-- [ ] **D15** Wishlist fix + complete (8-step fix list from wave 1)
+- [x] **D15** Wishlist fix + complete ✅ SHIPPED 2026-06-05 session 25 — 3 BLOCKERS fixed (WishlistLoader + add/remove BE wire). BE module untouched (already correct).
 
 ## Bucket 3 — Schema-ready
 - [ ] **11β** Coupon BOGO wire-up — includes 3 BLOCKERS (FE applyBogoCoupon, schema required guard, admin form bogo option) + 4 HIGH (updateCouponServices fix, anonymous wire, findACoupon optional customer_id, atomic decrement)
@@ -49,8 +49,8 @@
 
 ## NEXT — Resume here
 
-**On RESUME: start coding Item 5 verify (5 min owner test doc-only) then D15 Wishlist** — owner-locked Sprint 2 execution order: C12 → Item 5 → D15 → 11β → H → C13 → E20 → D18.
+**On RESUME: start coding 11β Coupon BOGO wire-up** — owner-locked Sprint 2 execution order: ~~C12~~ → ~~Item 5~~ → ~~D15~~ → **11β ← next code** → H → C13 → E20 → D18.
 
-D15 is the next code-touching item. Read CLIENT_SPRINT_2.md D15 + wave-1 audit contract (8-step fix list) before code; BE module + sync utility already exist on disk per wave-1 audit — plan is fix + complete, not greenfield.
+11β: 3 BLOCKERS (FE applyBogoCoupon, schema required guard, admin bogo option) + 4 HIGH (updateCouponServices fix, anonymous wire D6, findACoupon optional customer_id, atomic decrement) — see CLIENT_SPRINT_2.md 11β section. ~6h.
 
-First step on resume: check OWNER_TEST_STATUS.md for any C12 P2 failures from owner's in-between testing — those take priority over D15.
+First step on resume: check OWNER_TEST_STATUS.md for any C12 or D15 P2 failures from owner's in-between testing — those take priority over 11β.
