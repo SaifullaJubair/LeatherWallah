@@ -34,6 +34,7 @@
 | Sprint 2 — 11β Coupon BOGO wire-up | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — H Auth hardening (Admin ForgotPassword + 3 BE fixes) | ✅ Shipped session 25 | ⏸ PENDING |
 | Sprint 2 — C13 Storefront Behaviour toggles (13 toggles, all 3 apps) | ✅ Shipped session 26 | ⏸ PENDING |
+| Sprint 2 — E20 Dashboard auth gate + widgets + compound index | ✅ Shipped session 27 | ⏸ PENDING |
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
@@ -56,7 +57,25 @@ If P1 passes, proceed to specific feature tests below.
 
 ---
 
-### 🟠 P2 — Recently shipped (this session 23-cont — 2026-06-05)
+### 🟠 P2 — Recently shipped (this session 23-cont — 2026-06-06)
+
+#### Sprint 2 — E20: Dashboard auth gate + widgets (~6-7h, session 27)
+**Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) E20 section (2 BLOCKERS + 4 HIGH + 2 MEDIUM)
+**Touches:** BE `role.interface.ts` + `role.model.ts` + `dashboard.routes.ts` + `dashboard.controllers.ts` + `order.model.ts` + `tsconfig.json`; Admin `permissionData.js` + `SideNavBar.jsx` + `DashBoard.jsx`; new `scripts/tick-dashboard-show.ts`
+**Pre-test:** Run migration script `npx ts-node scripts/tick-dashboard-show.ts` so super admin can access dashboard.
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| E20.1 | **BLOCKER 1 — anonymous curl blocked** — `curl GET /api/v1/dashboard` (no cookie) → 401 response | Was previously 200 with all stats; now gated | ⏸ |
+| E20.2 | **Super admin dashboard loads** — log in as superadmin → visit `/` → stat cards all show real counts (Orders/Customers/Products/Staff/Reviews/Categories/Brands) | No dummy data, real DB counts | ⏸ |
+| E20.3 | **Limited admin redirect** — create a role WITHOUT `dashboard_show` → log in → admin sidebar has no Dashboard link, direct GET /api/v1/dashboard returns 403 | Revenue data not accessible | ⏸ |
+| E20.4 | **Period selector 7/30/90** — switch between periods → "Orders by Status" chart + revenue summary + top-selling list all update | Three buttons active state switches, data refreshes | ⏸ |
+| E20.5 | **Revenue widget excludes cancel/return** — place one order, cancel it → revenue widget shows ৳0 for that order (only active orders counted) | Only non-cancel/non-return included | ⏸ |
+| E20.6 | **Orders-by-status chart** — place orders with different statuses → chart bars reflect real counts per status | Real data, not hardcoded dummy Jan/Feb/Mar bars | ⏸ |
+| E20.7 | **Top-selling list** — place 3 orders for same product → appears at position 1 in Top Selling (last 7 days) | Sorted by quantity sold desc, product name + thumbnail show | ⏸ |
+| E20.8 | **Empty period graceful** — set period 7 days with no recent orders → chart shows "No orders in this period", top-selling shows "No sales in this period" | No crash, empty state shown | ⏸ |
+| E20.9 | **BST boundary (D9)** — order placed at 11:55 PM BST → appears in "today" revenue in dashboard | BST midnight used, not UTC midnight | 🔵 STATIC-VERIFIED |
+| E20.10 | **Steadfast balance card still works** — click refresh on Steadfast balance card → fetches live balance | Not broken by dashboard auth gate | ⏸ |
 
 #### Sprint 2 — C13: Storefront Behaviour toggles (~10h, session 26)
 **Plan:** [docs/_ai/CLIENT_SPRINT_2.md](../../docs/_ai/CLIENT_SPRINT_2.md) C13 section (3 BLOCKERS + 4 HIGH + 2 MEDIUM absorbed)

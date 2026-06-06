@@ -333,7 +333,7 @@ Audit reality check: BE module + sync utility + login-flow wiring **already exis
 
 ---
 
-### **E20 — Dashboard widgets full set** 🟢 medium (~6-7h, was 4-5h)
+### **E20 — Dashboard widgets full set** ✅ DONE 2026-06-06
 
 **Audit findings absorbed: 2 BLOCKERS + 4 HIGH + 3 MEDIUM**
 
