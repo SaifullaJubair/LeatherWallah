@@ -39,6 +39,11 @@
 
 **Nothing has been live-tested by owner yet.** All shipped on `v2` branch; no merges to `main`; no deploys.
 
+> ⚠️ **3 bugs fixed inline (BE `11ddee2`, 2026-06-06) before owner browser test:**
+> 1. BLOCKER: `postOrder` — returning customer 2nd order with same address → false 400 rejection (modifiedCount → matchedCount)
+> 2. WARNING: Dashboard top-selling thumbnail blank (product_thumbnail field → main_image)
+> 3. WARNING: `auto_approve_reviews` fresh-DB fallback `?? true` → `?? false` (matches model default)
+
 ---
 
 ## Test backlog (priority order)
