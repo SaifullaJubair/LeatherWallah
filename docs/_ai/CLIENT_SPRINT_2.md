@@ -90,6 +90,13 @@ Already shipped via post-hoc audit (commits `00de5da`, `0bcf174` FE + Item 8/10/
 | **E20** | Dashboard widgets + **2 audit BLOCKERS fixed (auth gate + index)** | ~6-7h (was 4-5h) |
 | **D18** | Admin "Create Order" POS + **3 audit BLOCKERS fixed** | ~8-10h (was 6-8h) |
 
+### Bucket 6 — Post-testing additions (added 2026-06-06)
+
+| ID | Item | Effort |
+|---|---|---|
+| **D18-B** | POS full redesign (product grid + filters + payment method + print invoice) | ~4-5h Admin |
+| **H-B** | Admin Email OTP (forgot-password email channel as SMS alternative) | ~2-3h BE + Admin |
+
 ---
 
 ## Item contracts
@@ -452,6 +459,76 @@ Audit reality check: BE module + sync utility + login-flow wiring **already exis
 - Limited admin without `order_create_admin` → no sidebar link, direct POST returns 403
 - POS Orders tab on OrderPage filters by `order_source: "admin"`
 - POS order in `maintain_stock: true` mode hits 0-stock product → 409 (admin must flip toggle if needed)
+
+---
+
+### **D18-B — POS Full Redesign** ✅ DONE (confirmed via code 2026-06-07)
+
+**Verified in:** `FruitSnacksAdmin/src/pages/CreateOrderPage/CreateOrderPage.jsx`
+
+- ✅ Product grid (4-col cards) with skeleton loader, image, price, stock badge, "+ Add"
+- ✅ Category filter dropdown (`useGetCategory`)
+- ✅ Brand filter dropdown
+- ✅ Stock filter (All / In Stock / Low Stock)
+- ✅ Pagination with per-page selector (20 / 50 / 100) — `PER_PAGE_OPTIONS = [20, 50, 100]`
+- ✅ Top search bar with debounce (`useDebounce` 400ms)
+- ✅ Duplicate add → qty increment (`useCallback`)
+- ✅ Payment method selector (Cash / bKash / Nagad / Card / Bank)
+- ✅ Paid Amount + Return Amount auto-calc
+- ✅ Print Invoice → `POSReceipt.jsx` + `window.print()`
+- ✅ `ProductQuickViewModal.jsx` wired
+- ✅ Customer district/division resolution helper (`resolveCustomerDivDistrict`)
+
+---
+
+### **H-B — Admin Email OTP (Forgot Password alternative)** ✅ DONE (confirmed via code 2026-06-07)
+
+**Added:** Post-testing session 28 — SMS OTP not working (no BulkSMS credentials on fresh install). Email OTP as alternative for admin forgot-password flow.
+
+**Scope:**
+- Admin forgot-password page currently only supports phone → SMS OTP
+- New: toggle between "Send via SMS" / "Send via Email" on the forgot-password form
+- Email OTP: BE generates 6-digit OTP, emails via nodemailer (SMTP), same 5-min TTL + 5-attempt limit as SMS OTP
+
+**Audit findings absorbed (2026-06-06):**
+- ✅ BLOCKER 1: `admin_email` field must be added to admin model (security — verify email matches before sending OTP)
+- ✅ BLOCKER 2: SMTP settings tab needed in Admin Settings (buyer has no UI to configure SMTP)
+- ✅ HIGH: `otp_attempts` not reset on new OTP issue — pre-existing bug, fix in both SMS + email paths
+- ✅ HIGH: `getEmailConfig()` helper needed (DB-first, env-fallback, null if unconfigured)
+
+**Contract — BE:**
+- Add `admin_email: { type: String }` to `admin.model.ts` + `admin.interface.ts`
+- `forgotPasswordAdmin` extended: add `delivery_channel: "sms" | "email"` + `admin_email` body fields. If email: verify `admin.admin_email === req.body.admin_email`, call `sendAdminOtpEmail()` instead of SMS
+- New helper `getEmailConfig()` in `setting.services.ts` — reads `email_host/port/username/password` from DB, falls back to `SMTP_HOST/PORT/USER/PASS` env, returns null if unconfigured
+- New util `send.otp.email.ts` — nodemailer transporter, mirrors `send.otp.phone.ts` pattern. Silent no-op if `getEmailConfig()` returns null
+- Fix `otp_attempts` reset bug: `$set: { ...otpFields, otp_attempts: 0 }` when issuing new OTP (both SMS + email paths)
+- Reset password route unchanged (OTP verify is channel-agnostic)
+
+**Contract — Admin FE:**
+- Admin profile page (`/profile`) gets `admin_email` field (save via existing admin update route)
+- `ForgetPasswordPage.jsx` step 1: toggle "Send OTP via: [SMS] [Email]". Email selected → show email input
+- Submit with `delivery_channel: "email"` + `admin_email` in body
+- Step 2 (OTP + new password) unchanged
+- Admin Settings → new **"Email / SMTP"** tab: Host, Port, Username, Password (masked), From Address, From Name fields
+
+**Acceptance:**
+- Admin saves email on profile page → email saved in DB
+- Admin clicks Forgot Password → selects Email → enters their email → receives OTP → resets password
+- Wrong email entered → "Email doesn't match our records" error (not 500)
+- SMTP not configured → clear error in FE, not silent fail
+- SMS path unchanged (regression test)
+- `otp_attempts` resets to 0 on fresh OTP request
+
+**Verified in:** `FruitSnacksAdmin/src/pages/ForgetPasswordPage/ForgetPasswordPage.jsx`
+
+- ✅ Phone/Email channel toggle (2-button pill)
+- ✅ Email input with validation + Phone input (`react-phone-number-input`)
+- ✅ Step 1 → Step 2 flow (send OTP → enter OTP + new password)
+- ✅ 6-box OTP input with auto-advance, backspace, paste support
+- ✅ Masked identifier display ("OTP sent to ra***@gmail.com")
+- ✅ Resend OTP button + "Change phone/email" back button
+- ✅ Password + Confirm Password with show/hide toggle
+- ✅ Sends `channel: "email"` + `admin_email` or `channel: "phone"` + `admin_phone` to BE
 
 ---
 

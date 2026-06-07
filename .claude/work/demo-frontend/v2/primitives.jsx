@@ -1,0 +1,146 @@
+/* FruitSnacks V2 — primitives: icons, placeholder, ratings, section head */
+
+function Icon({ name, size = 20, sw = 1.5, color = "currentColor", style, className = "" }) {
+  const common = {
+    width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+    stroke: color, strokeWidth: sw, strokeLinecap: "round", strokeLinejoin: "round", style, className,
+  };
+  const paths = {
+    search: <><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>,
+    user: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6" /></>,
+    heart: <path d="M12 20S4 14.5 4 9a4.2 4.2 0 0 1 8-1.6A4.2 4.2 0 0 1 20 9c0 5.5-8 11-8 11z" />,
+    bag: <><path d="M5 8h14l-1 12H6L5 8z" /><path d="M9 8a3 3 0 0 1 6 0" /></>,
+    menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+    close: <><path d="M6 6l12 12M18 6L6 18" /></>,
+    arrow: <><path d="M5 12h14M13 6l6 6-6 6" /></>,
+    arrowup: <><path d="M7 17L17 7M9 7h8v8" /></>,
+    chevron: <path d="M9 6l6 6-6 6" />,
+    chevdown: <path d="M6 9l6 6 6-6" />,
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    gift: <><rect x="4" y="9" width="16" height="11" rx="1" /><path d="M4 9h16M12 9v11M8.5 9C6 9 6 5 8.5 5S12 9 12 9s.5-4 3-4 2 4 0 4" /></>,
+    box: <><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z" /><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9" /></>,
+    envelope: <><rect x="3" y="6" width="18" height="12" rx="1.5" /><path d="M3.5 7l8.5 6 8.5-6" /></>,
+    medal: <><circle cx="12" cy="9" r="5" /><path d="M9 13.5L7.5 21l4.5-2.5L16.5 21 15 13.5" /></>,
+    shield: <><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /><path d="M9 12l2 2 4-4" /></>,
+    truck: <><rect x="2" y="7" width="13" height="9" rx="1" /><path d="M15 10h4l3 3v3h-7z" /><circle cx="6.5" cy="18" r="1.6" /><circle cx="18" cy="18" r="1.6" /></>,
+    check: <path d="M5 12l4.5 4.5L19 7" />,
+    star: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8L3.5 9.7l5.9-.9z" fill="currentColor" stroke="none" />,
+    spark: <path d="M12 2l1.6 7.4L21 11l-7.4 1.6L12 20l-1.6-7.4L3 11l7.4-1.6z" fill="currentColor" stroke="none" />,
+    sparkline: <path d="M12 3l1.5 6.5L20 11l-6.5 1.5L12 19l-1.5-6.5L4 11l6.5-1.5z" />,
+    hex: <path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" />,
+    pin: <><path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></>,
+    phone: <path d="M6 3h3l1.5 5-2 1.5a12 12 0 0 0 6 6l1.5-2 5 1.5v3a2 2 0 0 1-2 2A17 17 0 0 1 4 5a2 2 0 0 1 2-2z" />,
+    home: <><path d="M4 11l8-7 8 7" /><path d="M6 10v9h12v-9" /></>,
+    grid: <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></>,
+    fb: <path d="M14 8h2V5h-2c-2 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.4.2-.5.5-.5z" fill="currentColor" stroke="none" />,
+    ig: <><rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="12" r="3.5" /><circle cx="17" cy="7" r="0.7" fill="currentColor" stroke="none" /></>,
+    wa: <path d="M5 19l1.2-3.2A7 7 0 1 1 9 18l-4 1zm5.5-9c-.2 0-.5 0-.7.4s-.8 1-.8 2.3.9 2.7 1 2.9 1.7 2.7 4.1 3.7c2 .8 2.4.6 2.8.6s1.3-.5 1.5-1 .2-1 .1-1.1l-2-1c-.2-.1-.4 0-.6.2l-.6.7c-.1.1-.2.2-.5.1a5.6 5.6 0 0 1-2.8-2.4c-.2-.4 0-.5.2-.7l.4-.5c.1-.2 0-.4 0-.5l-.7-1.7c-.2-.5-.4-.4-.6-.4z" fill="currentColor" stroke="none" />,
+    yt: <><rect x="3" y="6" width="18" height="12" rx="3" /><path d="M11 9.5l4 2.5-4 2.5z" fill="currentColor" stroke="none" /></>,
+    tiktok: <path d="M14 4v9.5a3 3 0 1 1-3-3M14 4c.5 2.2 2 3.6 4 3.8" />,
+    pinterest: <><circle cx="12" cy="12" r="9" /><path d="M12 7c-2.2 0-3.5 1.4-3.5 3.2 0 .8.4 1.7 1 2M12 7c2 0 3 1.3 3 3 0 2.2-1.2 3.7-2.7 3.7-.8 0-1.4-.6-1.2-1.4M11 13c-.4 1.6-1 3.5-1.5 4.8" /></>,
+    messenger: <path d="M12 3c5 0 9 3.7 9 8.3S17 19 12 19a10 10 0 0 1-2.7-.4L5 20l1.2-3.1A7.7 7.7 0 0 1 3 11.3C3 6.7 7 3 12 3z" />,
+    chatdots: <><path d="M4 5h16v11H9l-5 4z" /><circle cx="9" cy="10.5" r="0.7" fill="currentColor" stroke="none" /><circle cx="12" cy="10.5" r="0.7" fill="currentColor" stroke="none" /><circle cx="15" cy="10.5" r="0.7" fill="currentColor" stroke="none" /></>,
+    play: <><circle cx="12" cy="12" r="9" /><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor" stroke="none" /></>,
+    plus: <><path d="M12 5v14M5 12h14" /></>,
+    minus: <path d="M5 12h14" />,
+    eye: <><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="2.6" /></>,
+    compare: <><path d="M7 4v16M7 4L4 7M7 4l3 3" /><path d="M17 20V4M17 20l3-3M17 20l-3-3" /></>,
+    minusbox: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12h8" /></>,
+  };
+  return <svg {...common} aria-hidden="true">{paths[name] || null}</svg>;
+}
+
+/* 4-point bronze star glyph used as ✦ accent */
+function Spark({ size = 12, color = "var(--accent-deep)", style }) {
+  return <Icon name="spark" size={size} color={color} style={style} />;
+}
+
+/* Striped placeholder with monospace caption */
+function Ph({ label, tone = "t-bronze", className = "" }) {
+  return (
+    <div className={"ph " + tone + " " + className}>
+      {label ? <span className="ph-label">{label}</span> : null}
+    </div>
+  );
+}
+
+/* rating dots row */
+function RatingDots({ rating, light = false }) {
+  if (!rating) return null;
+  const full = Math.round(rating.avg);
+  return (
+    <div className="pcard-rating">
+      <div className="dots" aria-hidden="true">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} className={"dot" + (i < full ? " fill" : "")} />
+        ))}
+      </div>
+      <span className="rating-txt" style={light ? { color: "var(--accent)" } : null}>
+        {rating.avg.toFixed(1)} ({rating.count})
+      </span>
+    </div>
+  );
+}
+
+/* star row for reviews */
+function Stars({ n = 5 }) {
+  return (
+    <div className="rev-stars" aria-label={n + " stars"}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Icon key={i} name="star" size={16} color={i < n ? "var(--accent)" : "var(--border-whisper)"} />
+      ))}
+    </div>
+  );
+}
+
+/* manuscript divider ✦ ✦ ✦ */
+function Flourish() {
+  return (
+    <div className="flourish" aria-hidden="true">
+      <Spark size={11} /><span style={{ width: 38 }} /><Spark size={13} /><span style={{ width: 38 }} /><Spark size={11} />
+    </div>
+  );
+}
+
+/* sparkle particle field */
+function SparkField({ count = 5, seedKey = "" }) {
+  const items = React.useMemo(() => (
+    Array.from({ length: count }, (_, i) => ({
+      left: 8 + Math.random() * 84,
+      top: 12 + Math.random() * 76,
+      size: 8 + Math.random() * 10,
+      delay: Math.random() * 9,
+      dur: 7 + Math.random() * 5,
+    }))
+  ), [count, seedKey]);
+  return (
+    <div className="sparkle-field" aria-hidden="true">
+      {items.map((s, i) => (
+        <span key={i} className="sparkle" style={{
+          left: s.left + "%", top: s.top + "%",
+          animationDelay: s.delay + "s", animationDuration: s.dur + "s",
+        }}>
+          <Icon name="spark" size={s.size} color="currentColor" />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* section header — title supports an {em: "..."} accent word */
+function SectionHead({ eyebrow, title, em, emPos = "end", sub, center = true, light = false, lang }) {
+  const titleNode = em
+    ? (emPos === "start"
+        ? <><span className="em">{em}</span> {title}</>
+        : <>{title} <span className="em">{em}</span></>)
+    : title;
+  return (
+    <div className={center ? "head-center" : ""}>
+      <div className="eyebrow">{eyebrow}</div>
+      <h2 className="section-title" lang={lang} style={light ? { color: "var(--bg-ivory)" } : null}>{titleNode}</h2>
+      {sub && <p className="section-sub" style={light ? { color: "var(--whisper)" } : null}>{sub}</p>}
+    </div>
+  );
+}
+
+Object.assign(window, { Icon, Spark, Ph, RatingDots, Stars, Flourish, SparkField, SectionHead });

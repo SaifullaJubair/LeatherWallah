@@ -1,10 +1,10 @@
 # Client Sprint 3 — FruitSnacks (Frontend redesign + future design-heavy work)
 
 **Created:** 2026-06-05 (session 24)
-**Status:** PLANNING — not started yet. Sprint 2 must complete first.
-**Branch:** Will be on `v2` (continuation of long-lived branch) or new branch — owner decides at start.
+**Last revised:** 2026-06-07 (session 30 — Track E/F/G added: route consolidation + listing engine + home + bug fixes)
+**Status:** Track D DONE. Tracks E/F/G = PLANNING (scope locked 2026-06-07).
+**Branch:** `v2` (continuation).
 **Predecessor:** [CLIENT_SPRINT_2.md](CLIENT_SPRINT_2.md)
-**Why separate from Sprint 2:** Owner D4 — design-heavy work (home redesign, future redesigns) needs a dedicated design pass + owner decisions before code. Bundling with quick-wins risks the small-stuff getting delayed by design discussion.
 
 ---
 
@@ -14,6 +14,11 @@
 |---|---|---|
 | **D1** | **Sprint 3 dedicated to design-heavy frontend work** | Sprint 2 = quick wins + backend; Sprint 3 = UI redesign + design-pass items |
 | **D2** | **plan-edge-auditor already ran on H1 (2026-06-05)** | Findings documented below; absorbed into the design pass |
+| **ST.D1** | **No `/brands` dedicated page** | Client has only 1 brand — not needed now |
+| **ST.D2** | **No `/flash-sale` dedicated page** | Flash sale section lives on home only; no separate listing page |
+| **ST.D3** | **No `/all-products`, `/all-trending-products`, `/latest-product`, `/top-product`, `/new-arrival`, `/all-ecommerce-product` pages** | All replaced by `/shop?sort=...` params — dead routes get redirects |
+| **ST.D4** | **`/campaign/[slug]` kept** | Promo hero + engine — needs own chrome |
+| **ST.D5** | **1 shared `ProductListing` engine** | All listing views = same engine, different chrome. Based on Shopify collection model |
 | **CRITICAL** | **Anonymous checkout MUST keep working** | Carry-forward from Sprint 1 + 2 |
 
 ---
@@ -22,14 +27,17 @@
 
 ### Item 1 — **H1 Frontend home page redesign** (~60-80h Sprint 3 total)
 
-**SCOPE EXPANDED 2026-06-05 (session 24 end):** Sprint 3 is now a real 2-3 week sprint, not a single item. Splits into 4 tracks:
+**SCOPE EXPANDED 2026-06-05 (session 24 end):** Sprint 3 is now a real 2-3 week sprint, not a single item. Splits into tracks:
 
 | Track | Doc | Effort | Status |
 |---|---|---|---|
-| **A. Product Strip API audit + fix** (prerequisite — bestsellers actually bestsellers, etc.) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 2 | ~12-15h | 🟡 BE done; FE deferred to FE redesign |
-| **B. Global Search 4-tier dropdown** (recent + popular keywords + live products + recommended) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 1 | ~11-13h | 🟡 Deferred to FE redesign (do FE+API together) |
-| **C. View More dedicated routing** (`/shop?sort=popular` etc, single canonical filtered listing) | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 3 | ~3-5h | 🟡 Deferred to FE redesign |
-| **D. Home Layout Control + redesign** (74 owner toggles + 2 new modules + section variants) | [SPRINT_3_HOME_LAYOUT_TOGGLES.md](SPRINT_3_HOME_LAYOUT_TOGGLES.md) | ~35-45h | ✅ **DONE** (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`) |
+| **A. Product Strip API audit + fix** | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 2 | ~12-15h | 🟡 BE done; FE wired in Track E |
+| **B. Global Search 4-tier dropdown** | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 1 | ~11-13h | 🟡 Deferred to FE redesign |
+| **C. View More dedicated routing** | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 3 | ~3-5h | 🟡 Absorbed into Track E |
+| **D. Home Layout Control + redesign** | [SPRINT_3_HOME_LAYOUT_TOGGLES.md](SPRINT_3_HOME_LAYOUT_TOGGLES.md) | ~35-45h | ✅ **DONE** (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`) |
+| **E. Route consolidation + ProductListing engine** | this doc | ~10-15h | 🔵 PLANNING |
+| **F. Home page redesign (short pass)** | this doc | ~8-12h | 🔵 PLANNING |
+| **G. Bug fixes (cart + wishlist + critical)** | this doc | ~3-4h | 🔵 PLANNING |
 
 **Order matters:** A → B → C → D. Strip fix is foundation; toggling broken strips just hides the bug.
 
@@ -168,11 +176,178 @@ Those happen in a separate ground-up Admin 2.0 rebuild, not Sprint 3.
 
 ## Open before Sprint 3 starts
 
-- [ ] Sprint 2 fully shipped + owner live-tested
-- [ ] Owner answers Q1-Q5 above (~30 min discussion at start of Sprint 3)
-- [ ] If Q5=yes, owner provides 3-5 testimonials text + photos
-- [ ] Reference site/screenshot if owner has visual preference (otherwise Claude designs based on PDP aesthetic + ZatiqEasy/fruit-shop patterns)
+- [x] Sprint 2 fully shipped + confirmed via code (2026-06-07)
+- [ ] Track E/F/G — edge audit before code (auto-trigger: 3+ files + route changes)
+
+---
+
+## Track E — Route consolidation + ProductListing engine (~10-15h)
+
+**Scope locked:** 2026-06-07 (session 30)
+
+### The model (Shopify collection pattern)
+
+```
+ProductListing.jsx          ← 1 engine, written once, used everywhere
+/shop/page.js               ← hub: sort/search/filter/type all as URL params
+/category/[...slug]/page.js ← category chrome (banner + breadcrumb) + engine
+/campaign/[slug]/page.js    ← promo hero + engine
+```
+
+### URL param contract
+
+| Use case | URL | Engine sort pre-select |
+|----------|-----|----------------------|
+| All products | `/shop` | `latest` (default) |
+| Trending "View More" | `/shop?sort=popular` | `popular` (sold_count desc) |
+| Popular "View More" | `/shop?sort=popular` | `popular` |
+| New arrivals "View More" | `/shop?sort=latest` | `latest` (createdAt desc) |
+| Search results | `/shop?search=premium` | `latest` |
+| Combo products | `/shop?type=combo` | `latest` |
+| Category | `/category/mens-fashion` | `latest` |
+| Category + brand | `/category/mens-fashion?brand=nike` | `latest` |
+
+> **ST.D6 — No `sort=trending` param (owner locked 2026-06-07):** "trending" = `popular` sort (sold_count desc) — same engine sort, no separate endpoint needed. Simpler, no backend contract change.
+
+### Engine — built from `CategoryViewSection.jsx`
+
+**Key discovery (audit):** `CategoryViewSection.jsx` already has URL-sync implemented (`readFiltersFromUrl` + `writeFiltersToUrl` + `router.replace`). No rebuild needed — extend existing logic.
+
+**Current engine API call:** `GET /filter_product?categoryType=${leafSlug}&filterData=...`
+- `/category/[slug]` → `leafSlug` = category slug ✅
+- `/shop` → `leafSlug` = undefined → **must verify backend behaviour** (BLOCKER 1 resolution below)
+
+**BLOCKER 1 resolution — verify before coding:**
+Test `GET /filter_product` without `categoryType` param → if backend returns all products = ✅ engine works for `/shop`. If not, `/shop` needs separate param (e.g. `categoryType=all` or omit param entirely with backend fix).
+
+**Engine props (additive — existing props kept):**
+```jsx
+<CategoryViewSection
+  slug={slug}              // existing — array for category, [] for /shop
+  filterData={filterData}  // existing — null/undefined OK for /shop (sidebar empty)
+  filterHeadData={filterHeadData}  // existing — null OK for /shop (chips hidden)
+  initialSort="popular"    // NEW — pre-select sort from URL param
+/>
+```
+
+**Sort values (existing engine SORT_OPTIONS — no change needed):**
+- `latest` — createdAt desc
+- `popular` — sold_count desc  ← "trending" maps here
+- `price_asc`, `price_desc`, `rating` — unchanged
+
+**Mobile:** existing drawer already works. Desktop: existing sticky sidebar.
+
+### Dead routes → redirects in `next.config.mjs`
+
+| From | To | Notes |
+|------|----|----|
+| `/all-products` | `/shop` | |
+| `/all-trending-products` | `/shop?sort=popular` | trending = popular sort |
+| `/latest-product` | `/shop` | latest = default sort |
+| `/top-product` | `/shop?sort=popular` | |
+| `/new-arrival` | `/shop` | |
+| `/all-ecommerce-product` | `/shop` | |
+| `/all-brands` | `/shop` | |
+
+Page files + components deleted after redirects verified.
+
+### Inline fixes from audit (absorb into Track E)
+
+- **BLOCKER 3:** `campaign/[id]/page.jsx` line 31 — `/all-products` → `/shop`
+- **HIGH 2:** `shop/page.jsx` update to use engine BEFORE `Shop.jsx` delete
+- **HIGH 4:** `app/sitemap.js` — remove dead route entries
+- **HIGH 5 (G1 merge):** `CartLoader` in `Providers.jsx` needs `useSelector` to read localStorage cart before DB overwrite — merge with Track G G1 fix
+
+### Home strip "View More" buttons
+
+| Strip | Button target |
+|-------|--------------|
+| TrendingProduct | `/shop?sort=popular` |
+| LatestProducts | `/shop?sort=new` |
+| PopularProducts | `/shop?sort=popular` |
+| LatestProducts | `/shop` |
+| CategoryWiseProduct | `/category/[slug]` |
+
+### Files touched
+
+**Modify:**
+- `components/categoryview/CategoryViewSection.jsx` — add `initialSort` prop + `/shop` (no slug) support
+- `app/(frontend)/shop/page.jsx` — replace `Shop` import with `CategoryViewSection`, pass URL params
+- `app/(frontend)/campaign/[id]/page.jsx` — line 31: `/all-products` → `/shop`
+- `next.config.mjs` — add 7 redirects
+- `app/sitemap.js` — remove dead route entries
+- `components/providers/Providers.jsx` — G1 cart fix (merge from Track G)
+- Home strip components — "View More" button URLs
+
+**Delete (after redirects live + verified):**
+- `app/(frontend)/all-products/`, `all-trending-products/`, `latest-product/`, `top-product/`, `new-arrival/`, `all-ecommerce-product/`, `all-brands/`
+- `components/frontend/seeAllProduct/`, `viewAllTrendingProduct/`, `topBrand/`, `allBrand/`
+- `components/frontend/shop/Shop.jsx` (replaced by engine)
+
+**No change needed:**
+- `components/categoryview/FilterSection.jsx` — URL sync already works
+- `components/categoryview/PriceRangFilter.jsx` — already wired
+- `app/(frontend)/category/[...slug]/page.js` — already passes slug+filterData correctly
+
+---
+
+## Track F — Home page short pass (~8-12h)
+
+**Scope locked:** 2026-06-07 (session 30)
+**Reference:** PDP themed page aesthetic — same CSS vars, same rhythm
+
+### What changes
+
+1. **Fix `BannerItem.jsx` crash** (B6) — empty-state guard
+2. **Default theme CSS vars** in `globals.css` — `--primary`, `--ink`, `--muted` etc.
+3. **Strip endpoint verify** — LatestProducts + TrendingProduct on correct endpoints
+4. **`CategoryWiseProduct`** → convert to server component
+5. **Section spacing** — inherit from CSS vars, consistent rhythm
+
+### What does NOT change
+
+- Layout structure (controlled by admin Home Layout — Track D done)
+- Individual section designs — touch only for bugs
+- No new sections
+
+### Files touched
+
+- `app/globals.css`
+- `components/frontend/home/banner/BannerItem.jsx`
+- `components/frontend/home/latestProducts/LatestProducts.jsx`
+- `components/frontend/home/trendingProduct/TrendingProduct.jsx`
+- `components/frontend/home/categoryWiseProduct/CategoryWiseProduct.jsx`
+
+---
+
+## Track G — Bug fixes (~3-4h)
+
+**Scope locked:** 2026-06-07 (session 30)
+
+### G1 — Guest cart lost on page reload after login (B1) 🔴
+**Fix:** `Providers.jsx` mount — if logged in + localStorage has items → run `syncCartAfterLogin()` before DB overwrite.
+**Files:** `components/providers/Providers.jsx`, `utils/cartSync.js`
+
+### G2 — Wishlist heart missing remote call on Shop + Category pages (B8) 🟡
+**Fix:** Product card heart → call `addToWishlistRemote` / `removeFromWishlistRemote` (already in `utils/wishlistSync.js`).
+**Files:** `components/frontend/shop/Shop.jsx` + ProductListing engine (after Track E)
+
+### G3 — `pc_builder` undefined tag type (B4) 🟡
+**Fix:** Remove unused reference from `redux/tag-types.js`.
+
+### G4 — Dead files cleanup 🟢
+Delete: `oldaddtocarttest.jsx`, `data/products.js`, `data/preOrderList.js`, `data/getCategoriesForntend.js`, `components/lib/getSlider.js` (update imports).
+
+---
+
+## Execution order (Tracks E/F/G)
+
+```
+1. Track G — Bug fixes first (small, safe)
+2. Track E — Route consolidation + engine (biggest structural change)
+3. Track F — Home short pass (after engine done)
+```
 
 ## Resume notes
 
-**Sprint 3 not yet started.** When Sprint 2 ships, owner kicks off Sprint 3 with the Q1-Q5 discussion. Audit findings already absorbed into this plan; no need to re-run plan-edge-auditor unless scope changes.
+**Track D DONE.** Tracks E/F/G scope locked 2026-06-07. Edge audit runs before Track E code starts.

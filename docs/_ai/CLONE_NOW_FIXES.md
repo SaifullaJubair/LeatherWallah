@@ -1,6 +1,6 @@
 # Clone-Now Fixes & Improvements (no big-bone surgery)
 
-**Date:** 2026-05-25, last updated 2026-06-05
+**Date:** 2026-05-25, last updated 2026-06-06
 **Context:** The product ships **clone-per-client** now (multi-tenant SaaS is future — see [SAAS_FUTURE_PLAN.md](SAAS_FUTURE_PLAN.md)). This doc lists what we can **fix / improve / add right now** on the current codebase **without** ripping out the core structure (variation engine, category model, etc. stay as-is). These are isolated bug-fixes + additive features that make each clone better today and carry forward to SaaS later.
 
 > The big structural changes (attribute-linked variation engine, self-referencing category, backend price-resolver) are deliberately NOT here — they're "main bone" work, tracked in [BACKEND_AUDIT.md](BACKEND_AUDIT.md) and done as dedicated phases. This doc = safe, incremental wins.
@@ -30,10 +30,16 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | D15 | Wishlist backend module | ✅ DONE (Sprint 2 session 25 — BE module already existed; FE wired: 2 remote helpers + WishlistLoader + 4 call-sites add/remove → cross-device sync working) |
 | D16 | Online payment gateway | ⚠️ Partial — order has `payment_method/payment_status/advance_amount` fields + SSLCommerz gateway scaffolding; full IPN/callback flow not verified |
 | D17 | FB Product Feed XML | ✅ DONE (`productFeed.controllers.ts` confirmed live) |
-| D18 | Richer order status + admin order create | ✅ DONE (Sprint 2 session 28 — order_create_admin flag 4-point sync, postAdminOrder endpoint, skip CAPI+SMS+userUpdate, admin_manual_discount schema, Pathao fields optional, CreateOrderPage POS form, POS Orders tab) |
+| D18 | Richer order status + admin order create | ✅ DONE (Sprint 2 session 28 + D18-B full redesign confirmed 2026-06-07 — order_create_admin flag 4-point sync, postAdminOrder endpoint, skip CAPI+SMS+userUpdate, admin_manual_discount schema, Pathao fields optional, CreateOrderPage POS full redesign: 4-col product grid, category/brand/stock filters, pagination 20/50/100, payment method, paid+return calc, POSReceipt print, ProductQuickViewModal) |
 | E19 | Customer list improvements | ✅ DONE (B1 admin — Type column + guest/registered filter, sessions 20-21) |
 | E20 | Dashboard widgets | ✅ DONE (Sprint 2 session 27 — dashboard_show flag 4-point sync, auth gate on all 3 routes, 2 widget endpoints top-selling+orders-by-status, BST timezone, revenue excl. cancel/return, compound index on orders, dummy data purged, period selector 7/30/90) |
 | E21 | Product list polish | ✅ DONE (A2 — list-page rewrite with 5 column modals, BE `318de36` + Admin `2851d17`) |
+
+**Sprint 3 Track A shipped (session 29, 2026-06-06 — BE `9069064`, Admin `ad471bf`, FE `0d685e3`):**
+- Strip API semantic fix: `/popular_product` (sorted by _id, not sold_count) replaced by `/top_selling` (sold_count), `/new_arrival` (createdAt), `/most_viewed` (view_count). Old routes kept as deprecated fallbacks.
+- Analytics seed: sold_count + view_count now admin-seedable via ProductAnalyticsSeedModal in product list; audit trail via productCountHistory (TTL 90d).
+- Seed Review system: bulk JSON upload (500 row limit, dry_run mode, dedup guard) + manual add + seeded reviews list; `is_seeded` / `source` fields on reviews; `review_seed_bulk` + `review_seed_manual` RBAC flags; `enable_seeded_reviews` setting toggle.
+- H1 fix: all strip pipeline review lookups now filter by `review_status:"active"` (was joining all reviews, inflating avg ratings).
 
 Many "🔴 must" items from this doc shipped during the Client Sprint (sessions 19-21) plus the analytics work (session 23) and Sprint 2 quick wins (session 25 onward). Big remaining buckets: **Payment gateway IPN/verify flow (D16)**, **Online payment full E2E**.
 

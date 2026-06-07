@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FruitSnacks — Premium Dried Fruits & Nuts (Print)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter+Tight:wght@400;500;600&family=Hind+Siliguri:wght@400;500;600&family=Noto+Serif+Bengali:wght@500;600&family=JetBrains+Mono&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="components.css" />
+
+<style>
+/* ============ PRINT-READY OVERRIDES ============ */
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Entrance/reveal states resolved to their visible end-state on screen + print */
+.reveal, .hrise { opacity: 1 !important; transform: none !important; transition: none !important; }
+
+/* Hide interactive-only / floating chrome */
+.grain, .floats, .botnav, .proof-toast,
+.drawer, .drawer-scrim, .search-drop, .mega, .skip,
+.hero-cursor { display: none !important; }
+
+/* Sticky nav becomes static so it doesn't float over content in the PDF */
+.nav { position: static !important; box-shadow: none !important; }
+
+/* Hero: drop the viewport-height min so it doesn't leave a tall empty page */
+.hero-grid { min-height: 0 !important; max-height: none !important; padding-block: 32px !important; }
+
+/* Unfurl horizontal-scroll strips into static wrapped grids */
+.strip-scroll {
+  display: grid !important; grid-auto-flow: row !important;
+  grid-template-columns: repeat(4, 1fr) !important; grid-auto-columns: auto !important;
+  gap: 20px !important; overflow: visible !important; margin-inline: 0 !important; padding-inline: 0 !important;
+}
+.rev-track {
+  display: grid !important; grid-auto-flow: row !important;
+  grid-template-columns: repeat(3, 1fr) !important; grid-auto-columns: auto !important;
+  gap: 20px !important; overflow: visible !important; margin-inline: 0 !important; padding-inline: 0 !important;
+}
+.sd-mini-row { overflow: visible !important; }
+
+/* Show every FAQ answer in print */
+.faq-a { max-height: none !important; }
+.faq-item .faq-ico { transform: rotate(45deg) !important; }
+
+@media print {
+  @page { size: A4 landscape; margin: 0.5cm; }
+
+  body { background: var(--bg-cream) !important; }
+
+  /* Freeze any running animation/transition at its END state (never revert to hidden) */
+  *, *::before, *::after {
+    animation-delay: -99s !important; animation-duration: .001s !important;
+    animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+    animation-play-state: running !important; transition-duration: 0s !important;
+  }
+
+  /* Keep visual blocks intact across page breaks */
+  .pcard, .cat-tile, .bundle-card, .rev-card, .tstrip-cell,
+  .faq-item, .hero-img-wrap, .story-img { break-inside: avoid; }
+  section, header, footer { break-inside: avoid-page; }
+
+  /* Re-enable hover-only Quick Add so cards read complete on paper */
+  .quick-add { transform: none !important; position: static !important; }
+  .pcard-img { aspect-ratio: 4 / 5; }
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="store.jsx"></script>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="topnav.jsx"></script>
+<script type="text/babel" src="hero.jsx"></script>
+<script type="text/babel" src="catalog.jsx"></script>
+<script type="text/babel" src="midpage.jsx"></script>
+<script type="text/babel" src="support.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+// Runs after app.jsx has mounted (Babel executes text/babel scripts in order).
+(function () {
+  const markIn = () => document.querySelectorAll('.reveal,.hrise').forEach((e) => e.classList.add('in'));
+  const ready = () => {
+    markIn();
+    const go = () => { markIn(); setTimeout(() => { markIn(); window.print(); }, 500); };
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => setTimeout(go, 300));
+    } else {
+      setTimeout(go, 800);
+    }
+  };
+  // Give React a tick to render the tree first.
+  requestAnimationFrame(() => requestAnimationFrame(ready));
+})();
+</script>
+</body>
+</html>
