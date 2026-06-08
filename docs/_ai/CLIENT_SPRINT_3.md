@@ -1,8 +1,8 @@
 # Client Sprint 3 — FruitSnacks (Frontend redesign + future design-heavy work)
 
 **Created:** 2026-06-05 (session 24)
-**Last revised:** 2026-06-07 (session 30 — Track E/F/G added: route consolidation + listing engine + home + bug fixes)
-**Status:** Track D DONE. Tracks E/F/G = PLANNING (scope locked 2026-06-07).
+**Last revised:** 2026-06-08 (session 32 — Tracks G/E/F SHIPPED)
+**Status:** Track D DONE. Tracks G/E/F DONE. Sprint 3 COMPLETE.
 **Branch:** `v2` (continuation).
 **Predecessor:** [CLIENT_SPRINT_2.md](CLIENT_SPRINT_2.md)
 
@@ -35,6 +35,9 @@
 | **B. Global Search 4-tier dropdown** | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 1 | ~11-13h | 🟡 Deferred to FE redesign |
 | **C. View More dedicated routing** | [SPRINT_3_SEARCH_AND_STRIP_AUDIT.md](SPRINT_3_SEARCH_AND_STRIP_AUDIT.md) Part 3 | ~3-5h | 🟡 Absorbed into Track E |
 | **D. Home Layout Control + redesign** | [SPRINT_3_HOME_LAYOUT_TOGGLES.md](SPRINT_3_HOME_LAYOUT_TOGGLES.md) | ~35-45h | ✅ **DONE** (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`) |
+| **E. Route consolidation + ProductListing engine** | this doc | ~10-15h | ✅ **DONE** (FE `d30921c`) |
+| **F. Home page short pass** | this doc | ~8-12h | ✅ **DONE** (FE `7567380`) |
+| **G. Bug fixes** | this doc | ~3-4h | ✅ **DONE** (FE `93048d9`) |
 | **E. Route consolidation + ProductListing engine** | this doc | ~10-15h | 🔵 PLANNING |
 | **F. Home page redesign (short pass)** | this doc | ~8-12h | 🔵 PLANNING |
 | **G. Bug fixes (cart + wishlist + critical)** | this doc | ~3-4h | 🔵 PLANNING |

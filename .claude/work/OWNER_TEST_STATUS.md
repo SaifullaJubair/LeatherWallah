@@ -21,6 +21,9 @@
 
 | Work area | Code status | Test status |
 |-----------|-------------|-------------|
+| **Sprint 3 Track G — FE Bug Fixes** | ✅ Shipped session 32 (FE `93048d9`) | ⏸ PENDING |
+| **Sprint 3 Track E — Route Consolidation + ProductListing engine** | ✅ Shipped session 32 (FE `d30921c`) | ⏸ PENDING |
+| **Sprint 3 Track F — Home short pass** | ✅ Shipped session 32 (FE `7567380`) | ⏸ PENDING |
 | **Sprint 3 Track D — Home Layout Builder (BE+Admin+FE)** | ✅ Shipped session 30 (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`) | ⏸ PENDING |
 | Client Sprint Layer 1 BE (7 items) | ✅ Shipped session 19 | ⏸ PENDING |
 | Client Sprint Layer 2 Admin (6 items) | ✅ Shipped session 20 | ⏸ PENDING |
@@ -52,6 +55,30 @@
 ### 🔴 P1 — Smoke test before any deploy (~5 min)
 
 > ⚠️ **Sprint 3 Track D shipped (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`, 2026-06-06). New P2 scenarios added below.**
+
+---
+
+### 🟠 P2 — Sprint 3 Tracks G/E/F: Bug fixes + Route consolidation + Home pass (session 32, 2026-06-08)
+
+**Commits:** FE `93048d9` (Track G), `d30921c` (Track E), `7567380` (Track F)
+**Touches:** FE only — tag-types.js, Providers.jsx, dead file deletes, CategoryViewSection.jsx, shop/page.jsx, next.config.mjs, sitemap.js, 20+ navbar/home/cart/wishlist link fixes, BannerItem.jsx
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| GEF.1 | **Guest cart preserved on reload** — Add 2 items as guest → log in → immediately reload page → cart still has both items (not wiped) | Guest items merged with DB on reload | ⏸ |
+| GEF.2 | **/shop page loads** — Visit `localhost:3000/shop` → product grid with filter sidebar renders; no console error | Filter+grid from engine | ⏸ |
+| GEF.3 | **/shop?sort=popular** — Products appear sorted by popularity (best-seller first) | Sort pre-selected from URL | ⏸ |
+| GEF.4 | **Dead route redirect** — Visit `/all-products` → browser redirects to `/shop` (301) | Permanent redirect works | ⏸ |
+| GEF.5 | **Dead route redirect (trending)** — Visit `/all-trending-products` → redirects to `/shop?sort=popular` | Trending → popular | ⏸ |
+| GEF.6 | **Dead route redirect (new arrival)** — Visit `/new-arrival` → redirects to `/shop` | 301 works | ⏸ |
+| GEF.7 | **Campaign not-found page** — Visit `/campaign/nonexistent-id` → "Campaign Not Found" page → "View All Products" links to `/shop` | No dead link | ⏸ |
+| GEF.8 | **Navbar "All Products" link** — Click "All Products" in desktop navbar → goes to `/shop` | Updated | ⏸ |
+| GEF.9 | **Search submit → /shop** — Navbar search: type query → submit → goes to `/shop?search=...` | Updated | ⏸ |
+| GEF.10 | **Home Trending strip "View More"** — Click on home trending products "All Trending Product" → goes to `/shop?sort=popular` | Link updated | ⏸ |
+| GEF.11 | **Home New Arrival strip "View More"** — Click home new arrivals "All Products" → goes to `/shop` | Link updated | ⏸ |
+| GEF.12 | **Banner empty-state** — Fresh DB with no banners → home page loads without crash (previously Swiper loop=true threw error) | Graceful no-render | ⏸ |
+| GEF.13 | **Category page still works** — Visit `/category/[any-slug]` → products load with filter sidebar | No regression | ⏸ |
+| GEF.14 | **Anonymous checkout regression** — Guest: browse → add to cart → checkout → order placed | Core flow intact | ⏸ |
 
 ---
 
