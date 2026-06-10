@@ -21,6 +21,7 @@
 
 | Work area | Code status | Test status |
 |-----------|-------------|-------------|
+| **Session 37 — Order Status overhaul (on_hold/confirmed/completed) + SMS-on-confirm + COD checkout fixes + tracking redesign** | ✅ Shipped session 37 (BE+Admin+FE, committed `dev`) | 🔵 STATIC-VERIFIED (tsc EXIT 0; needs owner browser+SMS test) |
 | **Session 36 — Cart System Overhaul + Quick-Edit Modal** | ✅ Shipped session 36 (BE + FE, no commit yet) | ✅ PASSED (P1/P2/P3 all owner-verified 2026-06-10) |
 | **Session 35 — Price resolution end-to-end: flash sale storefront endpoint + home strip flash enrichment + helper.js base fix + ECommerceChoice section** | ✅ Shipped session 35 (BE `f63f336`, FE `9036928`) | ⏸ PENDING |
 | **Session 34 — User dashboard full redesign + QuickViewModal portal fix + WishList variant image** | ✅ Shipped session 34 (FE `266792c`) | ⏸ PENDING |
