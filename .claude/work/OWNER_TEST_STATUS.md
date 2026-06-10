@@ -21,6 +21,10 @@
 
 | Work area | Code status | Test status |
 |-----------|-------------|-------------|
+| **Session 36 — Cart System Overhaul + Quick-Edit Modal** | ✅ Shipped session 36 (BE + FE, no commit yet) | ✅ PASSED (P1/P2/P3 all owner-verified 2026-06-10) |
+| **Session 35 — Price resolution end-to-end: flash sale storefront endpoint + home strip flash enrichment + helper.js base fix + ECommerceChoice section** | ✅ Shipped session 35 (BE `f63f336`, FE `9036928`) | ⏸ PENDING |
+| **Session 34 — User dashboard full redesign + QuickViewModal portal fix + WishList variant image** | ✅ Shipped session 34 (FE `266792c`) | ⏸ PENDING |
+| **Session 33 — FE card polish + helper.js fix** | ✅ Shipped session 33 (FE, no commit yet) | ⏸ PENDING |
 | **Sprint 3 Track G — FE Bug Fixes** | ✅ Shipped session 32 (FE `93048d9`) | ⏸ PENDING |
 | **Sprint 3 Track E — Route Consolidation + ProductListing engine** | ✅ Shipped session 32 (FE `d30921c`) | ⏸ PENDING |
 | **Sprint 3 Track F — Home short pass** | ✅ Shipped session 32 (FE `7567380`) | ⏸ PENDING |
@@ -54,7 +58,90 @@
 
 ### 🔴 P1 — Smoke test before any deploy (~5 min)
 
-> ⚠️ **Sprint 3 Track D shipped (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`, 2026-06-06). New P2 scenarios added below.**
+> ⚠️ **Session 34 shipped (2026-06-09): User dashboard full redesign + QuickViewModal portal fix + WishList variant image. New P2 scenarios added below.**
+
+---
+
+### 🟠 P2 — Session 35: Price Resolution + Flash Sale Storefront (2026-06-09)
+
+**BE changed:** `flashsale.services.ts` (new `findActiveFlashSaleStorefrontService` + `ProductModel` import), `flashsale.controllers.ts` (new `findActiveFlashSaleStorefront` handler), `flashsale.routes.ts` (new `GET /active` before `/:_id`), `product.services.ts` (Phase 1-3 from prior sessions: dual-write flash, campaign PDP lookup, 6-strip flash enrichment)
+**FE changed:** `getFlashSaleProducts.js` (URL: `flash_sale` → `flash-sale/active`), `FlashSale.jsx` (parallel fetch + currencySymbol prop), `FlashProductSlider.jsx` (full rewrite: `/products/` link, currency prop, flash price math), `SectionRenderer.jsx` (ECommerceChoice added), `helper.js` (`productPrice` + `singleProductPrice` flash base = `variation_price`)
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| P35.1 | **Flash sale section visible** — create flash sale in admin (status=active, start=now-1h, end=now+24h, add 2+ products) → visit `localhost:3000` → flash sale banner appears with cards + countdown | Section renders from new `/flash-sale/active` endpoint | ⏸ |
+| P35.2 | **Flash price % correct** — product `variation_price=1000`, no variation_discount_price; flash_price=20, flash_price_type="percent" → card shows `৳800` with strikethrough `৳1000` | `1000 - 20% = 800` | ⏸ |
+| P35.3 | **Flash price fixed correct** — product `variation_price=1000`, `variation_discount_price=900`; flash_price=100, flash_price_type="fixed" → card shows `৳900` not `৳800` (flash applies to 1000, not stacked on 900) | `1000 - 100 = 900` | ⏸ |
+| P35.4 | **Flash slider link correct** — click flash product card → goes to `/products/{slug}` not `/{slug}` | `/products/` prefix present | ⏸ |
+| P35.5 | **Flash slider currency** — flash product price shows `৳` (from settings) not `$` | Site currency symbol used | ⏸ |
+| P35.6 | **Home strip flash price** — product in trending/new arrivals/bestsellers AND in active flash sale → card shows flash price with strikethrough, not regular price | Flash enrichment on strip | ⏸ |
+| P35.7 | **ECommerceChoice section renders** — Admin → Site Settings → Home Layout → enable `ecommerce_choice` → Save → visit home → E-Commerce Choice section appears | Section now wired | ⏸ |
+| P35.8 | **No active flash → section hidden** — no active flash sale in DB (or all expired) → flash sale banner completely absent from home | Null check works | ⏸ |
+| P35.9 | **Flash sale product removed** — flash sale product's `product_status=in-active` → NOT shown in slider (filtered by `product_status: "active"` in storefront query) | Inactive products excluded | ⏸ |
+| P35.10 | **PDP flash price** — open PDP of flash product → price shows flash-discounted price; countdown timer shows | PDP dual-write (Phase 1) working | ⏸ |
+| P35.11 | **PDP campaign price** — open PDP of campaign product → campaign price shows (Phase 2) | Campaign lookup on PDP working | ⏸ |
+
+---
+
+### 🟠 P2 — Session 34: User Dashboard Redesign + QuickViewModal + WishList (2026-06-09)
+
+**Files changed:** `UserProfile.jsx` (full rewrite — sidebar + mobile bottom nav + More sheet), `Dashboard.jsx` (StatCard rewrite), `PurchaseHistory.jsx` (card wrapper + search), `UserDashboardWishList.jsx` (full rewrite — no Contain/no double PhotoProvider), `Addresses.jsx` (card wrapper), `LoyaltyHistory.jsx` (card wrapper), `WalletHistory.jsx` (card wrapper), `ReviewDashBoard.jsx` (pill switcher), `ShowProfileDetails.jsx` (card wrapper + email section), `ProfileSetting.jsx` (z-70 modal + max-w), `WishList.jsx` (variant image fallback), `QuickViewModal.jsx` (createPortal), `(user-profile)/layout.js` (pb-16 mobile fix), **deleted** `MobileNavBarUserDashBoard.jsx` + `MobileNavBarUserDashBoardClient.jsx`
+
+**Pre-test:** Must be logged in as a registered user. Navigate to `/user-profile`.
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| P34.1 | **Dashboard overview loads** — visit `/user-profile` → Dashboard tab visible; 5 stat cards show (Cart, Wishlist, Orders, Offer Orders, Reviews); Trending Products grid renders or "no products" state | No crash; stat cards visible | ⏸ |
+| P34.2 | **Sidebar sticky on desktop** — open `/user-profile` on desktop (≥1024px); scroll down → sidebar stays fixed on left; tab content scrolls independently | Sidebar stays visible | ⏸ |
+| P34.3 | **URL tab deep-link** — visit `/user-profile?tab=wishlist` directly → Wishlist tab is pre-selected, not Dashboard | URL sync works | ⏸ |
+| P34.4 | **Tab navigation URL sync** — on desktop: click "Purchase History" in sidebar → URL changes to `?tab=purchase-history`; browser back → returns to previous tab | Router.push works | ⏸ |
+| P34.5 | **Mobile bottom nav visible** — open on mobile (≤768px) → bottom bar with 5 icons (Home, Orders, Wishlist, Profile, More) floats above footer | Bottom nav renders | ⏸ |
+| P34.6 | **Mobile More sheet** — tap "More" icon → slide-up sheet shows: Addresses, Order Tracking, Loyalty, Wallet, Offer History, Reviews + Sign Out | More sheet opens | ⏸ |
+| P34.7 | **More sheet active state** — navigate to Loyalty via More sheet → "More" icon in bottom bar shows as active (primary color) | Active indicator correct | ⏸ |
+| P34.8 | **Mobile content not hidden by bottom nav** — on mobile, any tab content (especially Purchase History table) is not cut off at bottom; `pb-16` layout padding keeps it visible | No content hidden by nav | ⏸ |
+| P34.9 | **Purchase History tab** — click "Purchase History" → order table renders (or empty state); search input visible; table header and rows styled | No crash; table renders | ⏸ |
+| P34.10 | **Wishlist tab — variant image** — open wishlist with a variation product saved → card shows variation's first image (not main_image); fallback to main_image if no variation image | Correct image shown | ⏸ |
+| P34.11 | **Wishlist tab — add to cart** — click "Add to Cart" on wishlist item → cart count increments; product added | Cart add works | ⏸ |
+| P34.12 | **Addresses tab** — click Addresses → list renders (or "No addresses" empty state); "Add New Address" button visible | No crash | ⏸ |
+| P34.13 | **Loyalty Points tab** — click Loyalty Points → balance card shows; ledger table (or "no transactions") renders | No crash | ⏸ |
+| P34.14 | **Wallet tab** — click Wallet → balance card shows (৳); ledger renders or empty state | No crash | ⏸ |
+| P34.15 | **Offer History tab (via More)** — mobile: More sheet → Offer History → tab content loads | Tab reached, no blank screen | ⏸ |
+| P34.16 | **Reviews tab** — click Reviews → pill switcher "To Be Reviewed" / "Review History"; switch between tabs | Both sub-tabs render | ⏸ |
+| P34.17 | **Profile Setting tab** — click Profile Setting (sidebar or More sheet) → ShowProfileDetails card shows user info (avatar, name, phone, division, district, address) | Profile info renders | ⏸ |
+| P34.18 | **Edit Profile modal** — click "Edit Profile" button → ProfileSetting modal opens centered on viewport with `z-[70]`; scrollable on mobile; not clipped | Modal renders correctly | ⏸ |
+| P34.19 | **ProfileSetting modal above More sheet** — if More sheet is open while ProfileSetting modal opens (edge case) → modal (z-70) appears above sheet (z-60) | Z-index order correct | ⏸ |
+| P34.20 | **Sign Out** — click Sign Out (sidebar or More sheet) → cookie cleared; redirected to home page | Logout works | ⏸ |
+| P34.21 | **QuickViewModal viewport center** — on home page: hover trending product card → click eye icon → modal opens in CENTER of viewport, not inside the card's stacking context | Portal fix works | ⏸ |
+| P34.22 | **QuickViewModal from category page** — same test on `/category/[slug]` product cards → modal also opens in viewport center | No regression | ⏸ |
+| P34.23 | **User avatar photo view** — on desktop sidebar: click avatar image (if user has photo) → react-photo-view lightbox opens | PhotoProvider from UserProfile.jsx works | ⏸ |
+| P34.24 | **Non-logged-in redirect** — visit `/user-profile` without being logged in → redirected to `/sign-in` | Auth guard works | ⏸ |
+
+---
+
+### 🟠 P2 — Sprint 3 Track D shipped (BE `9e4ec34`, Admin `3f9c629`, FE `8b486f2`, 2026-06-06). New P2 scenarios added below.**
+
+---
+
+### 🟠 P2 — Session 33: FE card polish + helper.js fix (2026-06-08)
+
+**Files changed:** `src/components/common/ProductCard.jsx` (new), `src/components/common/ProductCardSkeleton.jsx` (new), `src/components/common/HomeProductCard.jsx` (re-export), `src/components/categoryview/CategoryViewCard.jsx` (re-export), `src/components/frontend/home/categoryWiseProduct/CategoryWiseProduct.jsx` (rewrite), `src/components/frontend/home/latestProducts/LatestProductGrid.jsx`, `src/components/frontend/home/trendingProduct/TrendingSlider.jsx`, `src/components/frontend/home/popularProducts/PopularProducts.jsx`, `src/components/frontend/home/onlyForYouProduct/OnlyForYouProduct.jsx`, `src/components/categoryview/CategoryViewSection.jsx`, `src/components/shared/quickViewModal/QuickViewModal.jsx`, `src/utils/helper.js`
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| P33.1 | **Home sections hover** — hover over any product card in trending/popular/latest/just-for-you → bottom bar slides up with "Add to Cart" + eye icon | Action bar visible on hover | ⏸ |
+| P33.2 | **Quick View opens from home card** — click eye icon on any home section card → QuickViewModal opens with variant picker + price | Modal opens correctly | ⏸ |
+| P33.3 | **Video card no white flash** — hover over a product card that has `main_video` → no white flicker; video stays visible; action bar slides over it | No white flash | ⏸ |
+| P33.4 | **Crossfade hover** — hover over non-video product with variation/other image → main image fades to hover image | Crossfade works | ⏸ |
+| P33.5 | **Category page cards parity** — `/category/[slug]` → product grid cards look identical to home section cards; hover + quick view works there too | No visual regression | ⏸ |
+| P33.6 | **Shop by Category — category card size** — home page "Shop by Category" section → category card is noticeably wider/taller than before (2 columns on desktop) | Larger category card visible | ⏸ |
+| P33.7 | **Shop by Category — Quick View** — hover over product in Shop by Category slider → Add to Cart + eye icon appear; click eye → modal opens | ProductCard actions work in Swiper slider | ⏸ |
+| P33.8 | **helper.js price fix — variation product cards** — variation product (e.g. with multiple sizes/colors) shows correct price on card (first variation's price, not blank/wrong) | Price shows correctly | ⏸ |
+| P33.9 | **helper.js discount badge** — variation product with `variation_discount_price` → card shows `-X%` badge and strikethrough original price | Discount badge correct | ⏸ |
+| P33.10 | **PDP variation change — price** — open a variation product → change variant (color/size) → price updates immediately | Price changes per variant | ⏸ |
+| P33.11 | **PDP variation change — image** — change variant → main image switches to variation_image | Image switches | ⏸ |
+| P33.12 | **PDP variation change — video** — pick variant with video → video plays in gallery | Video switches to variation video | ⏸ |
+| P33.13 | **QuickViewModal no leather features** — open Quick View on any product → no "Genuine Leather", "Built to Last", "Easy Return", "Cash on Delivery" feature cards visible | Removed correctly | ⏸ |
+| P33.14 | **QuickViewModal mobile** — open on mobile (375px) → modal fills screen properly; scroll works; no overflow | Mobile responsive | ⏸ |
 
 ---
 

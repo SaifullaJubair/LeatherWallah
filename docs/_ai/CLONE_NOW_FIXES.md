@@ -35,6 +35,16 @@ Severity: 🔴 important · 🟡 should · 🟢 nice. Effort: S/M/L.
 | E20 | Dashboard widgets | ✅ DONE (Sprint 2 session 27 — dashboard_show flag 4-point sync, auth gate on all 3 routes, 2 widget endpoints top-selling+orders-by-status, BST timezone, revenue excl. cancel/return, compound index on orders, dummy data purged, period selector 7/30/90) |
 | E21 | Product list polish | ✅ DONE (A2 — list-page rewrite with 5 column modals, BE `318de36` + Admin `2851d17`) |
 
+**Cart System Overhaul + Quick-Edit Modal shipped (session 33, 2026-06-10 — FE only):**
+- GET → POST migration: `/product/cart_product` now POST with JSON body (eliminates URL length limit for large carts)
+- Cart sync fixes: B1 `syncCartAfterLogin` per-user sessionStorage flag (no re-sync on every reload); B2 `syncCartService` merge now `Math.max(local, db)` qty (DB no longer always wins); B4 `handleRemoveFromCache` fixed to `invalidateQueries` prefix match
+- `product_slug` added to all cart item shapes (addToCart + setCartFromDB + replaceCartItem + all 5 dispatch sites)
+- GET /cart enriched with `product_slug` via ProductModel join (no schema change)
+- New `replaceCartItem` Redux action — atomic 3-case handler (same variant = qty update, new variant already in cart = merge, clean replace)
+- Cart Quick-Edit Modal: eye icon in CartTable → QuickViewModal in `cart-edit` mode; pre-selection via `variation_name " / "` split + case-insensitive match; Swiper `slideTo()` on variant change + pre-selection; Replace Cart Item + Add New + View Full Product Page buttons
+- localStorage migration: old `_id` → `productId` shape on hydration (backward compat)
+- All P1/P2/P3 manual tests passed by owner
+
 **Sprint 3 Track A shipped (session 29, 2026-06-06 — BE `9069064`, Admin `ad471bf`, FE `0d685e3`):**
 - Strip API semantic fix: `/popular_product` (sorted by _id, not sold_count) replaced by `/top_selling` (sold_count), `/new_arrival` (createdAt), `/most_viewed` (view_count). Old routes kept as deprecated fallbacks.
 - Analytics seed: sold_count + view_count now admin-seedable via ProductAnalyticsSeedModal in product list; audit trail via productCountHistory (TTL 90d).
