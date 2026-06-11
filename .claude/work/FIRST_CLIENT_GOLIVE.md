@@ -58,6 +58,7 @@ These still hold the PREVIOUS owner's values (CLAUDE.md warns: do not edit `.env
 - ⬜ Steadfast: `STEADFAST_CLIENT_ID/PASSWORD`
 - ⬜ `FRAUDBD_API_KEY` (optional)
 - ⬜ **`STEADFAST_WEBHOOK_SECRET` + `PATHAO_WEBHOOK_SECRET`** (F008 — set these AND register matching secret in each courier dashboard; without them the webhook auth is skipped)
+- ⬜ **`SUPER_ADMIN_PHONE` + `SUPER_ADMIN_PASSWORD`** (+ optional `SUPER_ADMIN_NAME`/`SUPER_ADMIN_EMAIL`) — read by the bootstrap script to create the first login. Owner changes the password right after first login.
 
 ### Admin `.env`
 - ⬜ `VITE_API_URL` → client's backend root
@@ -101,6 +102,8 @@ Wallets Bangladesh" titles. Must do before go-live:
 
 Run on the client's PROD DB after first deploy. Scripts live in `FruitSnacksBackend/src/scripts/`.
 
+- ⬜ **🚀 FIRST — `npm run bootstrap`** (fresh DB). Solves the chicken-and-egg: a fresh DB has no admin/role so nobody can log in. The script (schema-derived, idempotent) creates: Super-Admin role (every permission flag = true, derived from the schema so it never goes stale), the Super-Admin user (from `SUPER_ADMIN_PHONE`/`SUPER_ADMIN_PASSWORD`), a Settings doc, an Authentication (SMS/OTP) doc, and the Page SEO seed. Then log in + change password.
+  - After a later build that ADDS permission flags: `npm run bootstrap -- --sync-superadmin` refreshes the super-admin role so it keeps the new flags.
 - ⬜ `normalize-user-phones.ts` (exists)
 - ⬜ `zero-product-qty-when-variation.ts` (exists)
 - ⬜ **order_type index (session 38):** `db.orders.createIndex({ createdAt: -1, order_type: 1 })`
