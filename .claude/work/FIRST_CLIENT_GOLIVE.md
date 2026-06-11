@@ -5,7 +5,19 @@
 
 **Legend:** ⬜ todo · 🔄 in progress · ✅ done · ⏭️ deferred-OK (won't block first delivery)
 
-> ⚠️ DB is fresh/dev — wipe-safe. But this codebase is RESOLD to many clients, so config swaps + branding must be repeatable, not one-off hacks.
+---
+
+## 🔴 GATE 0 — Security must-close (CONFIRMED vulnerabilities — top blocker)
+
+From [BACKEND_SECURITY_AUDIT.md](../../docs/_ai/audit/BACKEND_SECURITY_AUDIT.md) Stage 1.5a (incomplete). Two P0s **confirmed exploitable** by reading the code this session — must fix before any real customer data exists.
+
+- ⬜ **F012 — IDOR on customer order history (CONFIRMED 🔴).** `GET /api/v1/order` (`getACustomerAllOrder`) has **NO auth middleware** and reads `customer_id` from `req.query` — anyone can pass `?customer_id=<any id>` and read another customer's full order history (name, phone, address, what they bought). Fix: add `verifyUserToken` + derive customer_id from `req.user.id`, ignore the query param. ([order.routes.ts:28](../../FruitSnacksBackend/src/app/order/order.routes.ts), [order.controller.ts:751](../../FruitSnacksBackend/src/app/order/order.controller.ts))
+- ⬜ **F008 — Courier webhook spoofing (CONFIRMED 🔴).** `POST /api/v1/webhook/steadfast` has **zero** signature/secret check — anyone can POST `{invoice, status:"cancelled"}` to cancel any order (triggers restock). Pathao webhook *has* HMAC verify but is **fail-open** (`// signature invalid হলেও process করো`). Fix: Steadfast — require a shared secret header/token; Pathao — make invalid signature reject (close the fail-open). ([webhook.controller.ts](../../FruitSnacksBackend/src/app/order/webhook/webhook.controller.ts), [pathao.webhook.controller.ts:88](../../FruitSnacksBackend/src/app/order/webhook/pathao.webhook.controller.ts))
+- ⬜ **F012 (wider) — IDOR sweep:** audit cart + wishlist + any other user-scoped read the same way (param/body id vs `req.user.id`).
+- ⬜ **F009 — File upload mime/size audit** (multer limits + S3 content-type) — pending.
+- ⬜ **F007 — `http://` admin domains in CORS allowlist** (overlaps GATE 2 — make env-driven + https-only for prod).
+- ⬜ **F011 — `.env.local` in FE git history** (carryover) — rotate any leaked secrets, scrub history or accept + rotate.
+- ⏭️ F003b CSP / F004 CSRF / F005 console→pino / F010 cron-split — deferred (documented in audit, not first-delivery blockers).
 
 ---
 
@@ -23,6 +35,10 @@ Minimum before delivery = **one full end-to-end smoke pass**, not every scenario
 - ⬜ **Session 38 Phase A:** P1/P2/P3 in OWNER_TEST_STATUS (snapshot, internal_note hidden from customer, order_type tab, pre_discount_total)
 - ⬜ **Session 37:** status overhaul + SMS-on-confirm (the SMS test above covers the core)
 - ⏭️ Sprint 2/3 full scenario sweep (40+ rows) — do opportunistically; not a hard gate if smoke passes
+
+### Checkout audit leftovers (session 37 fixed #1–6; these remain — checkout-flow-audit memory)
+- ⬜ **#7 — `billing_country: "Bangladesh"` hardcoded** in order placement → resale issue for non-BD client; read from settings (or accept for BD-only first client)
+- ⏭️ **#9 — saved-address district race** — zone dropdown may not yet contain the saved district when `applySavedAddress` fires; minor UX, not a blocker
 
 ---
 
@@ -106,13 +122,14 @@ Not strictly blocking a first delivery, but needed for the "production-grade res
 ## ✅ MINIMUM VIABLE DELIVERY (owner's call)
 
 To hand a first client a working shop, the hard gates are:
-1. **GATE 1** — one full E2E smoke pass (esp. order → confirm → real SMS → deliver)
-2. **GATE 2** — client config swap + branding
-3. **GATE 3** — deploy scripts + role flags + seed data
+1. **GATE 0** — close the 2 confirmed P0 security holes (F012 IDOR + F008 webhook spoof). Non-negotiable once real customer data exists.
+2. **GATE 1** — one full E2E smoke pass (esp. order → confirm → real SMS → deliver)
+3. **GATE 2** — client config swap + branding
+4. **GATE 3** — deploy scripts + role flags + seed data
 
 GATE 4/5 are per-client / post-launch decisions. If the client doesn't sell via online-pay or offers/bundles on day 1, ship COD-only and add later.
 
 ---
 
 ## NEXT
-→ Owner picks: start GATE 1 smoke test (Claude writes exact step list + Claude runs servers), or GATE 3 script prep, or decide GATE 4 scope for this specific client.
+→ Recommended order: **GATE 0 first** (F012 + F008 are confirmed exploitable, small fixes ~1-2h) → then GATE 1 smoke test → GATE 2/3 config at deploy time. Owner picks where to start.
