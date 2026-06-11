@@ -21,6 +21,7 @@
 
 | Work area | Code status | Test status |
 |-----------|-------------|-------------|
+| **Session 38 — Order Unification Phase A (future-ready order/orderproduct schema + order_type/currency/pre_discount_total/snapshot/discount_source/vat + admin internal_note & cancel/return reason + order_type filter tab)** | ✅ Shipped session 38 (BE+Admin+FE, committed `dev`) | 🔵 STATIC-VERIFIED (BE tsc 0 / Admin 0 / FE compiled; /test PASS 0 blockers; needs owner browser test — see P1/P2/P3) |
 | **Session 37 — Order Status overhaul (on_hold/confirmed/completed) + SMS-on-confirm + COD checkout fixes + tracking redesign** | ✅ Shipped session 37 (BE+Admin+FE, committed `dev`) | 🔵 STATIC-VERIFIED (tsc EXIT 0; needs owner browser+SMS test) |
 | **Session 36 — Cart System Overhaul + Quick-Edit Modal** | ✅ Shipped session 36 (BE + FE, no commit yet) | ✅ PASSED (P1/P2/P3 all owner-verified 2026-06-10) |
 | **Session 35 — Price resolution end-to-end: flash sale storefront endpoint + home strip flash enrichment + helper.js base fix + ECommerceChoice section** | ✅ Shipped session 35 (BE `f63f336`, FE `9036928`) | ⏸ PENDING |

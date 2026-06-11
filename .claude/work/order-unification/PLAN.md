@@ -253,4 +253,10 @@ campaign+flash already unified; offer_order flags removal-candidate; product_tot
 ---
 
 ## NEXT SESSION START HERE
-→ Audit DONE. Owner approval pending on: (1) Phase A only এখন নাকি A+B একসাথে? (2) M1 `pre_discount_total` add করব? (3) currency slot-only ঠিক আছে? → তারপর Phase A code। `/test` after implementation.
+→ **Phase A SHIPPED (session 38, 2026-06-11).** Owner approved: A-only first, `pre_discount_total` YES, currency slot-only YES.
+   - BE: order.interface+model (slots + order_type cleaned enum + index), orderProduct.interface+model (snapshot/discount_source/vat/customization/digital slots), recompute (name/image snapshot + discount_source + pre_discount_total), controller (3 create-blocks write snapshot/vat, 3 order-level write order_type/currency/pre_discount_total, updateOrder reason pass-through), service (internal_note stripped from public GET + tracking + customer-history), getDashboardOrder (order_type filter).
+   - Admin: ViewAllOrderInfo (order_type badge + AdminNotesCard internal_note editable + cancel/return reason display), OrderTable (cancel/return SweetAlert reason prompt), OrderPage ("Offer Orders" order_type=offer tab).
+   - FE: OrderInvoice + MyOrderTracking (live||snapshot fallback). PurchaseHistory N/A (no product render).
+   - Build: BE tsc 0 · Admin 0 · FE compiled. `/test` PASS, 0 BLOCKERS. Deploy-day: `db.orders.createIndex({createdAt:-1, order_type:1})`.
+
+→ **NEXT: Phase B (offer merge)** — still needs the 3 BLOCKER fixes designed in (B1 recompute offer branch + date-window, B2 guest checkout + credentials, B3 stock mapping), delete offerOrder module + role flags (H4 migration note), Next.js redirect (H5), pre_discount_total now exists for offer invoices. See section 7 Phase B list.
