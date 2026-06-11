@@ -1,7 +1,18 @@
 # Order System Unification + Future-Ready Schema — PLAN
 
 **Created:** 2026-06-11
-**Status:** PLANNING (edge-audit pending before code)
+**Status:** Phase A SHIPPED (s38) · Phase B SHIPPED (s39) · Phase C deferred
+
+> **Phase B DONE (2026-06-11, s39):** offer/bundle orders merged into the `orders`
+> collection. recompute offer branch (server-trusted price + active/date-window
+> verify, B1); FE offer ProductTable now POSTs `/order` with `order_type:"offer"`
+> + guest support (B2); stock flows through `decrementStockForLines` (B3). Deleted
+> the entire `offerOrder` BE module + `offer_order_*` role flags; offer-order
+> delete/exists guards in offer/product/user controllers repointed to `orders`;
+> getme `totalOfferOrder` now counts `order_type:"offer"`. Admin OfferOrderList
+> page/table/routes deleted (offer orders show in main Orders list via the
+> order_type=offer tab). FE OfferHistory tab + OfferOrdersInvoice + offer-orders
+> route deleted; `/offer-orders/:path*` 301-redirects to purchase history.
 **Owner goal:** এক unified order flow যাতে regular / flash sale / campaign / offer-bundle / custom product / pre-order / subscription / gift / wholesale — সব order type **একই collection, একই admin page, একই status system** দিয়ে handle হয়। Schema future-ready কিন্তু over-engineered না।
 
 ---
