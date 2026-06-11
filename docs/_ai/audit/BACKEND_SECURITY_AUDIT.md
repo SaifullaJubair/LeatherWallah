@@ -176,11 +176,11 @@ Each finding lives in `findings/F<NNN>-<slug>.md`. Index regenerated as cards ar
 | F004 | No CSRF defense with sameSite=none cookies | 🟠 P1 | **deferred** | index.ts + 3-app FE | [F004 card](findings/F004-csrf-protection-deferred.md) |
 | F005 | Unstructured logging (console.*) | 🟡 P2 | **partial v2 s18** (index.ts migrated to pino; module-level console.* migrates per module pass) | global | _(card pending)_ |
 | F006 | No explicit body size limit | 🟡 P2 | **fixed v2 s18** | index.ts | [F006 card](findings/F006-body-size-limit.md) |
-| F007 | http:// admin domain in CORS allowlist | 🟡 P2 | open | index.ts | _(pending card)_ |
+| F007 | http:// admin domain in CORS allowlist | 🟡 P2 | **fixed s39** — CORS origins env-driven (`CORS_ORIGINS` comma-sep, https) + localhost dev defaults; hardcoded fruitsnacksbd.com list (incl. insecure http://) removed | index.ts | _(card pending)_ |
 | F008 | Courier webhook signature verification | 🔴 P0 | **fixed s39** — Steadfast: shared-secret guard (`STEADFAST_WEBHOOK_SECRET` via `?token=`/header, reject when set+mismatch); Pathao: closed the fail-open (invalid/missing sig now rejects with 202-no-process) | order/webhook | _(card pending)_ |
-| F009 | File upload mime/size audit | 🟡 P2 | open | helpers/image.upload | _(pending audit)_ |
+| F009 | File upload mime/size audit | 🟡 P2 | **fixed s39** — ImageUpload fileFilter was `cb(null,true)` (accepted .exe/.html/.svg-XSS); now whitelists image/video/pdf extensions. Size limits already present (10MB img / 20MB video). Also removed a real hardcoded S3 access/secret key pair left in comments (F009b — ROTATE those keys, they're in git history). | helpers/image.upload | _(card pending)_ |
 | F010 | Cron in same process as web | 🟢 P3 | open | index.ts | _(deferred)_ |
-| F011 | .env.local in FE git history | 🟠 P1 | open | infra/secrets | _(carryover s17)_ |
+| F011 | .env.local in FE git history | 🟠 P1 | **partial-fixed s39** — FE `.env.local` was still git-TRACKED (all FE secrets in repo); now `git rm --cached` + `.gitignore` `.env*`. Admin/Backend already clean. ⚠️ Secrets remain in git HISTORY — ROTATE leaked values (CAPI tokens, analytics IDs, S3 keys) at deploy; full history scrub is destructive (force-push) so deferred to owner call. | infra/secrets | _(carryover s17)_ |
 | F012 | User-scoped endpoint IDOR audit | 🔴 P0 | **fixed s39** — `GET /order` was unauthenticated + read `customer_id` from query (anyone could read any customer's order history). Now `verifyUserToken` + customer_id derived from `req.user.id`; query param ignored. Swept cart + wishlist = already safe (both `verifyUserToken` + `req.user.id`). FE `getAllOrders.js` stops sending `customer_id`. | order (cart/wishlist clean) | _(card pending)_ |
 
 ---

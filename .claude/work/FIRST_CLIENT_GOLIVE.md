@@ -15,9 +15,9 @@ From [BACKEND_SECURITY_AUDIT.md](../../docs/_ai/audit/BACKEND_SECURITY_AUDIT.md)
 - ✅ **F008 — Courier webhook spoofing (FIXED s39).** Steadfast: shared-secret guard — set `STEADFAST_WEBHOOK_SECRET` and append `?token=<secret>` (or `x-steadfast-webhook-secret` header) when registering the webhook URL in the Steadfast dashboard → bad/missing secret = 401. Pathao: fail-open closed — invalid/missing HMAC signature now rejects (still 202 per Pathao requirement, but does not process). Both skip the check when the secret env is unset (local dev). ([webhook.controller.ts](../../FruitSnacksBackend/src/app/order/webhook/webhook.controller.ts), [pathao.webhook.controller.ts](../../FruitSnacksBackend/src/app/order/webhook/pathao.webhook.controller.ts))
   - ⬜ **Deploy-day:** set `STEADFAST_WEBHOOK_SECRET` + `PATHAO_WEBHOOK_SECRET` in backend `.env`, and register the webhook URLs with the matching secret in each courier dashboard.
 - ✅ **F012 (wider) — IDOR sweep done:** cart + wishlist already safe (both `verifyUserToken` + `req.user.id`). Only order GET was vulnerable.
-- ⬜ **F009 — File upload mime/size audit** (multer limits + S3 content-type) — pending.
-- ⬜ **F007 — `http://` admin domains in CORS allowlist** (overlaps GATE 2 — make env-driven + https-only for prod).
-- ⬜ **F011 — `.env.local` in FE git history** (carryover) — rotate any leaked secrets, scrub history or accept + rotate.
+- ✅ **F009 — File upload whitelist (FIXED s39).** ImageUpload fileFilter now whitelists image/video/pdf extensions (was accept-all → .exe/.html/.svg-XSS possible). Size limits already present. Also removed a hardcoded S3 key pair from comments.
+- ✅ **F007 — CORS env-driven (FIXED s39).** Origins from `CORS_ORIGINS` (comma-sep, https) + localhost dev defaults; hardcoded insecure http:// list removed. **Deploy-day:** set `CORS_ORIGINS` to client's storefront + admin https domains.
+- ✅ **F011 — `.env.local` untracked (PARTIAL-FIXED s39).** FE `.env.local` was git-tracked → `git rm --cached` + `.gitignore .env*`. Admin/Backend already clean. ⚠️ **Deploy-day / owner:** secrets remain in git HISTORY → **ROTATE** leaked CAPI tokens, analytics IDs, old S3 keys. Full history scrub (force-push) is destructive — owner decides.
 - ⏭️ F003b CSP / F004 CSRF / F005 console→pino / F010 cron-split — deferred (documented in audit, not first-delivery blockers).
 
 ---
@@ -65,7 +65,7 @@ These still hold the PREVIOUS owner's values (CLAUDE.md warns: do not edit `.env
 - ⬜ CAPI tokens: `META_CAPI_ACCESS_TOKEN / TIKTOK_CAPI_ACCESS_TOKEN`
 
 ### Domain / CORS / image hosts
-- ⬜ **CORS allowlist** — [FruitSnacksBackend/src/index.ts](../../FruitSnacksBackend/src/index.ts) `corsOptions.origin[]` is HARDCODED with `fruitsnacksbd.com` family → add client domains (or make env-driven)
+- ⬜ **`CORS_ORIGINS`** (backend `.env`) — comma-separated https origins for the client's storefront + admin (F007 made this env-driven; localhost is always allowed for dev)
 - ⬜ **next.config.mjs image domains** — add client's S3/CDN host
 - ⬜ Auth cookie domain — `fruit_snacks_token` works across the 3 apps; verify cookie domain matches client's domain
 
