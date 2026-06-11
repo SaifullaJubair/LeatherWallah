@@ -11,9 +11,10 @@
 
 From [BACKEND_SECURITY_AUDIT.md](../../docs/_ai/audit/BACKEND_SECURITY_AUDIT.md) Stage 1.5a (incomplete). Two P0s **confirmed exploitable** by reading the code this session — must fix before any real customer data exists.
 
-- ⬜ **F012 — IDOR on customer order history (CONFIRMED 🔴).** `GET /api/v1/order` (`getACustomerAllOrder`) has **NO auth middleware** and reads `customer_id` from `req.query` — anyone can pass `?customer_id=<any id>` and read another customer's full order history (name, phone, address, what they bought). Fix: add `verifyUserToken` + derive customer_id from `req.user.id`, ignore the query param. ([order.routes.ts:28](../../FruitSnacksBackend/src/app/order/order.routes.ts), [order.controller.ts:751](../../FruitSnacksBackend/src/app/order/order.controller.ts))
-- ⬜ **F008 — Courier webhook spoofing (CONFIRMED 🔴).** `POST /api/v1/webhook/steadfast` has **zero** signature/secret check — anyone can POST `{invoice, status:"cancelled"}` to cancel any order (triggers restock). Pathao webhook *has* HMAC verify but is **fail-open** (`// signature invalid হলেও process করো`). Fix: Steadfast — require a shared secret header/token; Pathao — make invalid signature reject (close the fail-open). ([webhook.controller.ts](../../FruitSnacksBackend/src/app/order/webhook/webhook.controller.ts), [pathao.webhook.controller.ts:88](../../FruitSnacksBackend/src/app/order/webhook/pathao.webhook.controller.ts))
-- ⬜ **F012 (wider) — IDOR sweep:** audit cart + wishlist + any other user-scoped read the same way (param/body id vs `req.user.id`).
+- ✅ **F012 — IDOR on customer order history (FIXED s39).** `GET /order` now requires `verifyUserToken` and derives `customer_id` from `req.user.id`; the query param is ignored. FE `getAllOrders.js` no longer sends customer_id. ([order.routes.ts](../../FruitSnacksBackend/src/app/order/order.routes.ts), [order.controller.ts](../../FruitSnacksBackend/src/app/order/order.controller.ts))
+- ✅ **F008 — Courier webhook spoofing (FIXED s39).** Steadfast: shared-secret guard — set `STEADFAST_WEBHOOK_SECRET` and append `?token=<secret>` (or `x-steadfast-webhook-secret` header) when registering the webhook URL in the Steadfast dashboard → bad/missing secret = 401. Pathao: fail-open closed — invalid/missing HMAC signature now rejects (still 202 per Pathao requirement, but does not process). Both skip the check when the secret env is unset (local dev). ([webhook.controller.ts](../../FruitSnacksBackend/src/app/order/webhook/webhook.controller.ts), [pathao.webhook.controller.ts](../../FruitSnacksBackend/src/app/order/webhook/pathao.webhook.controller.ts))
+  - ⬜ **Deploy-day:** set `STEADFAST_WEBHOOK_SECRET` + `PATHAO_WEBHOOK_SECRET` in backend `.env`, and register the webhook URLs with the matching secret in each courier dashboard.
+- ✅ **F012 (wider) — IDOR sweep done:** cart + wishlist already safe (both `verifyUserToken` + `req.user.id`). Only order GET was vulnerable.
 - ⬜ **F009 — File upload mime/size audit** (multer limits + S3 content-type) — pending.
 - ⬜ **F007 — `http://` admin domains in CORS allowlist** (overlaps GATE 2 — make env-driven + https-only for prod).
 - ⬜ **F011 — `.env.local` in FE git history** (carryover) — rotate any leaked secrets, scrub history or accept + rotate.
@@ -53,6 +54,7 @@ These still hold the PREVIOUS owner's values (CLAUDE.md warns: do not edit `.env
 - ⬜ Pathao: `PATHAO_*` (5 vars) → client's courier account
 - ⬜ Steadfast: `STEADFAST_CLIENT_ID/PASSWORD`
 - ⬜ `FRAUDBD_API_KEY` (optional)
+- ⬜ **`STEADFAST_WEBHOOK_SECRET` + `PATHAO_WEBHOOK_SECRET`** (F008 — set these AND register matching secret in each courier dashboard; without them the webhook auth is skipped)
 
 ### Admin `.env`
 - ⬜ `VITE_API_URL` → client's backend root
