@@ -74,10 +74,26 @@ These still hold the PREVIOUS owner's values (CLAUDE.md warns: do not edit `.env
 
 ### Branding (via Admin UI — no code edit)
 - ⬜ Admin → Site Settings: brand name, logo, favicon, title, SEO defaults
-- ⬜ Admin → Page SEO Management: override the leftover leather/Bangladesh product copy
 - ⬜ Admin → currency: `currency_code / currency_symbol / currency_name` (session 38 order.currency reads currency_code; FE display uses symbol)
 - ⬜ Theme / default site theme (green by default — confirm client wants it)
 - ⏭️ Currency hardcoded `BDT` in analytics + JSON-LD (F-21) — refactor only if client is non-BDT
+
+### SEO content (MANDATORY — leather copy leaks otherwise) [s39 audit]
+The SEO defaults still ship with the old Artisan-Leather copy (intentional per
+CLAUDE.md — buyer overwrites). If skipped, FruitSnacks pages get "Genuine Leather
+Wallets Bangladesh" titles. Must do before go-live:
+- ⬜ **Admin → Page SEO Management:** overwrite meta title + description for every
+  indexable page (home, shop, offer, about, all policy pages). Private pages
+  (cart/sign-in/orders/etc.) are correctly noIndex — leave them.
+- ⬜ **Admin → Site Settings → Software Information:** site-wide `seo_title`,
+  `seo_description`, `seo_keywords` (these are the `getSeoConfig` fallback — if
+  blank, the hardcoded leather copy shows).
+- ⬜ Per-product SEO: meta title/desc/keywords + og image (Product form Step 3 +
+  Page-Content) — at least for hero products.
+- ✅ **Index config fixed (s39):** `/shop` + `/offer` are now indexable (were
+  wrongly blocked in robots.js + noIndex); the 5 legacy listing routes
+  (all-products/all-trending/new-arrival/top-product/latest-product) are now
+  noIndex (they 301→/shop). robots ↔ sitemap ↔ pageSeo are consistent.
 
 ---
 
@@ -88,6 +104,7 @@ Run on the client's PROD DB after first deploy. Scripts live in `FruitSnacksBack
 - ⬜ `normalize-user-phones.ts` (exists)
 - ⬜ `zero-product-qty-when-variation.ts` (exists)
 - ⬜ **order_type index (session 38):** `db.orders.createIndex({ createdAt: -1, order_type: 1 })`
+- ⬜ **Page SEO seed (`POST /page-seo/seed`)** — seeds the default page list. ⚠️ idempotent-by-key: it SKIPS pages that already exist, so the s39 noIndex fixes (5 legacy routes → noIndex, offer/shop → index, new `shop` entry) only apply on a FRESH DB. For an already-seeded client DB, fix those rows via Admin → Page SEO toggles instead.
 - ⬜ Dashboard access (E20): tick `dashboard_show` on super-admin role — ⚠️ `tick-dashboard-show.ts` script NOT in src/scripts (do via DB or write it)
 - ⬜ Tick super-admin role flags that gate shipped features:
   - `order_create_admin` (D18 POS)
