@@ -36,6 +36,7 @@ Minimum before delivery = **one full end-to-end smoke pass**, not every scenario
 - ⬜ **Session 38 Phase A:** P1/P2/P3 in OWNER_TEST_STATUS (snapshot, internal_note hidden from customer, order_type tab, pre_discount_total)
 - ⬜ **Session 37:** status overhaul + SMS-on-confirm (the SMS test above covers the core)
 - ⏭️ Sprint 2/3 full scenario sweep (40+ rows) — do opportunistically; not a hard gate if smoke passes
+- ✅ **Admin order sidebar audit (s39)** — found + fixed a broken "Processing Order" menu (route was commented → blank page). Removed it + 4 dead order pages; Processing/Delivered/Cancelled/Returned are tabs inside Order List. All remaining order menus (Order List, SteadFast, Pathao, Fraud, Create POS, Abandoned, Offer-tab) verified working + hitting valid BE routes. Admin build EXIT 0.
 
 ### Checkout audit leftovers (session 37 fixed #1–6; these remain — checkout-flow-audit memory)
 - ⬜ **#7 — `billing_country: "Bangladesh"` hardcoded** in order placement → resale issue for non-BD client; read from settings (or accept for BD-only first client)
