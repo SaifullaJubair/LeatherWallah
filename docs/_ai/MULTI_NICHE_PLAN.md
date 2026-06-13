@@ -265,7 +265,9 @@ fashion as concrete shops FIRST, then extract the shared registry/preset.
 
 ```
 Step 0  (NOW)   → deliver the food client (engine ready)
-Step 1          → spec-table PDP block (gap #1) — quick, helps every variation niche
+Step 1   ✅ DONE → spec-table PDP block (gap #1) — DONE (FE daf31c3): custom_fields
+                  now render as a 2-column description + spec table below the hero
+                  (DescriptionCard.jsx + ProductThemedSections wiring)
 Step 2          → build FASHION concretely: size-chart + spec render, fashion home layout,
                   fashion filters/theme. Don't generalize yet.
 Step 3          → with food + fashion concrete, EXTRACT the shared pattern:
