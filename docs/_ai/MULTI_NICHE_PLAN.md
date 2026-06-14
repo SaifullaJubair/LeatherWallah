@@ -120,6 +120,13 @@ codebase, the niche preset's section array + the product's data decide.
 > section registry** instead — otherwise a fashion PDP can't anchor a float to
 > its size-chart/spec section. Owner explicitly accepted this rework at build
 > time (chose "Section-anchored — food-only now").
+>
+> 🔖 **Inline `MULTI-NICHE-DEBT` markers planted** (grep the codebase for that
+> token) at all 5 sites so a future developer hits the pointer in-code, not just
+> here: `theme.model.ts` (section enum), `product.model.ts` (floating_overrides
+> section enum), `ThemeFloatingManager.jsx` + `ProductFloatingTab.jsx` (admin
+> SECTIONS list), `FloatingAssets.jsx` (render-side section filter — the section
+> names are passed in hardcoded by each PDP section component).
 
 ---
 
