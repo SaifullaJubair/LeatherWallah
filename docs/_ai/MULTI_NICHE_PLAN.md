@@ -268,6 +268,11 @@ Step 0  (NOW)   → deliver the food client (engine ready)
 Step 1   ✅ DONE → spec-table PDP block (gap #1) — DONE (FE daf31c3): custom_fields
                   now render as a 2-column description + spec table below the hero
                   (DescriptionCard.jsx + ProductThemedSections wiring)
+Step 1b  ✅ DONE → FAQ templates niche-ready (BE ba7161a / Admin 9c1f10c): category
+                  enum → free-text topic (any niche coins its own); + optional
+                  category_ids[] scope so the page-content picker SUGGESTS templates
+                  for a product's category lineage (parent tags cascade). Reusable
+                  category-scoped content = a multi-niche building block.
 Step 2          → build FASHION concretely: size-chart + spec render, fashion home layout,
                   fashion filters/theme. Don't generalize yet.
 Step 3          → with food + fashion concrete, EXTRACT the shared pattern:
