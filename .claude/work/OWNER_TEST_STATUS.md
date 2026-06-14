@@ -247,6 +247,20 @@
 | S3.21 | **`enable_seeded_reviews=true` (default)** — toggle ON → PDP shows all reviews including seeded | Default behavior; real + seeded shown | ⏸ |
 | S3.22 | **Permission gate** — admin with `review_show` only (no seed_bulk/seed_manual) → sidebar link absent; direct GET `/api/v1/review/seed/list` returns 403 for POST seed routes | RBAC enforced | ⏸ |
 
+#### Seed Review enhancement (session 41, 2026-06-14)
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| S41.1 | **Manual multi-select** — Manual tab → search products → pick 2-3 → write review → Submit → toast "Added to N product(s)" → each picked product's PDP shows the review | Same review seeded to all selected products | 🔵 |
+| S41.2 | **Manual image upload** — Manual tab → upload an image (≤10MB) → submit → review on PDP shows the image (no URL typing) | File upload replaces URL field | 🔵 |
+| S41.3 | **Manual dedup** — re-submit same products + same text → toast "skipped N duplicate(s)", no duplicate reviews | Dedup ON per product | 🔵 |
+| S41.4 | **Bulk shared image (lazy)** — Bulk tab → choose image → click "Validate (Dry Run)" → NO file uploaded to S3 / nothing saved → then "Upload & Save" → image now in S3, applied to rows with no `review_image` | Lazy upload, no orphan on dry run | 🔵 |
+| S41.5 | **Bulk row image wins** — a JSON row with its own `review_image` keeps its own image even when shared image is set | Row image priority | 🔵 |
+| S41.6 | **Bulk two buttons** — "Validate (Dry Run)" shows "Would insert N" + amber "nothing saved"; "Upload & Save" shows "Inserted N" and clears the form | Explicit dry-run vs save | ✅ owner-confirmed (upload→PDP works) |
+| S41.7 | **Find product ID helper** — Bulk tab → search a product in "Find product ID" → pick → toast "Copied ID" → paste into JSON | _id copied to clipboard | 🔵 |
+| S41.8 | **Bad product id guard** — bulk JSON with a fake/garbage `review_product_id` → that row in "Failed: ... product not found"; no orphan review | ObjectId valid + ProductModel.exists | 🔵 |
+| S41.9 | **Buyer name on PDP (bug fix)** — seed a review with `reviewer_name` → themed PDP review accordion + home "প্রাহকদের ভালোবাসা" carousel show the NAME (not "ক্রেতা") | reviewer_name renders | ✅ owner-confirmed |
+
 ---
 
 Run these first; if any fail, do NOT proceed to other tests:
