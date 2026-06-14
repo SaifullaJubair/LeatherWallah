@@ -16,7 +16,7 @@ ticked off as shipped, with the commit hash next to them.
 | 1 | Nutrition info tiles dynamic | ✅ DONE |
 | 2 | Nutrition rows dynamic | ✅ DONE |
 | 3 | Description redesign + reposition | ✅ DONE (FE `f0d1b20`) |
-| 4 | Floating images rethink | ⏸ BLOCKED on owner sketch |
+| 4 | Floating images rethink | ✅ DONE (section-anchored unified: theme-global + product override) |
 | 5 | Keep `/products-original` alive | 🟡 Verified existing, no regression watch yet |
 | 6 | Admin theme-create page friendlier | ⏭ Deferred to Admin 2.0 |
 | 7 | Theme preview page improve | ⏭ Deferred to Admin 2.0 |
@@ -67,13 +67,31 @@ still render the themed sections wrapper.
 
 ---
 
-## Group 2 — Floating images (NEW concept) ⚠️ NEEDS OWNER SKETCH
-### 4. Floating image placement — full rethink
-Today: `theme.floating_assets[]` (fruit images) placed left/right per section
-with auto-distribute fallback.
-**Owner has a new concept** and will provide a **hand-drawn sketch**. Full
-detailed discussion required before any work. **BLOCKED on sketch + discussion.**
-→ Open question Q1 below.
+## Group 2 — Floating images (NEW concept) ✅ DONE
+### 4. Floating image placement — full rethink — ✅ DONE
+Shipped a **unified section-anchored floating model** (food-only for now):
+- Theme `floating_assets[]` now carry a stable `id` + `align` (top/middle/bottom
+  inside the anchored section). Section was already the anchor.
+- New product `floating_overrides { hidden_ids, replacements, extras[] }` — a
+  product inherits its theme's global floats and can **hide**, **replace** (same
+  slot/animation, swap image — this product only, theme untouched), or add
+  **extra** product-only floats.
+- FE `mergeFloating()` layers override over theme (dead-ref guard for theme
+  swap/asset-delete); injected once into `theme.floating_assets` at page level so
+  all section `<FloatingAssets/>` render the resolved set. **Old full-page
+  `ProductFloatingImages` (z-index trap) removed.**
+- `prefers-reduced-motion` kills float animation.
+- Admin: theme editor re-gained a **global floating manager**; product Page
+  Content → Floating tab rebuilt as the override editor (inherited list with
+  hide/replace + product extras).
+- Migration `backfill-floating-assets.ts` ran on dev DB: 2 products, 5 legacy
+  floats → `floating_overrides.extras`. Theme asset ids backfilled.
+
+⚠️ **Multi-niche debt:** the section list (hero/order/benefits/nutrition/…) is
+hardcoded to the food PDP. When the PDP section registry (`pdp_section_array`,
+see [[multi-niche-platform-blueprint]]) lands, this list must become dynamic so
+fashion/cosmetics PDPs anchor floats to *their* sections. Owner accepted this
+rework when choosing "Section-anchored — food-only now".
 
 ---
 
@@ -173,8 +191,9 @@ leftover leather-template sections/copy). Match the new fruit-snacks themed look
 ---
 
 ## Open questions (resolve before starting the relevant phase)
-- **Q1 (item 4):** Owner to provide the floating-image placement sketch; full
-  discussion needed before any code.
+- **Q1 (item 4):** ✅ RESOLVED — owner chose section-anchored (food-only now),
+  full scope shipped. Position model = section anchor + side + align. No sketch
+  needed; built on the existing section-scoped theme floating system.
 - **Q2 (item 5):** Is `/products-original/[slug]` the intended "keep old page"
   route, or does the owner want a fresh separate route? And the "reason" for
   keeping it (mentioned, to be explained).

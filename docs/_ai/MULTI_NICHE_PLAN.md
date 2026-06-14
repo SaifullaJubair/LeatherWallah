@@ -109,6 +109,18 @@ Sections self-hide when data is empty, but the list + order + labels are hardcod
 This means a fashion PDP shows size-chart + spec, a food PDP shows nutrition — same
 codebase, the niche preset's section array + the product's data decide.
 
+> ⚠️ **Floating-images debt to absorb when this lands:** the section-anchored
+> floating system (theme `floating_assets[].section` + product
+> `floating_overrides`, shipped under NEXT_PHASES item 4) anchors floats to a
+> **hardcoded food section enum** (hero/order/benefits/use_cases/nutrition/
+> reviews/faq/any) in BOTH backend schemas (theme.model + product.model) AND the
+> admin dropdowns (ThemeFloatingManager.jsx, ProductFloatingTab.jsx) AND
+> FloatingAssets.jsx section filter. When `pdp_section_array` becomes the source
+> of truth, the floating section list must be **derived from the active niche's
+> section registry** instead — otherwise a fashion PDP can't anchor a float to
+> its size-chart/spec section. Owner explicitly accepted this rework at build
+> time (chose "Section-anchored — food-only now").
+
 ---
 
 ## 5. Field/section → niche mapping
