@@ -261,6 +261,17 @@
 | S41.8 | **Bad product id guard** — bulk JSON with a fake/garbage `review_product_id` → that row in "Failed: ... product not found"; no orphan review | ObjectId valid + ProductModel.exists | 🔵 |
 | S41.9 | **Buyer name on PDP (bug fix)** — seed a review with `reviewer_name` → themed PDP review accordion + home "প্রাহকদের ভালোবাসা" carousel show the NAME (not "ক্রেতা") | reviewer_name renders | ✅ owner-confirmed |
 
+#### Floating-image override fixes + Variations badge (session 42, 2026-06-15)
+
+| # | Scenario | Expected | Status |
+|---|---|---|---|
+| S42.1 | **Replace button now enabled** — Product → Page Content → Floating tab → each theme-inherited float row shows NO red "id নেই" text; **Hide + Replace both enabled** | Theme floats got persisted ids (migration) | 🔵 |
+| S42.2 | **Deferred upload — no orphan on abandon** — Floating tab → Replace a theme float OR add an extra → pick an image → **Network tab shows NO `/image_upload` call**; navigate away without Save → nothing in S3 | File only blob-previewed until Save | 🔵 |
+| S42.3 | **Deferred upload — flush on Save** — pick image(s) → click **Save Page Content** → `/image_upload` fires (one per new file) → then one PATCH → live PDP shows new/replaced float | Upload happens once, at Save | 🔵 |
+| S42.4 | **Replace preview + badge** — after picking a replacement file, the row preview swaps to the new image and shows amber "(replaced — unsaved)"; Reset button undoes the pending replace | Blob preview + pending state | 🔵 |
+| S42.5 | **Upload-fail aborts save** — if an image upload fails mid-Save, toast "...not saved" and NO PATCH is sent (no half-saved rows) | Atomic-ish: abort on any upload fail | 🔵 |
+| S42.6 | **Variations sidebar ✓** — open a variation product's Page Content → sidebar "Variations" shows green ✓ (was neutral ●); a simple no-variation product stays neutral | `is_variation === true` gates the badge | 🔵 |
+
 ---
 
 Run these first; if any fail, do NOT proceed to other tests:
