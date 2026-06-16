@@ -106,6 +106,10 @@ Run on the client's PROD DB after first deploy. Scripts live in `FruitSnacksBack
 
 - ⬜ **🚀 FIRST — `npm run bootstrap`** (fresh DB). Solves the chicken-and-egg: a fresh DB has no admin/role so nobody can log in. The script (schema-derived, idempotent) creates: Super-Admin role (every permission flag = true, derived from the schema so it never goes stale), the Super-Admin user (from `SUPER_ADMIN_PHONE`/`SUPER_ADMIN_PASSWORD`), a Settings doc, an Authentication (SMS/OTP) doc, and the Page SEO seed. Then log in + change password.
   - After a later build that ADDS permission flags: `npm run bootstrap -- --sync-superadmin` refreshes the super-admin role so it keeps the new flags.
+- ⬜ **⭐ SEED-ROT CHECK (only at delivery, NOT per-feature).** Because `bootstrap` + `seed:demo` are point-in-time snapshots, a version shipped after schema changes can break them. Verify ONCE here before handing a fresh DB to a client:
+  - **bootstrap** is schema-derived → usually fine. Only needs work if a NEW collection must seed on a fresh DB. New permission flags / default fields = no change.
+  - **`seed:demo`** is a concrete-value snapshot (`src/seeds/demo/food.ts`) → can break on a new **required** field / **rename** / **enum-value** change (Mongoose ValidationError; image-first + auto-rollback so the DB isn't left half-seeded). Verify with `npm run seed:demo -- --force` on a dev DB; if it throws, update `food.ts`. (`tsc` also catches typed-field drift early.)
+  - Why here and not per-feature: nobody runs the seeds during normal dev; only a delivery/version-ship touches a fresh DB. See [[cross-doc-sync-rule]] step 4 note + [[demo-seed-feature]].
 - ⬜ `normalize-user-phones.ts` (exists)
 - ⬜ `zero-product-qty-when-variation.ts` (exists)
 - ⬜ **order_type index (session 38):** `db.orders.createIndex({ createdAt: -1, order_type: 1 })`
@@ -118,7 +122,7 @@ Run on the client's PROD DB after first deploy. Scripts live in `FruitSnacksBack
   - `setting_secrets_update` (Analytics Phase 1A)
   - supplier + payment-withdraw + payment-method flags
 - ⬜ Verify pageSeo entries exist: checkout, order-tracking
-- ⬜ Seed: at least 1 category, 1 product, banner/slider, shipping charges (inside/outside Dhaka), min_order_amount
+- ⬜ Seed a presentable catalog: **`npm run seed:demo`** (food demo — categories/products/banners/sliders/reviews/theme; client removes later via Admin → Settings → Demo Data → Clear). Still set shipping charges (inside/outside Dhaka) + min_order_amount manually (not part of the demo seed). See [[demo-seed-feature]].
 
 ---
 
