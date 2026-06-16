@@ -175,6 +175,15 @@ reviews_carousel → site_faq → newsletter. DISABLE the grid strips (trending_
 bestsellers, new_arrivals, offers_block, feature_categories, trust_strip, brand_story[dup],
 promo_banner). All via Admin → Settings → Home Layout — zero code change.
 
+## POLISH PASS (2026-06-16, FE `b1ea67d`) — ui-ux-pro-max audit, owner approved
+New `boutique/bits.jsx`: SectionHeading, GlowBlob (ambient, reduced-motion), MotionButton
+(press spring), WaveDivider. Applied: hero eyebrow "★ আজকের বিশেষ পণ্য" (fixes the
+disconnected-first-product feel) + glow + image float; product_features section heading +
+alternating row bg (rhythm) + chip/CTA press scale; story_band eyebrow + bigger copy + 4 trust
+pills + glow; tabular-nums prices. Banner rounded-3xl + Contain + rounded-full CTA + bigger type
+(matches boutique soft style; marketplace banner also improved, structure unchanged). All
+animations respect prefers-reduced-motion.
+
 ## REMAINING / NOTES
 - NOT deployed to prod yet (still `dev`; merge dev→main when owner says deploy).
 - Demo limitation (not a bug): variation chips swap PRICE but not IMAGE because demo variations
