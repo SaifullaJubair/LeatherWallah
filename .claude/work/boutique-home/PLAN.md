@@ -1,5 +1,12 @@
 # Boutique Home Page — PLAN
 
+> ## ✅ SHIPPED + LIVE (2026-06-16, session 44)
+> Deployed to fruitsnacksbd.com — FE `e3b16b0`, Admin `a39070d`, BE `4c39b97` (dev→main).
+> Boutique preset (Hero Spotlight + Product Features + Story Band) live + enabled on prod.
+> First FE Coolify build wedged (stalled, not slow) → killed + requeued via artisan, rebuilt clean.
+> Prod `home_section_array` restored to FULL 18 sections (boutique 7 ON, rest off) so Admin can
+> toggle Flash Sale/Promo etc. Memory: `boutique-home-preset`. Plan below kept for reference.
+
 **Created:** 2026-06-16
 **Goal:** A premium, animated, "storytelling" home layout that looks great with only
 5-8 products (a boutique food brand), instead of the marketplace grid that needs 100s
