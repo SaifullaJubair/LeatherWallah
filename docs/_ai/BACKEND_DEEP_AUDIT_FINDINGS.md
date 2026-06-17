@@ -8,7 +8,7 @@ Legend: ❌ DOC WRONG · ⚠️ DOC MISSING · 🐛 REAL CODE BUG/SMELL · ✅ c
 
 ## 🐛 REAL CODE BUGS found (not doc — owner action)
 
-> **FIX STATUS (2026-06-17):** ✅ FIXED so far — B1 warehouse, B2 getme IDOR, B5 flashsale default, Pathao bulk 0.5kg, B6 abandonedCart comment, B8 cron UTC, pathaoStatusMap dedup. ⏳ OPEN — B3 coupon dead-code, B4 offer-qty, B7 campaign allowlist, Steadfast env (doc-fixed; code names left as-is intentionally). All tsc 0.
+> **FIX STATUS (2026-06-17, FINAL):** ✅ ALL 9 code bugs FIXED + committed to `dev` (BE `bf4cc0b`) — B1 warehouse 403, B2 getme IDOR/double-hash, B3 coupon dead-code, B5 flashsale default, B7 campaign allowlist, Pathao bulk 0.5kg, B6 abandonedCart comment, B8 cron UTC, pathaoStatusMap dedup. ⏸ **DEFERRED by owner (not a bug)** — B4 offer min-qty gate = display-only for now (wire BE+FE+edge-audit only if a client needs real "buy N save"). Steadfast env = doc-fixed only (code names `STEADFAST_API_KEY`/`STEADFAST_SECRET_KEY` are correct as-is). All tsc 0. App repos `dev` ahead of `main` — waiting on deploy.
 
 1. ✅ **FIXED — Pathao bulk-send 0.5kg.** Now computes weight from `variation_weight_grams` (mirrors single-send; 500g fallback, 0.5kg floor) in the bulk loop.
 

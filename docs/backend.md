@@ -35,7 +35,7 @@ FruitSnacks ব্যাকএন্ড সম্পূর্ণ ই-কমা�
 
 ### Cron Job (অটোমেটিক)
 
-প্রতিদিন রাত ১১:৫৫ UTC-এ একটি ক্রন জব চলে ([`src/index.ts`](../FruitSnacksBackend/src/index.ts)):
+প্রতিদিন রাত ১১:৫৫ UTC-এ একটি ক্রন জব চলে ([`src/index.ts`](../FruitSnacksBackend/src/index.ts)) — `cron.schedule(..., { timezone: "UTC" })` দিয়ে timezone explicit pin করা (deep-audit fix — আগে server local TZ ব্যবহার করত যা VPS-এ UTC নয়, তাই run-time drift হতো):
 - আজকের তারিখের সমান `offer_end_date` থাকা অফারগুলো `in-active` হয়ে যায়
 - `campaign_end_date` শেষ হওয়া ক্যাম্পেইনগুলো `in-active` হয় এবং সংশ্লিষ্ট প্রোডাক্টের `product_campaign_id` $unset হয়
 
@@ -241,7 +241,7 @@ RBAC (Role-Based Access Control) সিস্টেমের কেন্দ্�
 - Catalog: `category_*`, `brand_*`, `attribute_*`, `product_*`। ⚠️ `sub_category_*`/`child_category_*`/`specification_*` flag এখনো role schema-তে **আছে** (orphan/dead — মডিউল মুছে গেছে কিন্তু flag পরিষ্কার করা হয়নি; কোনো route এগুলো ব্যবহার করে না)। `customer_*` flag-ও আছে কিন্তু কোনো route gate করে না।
 - Commerce: `order_show`, `order_update`, `order_create_admin` (POS), `coupon_*`
 - Marketing: `campaign_*`, `offer_*`, `banner_*`, `slider_*`, `review_*` (+`review_seed_bulk`/`review_seed_manual`), `question_*`, `flash_sale_*`
-- Admin/Config: `user_*` (admin), `role_*`, `site_setting_update`, `setting_secrets_update`, `setting_show`/`setting_update`, `page_seo_*`, `dashboard_show`
+- Admin/Config: `user_*` (admin), `role_*`, `site_setting_update` (setting + warehouse, B1 fix), `setting_secrets_update`, `page_seo_*`, `dashboard_show`। ⚠️ `setting_show`/`setting_update` flag schema-তে আছে কিন্তু orphan/dead — কোনো route আর ব্যবহার করে না।
 - Theme/Content: `theme_*`, `faq_template_*`, `trust_point_update`, `site_faq_*`, `newsletter_*`
 - Storefront extras: `demo_data_clear`
 
@@ -269,9 +269,11 @@ RBAC (Role-Based Access Control) সিস্টেমের কেন্দ্�
 ### Endpoints (Base: `/api/v1/get_me`)
 | Method | Path | Auth | কাজ |
 |--------|------|------|-----|
-| GET | `/` | — | logged-in user info (পাসওয়ার্ড/OTP বাদ দিয়ে) |
-| PATCH | `/` | — | নিজের প্রোফাইল আপডেট |
-| GET | `/dashboard_data` | — | user dashboard stats |
+| GET | `/` | getMeUser (token নিজে পড়ে+validate করে) | logged-in user info (পাসওয়ার্ড/OTP বাদ দিয়ে) |
+| PATCH | `/` | User token | **নিজের** প্রোফাইল আপডেট (B2 fix — `verifyUserToken` + `updateMyProfile`, শুধু `req.user.id`, strict field allowlist: name/image/additional_phone/gender/country/division/district/address; password/phone/_id/role/status/wallet/loyalty/verified **লেখা যায় না**) |
+| GET | `/dashboard_data` | User token | নিজের dashboard stats (B2 fix — `req.user.id`, আগে unauthed query ছিল) |
+
+> **B2 (IDOR + double-hash, FIXED):** আগে `PATCH /get_me`-এ কোনো auth ছিল না এবং body-র `_id` ধরে admin `updateUser` reuse করত → যেকোনো ইউজার যেকোনো ইউজারের রেকর্ড edit করতে পারত, আর FE-র echo করা already-hashed password আবার hash হয়ে lockout হতো। এখন self-update only + password field বাদ।
 
 ---
 
@@ -784,7 +786,7 @@ Pathao ও Steadfast courier API integration। অর্ডার courier-এ �
 >
 > **Send guards:** আগে পাঠানো (consignment আছে) বা status processing/shipped/delivered হলে re-send block; Pathao-তে `pathao_city_id`+`pathao_zone_id` লাগে; send হলে `order_status:"processing"`; Pathao cancel শুধু `pathao_status==="Pending"` থাকলে।
 >
-> **⚠️ Weight:** single-send `variation_weight_grams` যোগ করে (fallback 500g, floor `Math.max(0.5,…)`)। **🐛 BUG:** Pathao **bulk-send এখনো hardcoded `item_weight:0.5`** (`pathao.service.ts:321`) — পুরোনো 0.5kg bug bulk path-এ রয়ে গেছে। `PATHAO_STORE_ID` env payload-এ লাগে।
+> **Weight:** single-send **ও bulk-send দুটোই** এখন `variation_weight_grams` থেকে compute করে (fallback 500g, floor `Math.max(0.5,…)`kg)। ✅ আগে bulk-send hardcoded `item_quantity:1, item_weight:0.5` পাঠাত (deep-audit fix — `pathao.service.ts` bulk loop)। `PATHAO_STORE_ID` env payload-এ লাগে।
 
 ---
 
@@ -926,6 +928,8 @@ phone normalize: strip +?88 → ^01[3-9]\d{8}$ (FraudBD); DB search 3 variants [
 | GET | `/dashboard` | Cookie | `campaign_show` |
 | GET | `/dashboard/add_campaign_product` | — | — |
 | GET | `/:_id` | — | — |
+
+> **B7 (PATCH allowlist, FIXED):** `PATCH /campaign` আগে raw body সরাসরি `updateOne`-এ পাঠাত (যেকোনো field client থেকে inject হতে পারত)। এখন field allowlist (`campaign_image/_key`, title, description, start/end_date, status, products, updated_by) থেকে `update` object বানিয়ে save করে।
 
 ---
 
@@ -1358,6 +1362,8 @@ Generic image upload endpoints — যেকোনো module থেকে ছব
 | GET | `/active` | — | — (storefront, populated) |
 | GET·PATCH·DELETE | `/:_id` | Cookie | `offer_*` |
 
+> **B5 (status default, FIXED):** flashsale create-এ status default ছিল `"active"` → তৈরির সাথে সাথেই accidental live sale হয়ে যেত। এখন default `"in-active"` (admin explicit ভাবে activate করবে)। RBAC: flashsale-এর নিজস্ব flag নেই, `offer_*` flag share করে।
+
 ## 42. payment
 
 **File:** [`src/app/payment/`](../FruitSnacksBackend/src/app/payment/) | অর্ডার পেমেন্ট। **৪ gateway** (Phase C1–C4) একটা `Gateway` registry-র পিছনে: `cod`, `manual_mfs`, `sslcommerz`, `bank_transfer`। `initiatePayment` → `kind: "none"|"instruction"|"redirect"`।
@@ -1382,7 +1388,7 @@ Generic image upload endpoints — যেকোনো module থেকে ছব
 
 ## 44. warehouse
 
-**File:** [`src/app/warehouse/`](../FruitSnacksBackend/src/app/warehouse/) | একাধিক warehouse (courier weight/origin)। CRUD `setting_show`/`setting_update`; `/default` public।
+**File:** [`src/app/warehouse/`](../FruitSnacksBackend/src/app/warehouse/) | একাধিক warehouse (courier weight/origin)। CRUD `site_setting_update` (B1 fix — আগে `setting_show`/`setting_update` দিয়ে gated ছিল, যে flag role schema-তে নেই → permanently 403; warehouse site-config-এর অংশ তাই `site_setting_update`-এ repoint করা হয়েছে)। `/default` public (product form + storefront default warehouse লাগে)।
 
 ## 45. abandonedCart
 
@@ -1462,9 +1468,9 @@ offers ←── orders.offer_id (order_type:"offer" — পুরোনো offe
 | `review_*` / `question_*` | review, question |
 | `user_*` | adminRegLog, user, wallet/loyalty (adjust=`user_update`, viewer=`user_show`), wishlist (admin) |
 | `role_*` | role |
-| `site_setting_update` | setting, authentication |
+| `site_setting_update` | setting, authentication, **warehouse** (B1 fix) |
 | `setting_secrets_update` | setting (secrets/test-email) |
-| `setting_show` / `setting_update` | warehouse |
+| ~~`setting_show` / `setting_update`~~ | **orphan/dead** — role schema-তে আছে কিন্তু কোনো route gate করে না (warehouse B1 fix-এ `site_setting_update`-এ সরে গেছে) |
 | `page_seo_*` | pageSeo |
 | `theme_*` | theme |
 | `faq_template_*` | faq_template |
