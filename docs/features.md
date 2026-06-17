@@ -20,9 +20,18 @@ FruitSnacks একটি **তিন-স্তর বিশিষ্ট সম�
 
 আধুনিক, দ্রুত এবং SEO-অপ্টিমাইজড অনলাইন শপ — যা মোবাইল ও ডেস্কটপ উভয়ের জন্য পারফেক্ট।
 
-## হোম পেজ
+## হোম পেজ — Drag-Drop Layout Builder
 
-আপনার গ্রাহকরা প্রথমে যা দেখবে:
+আপনার হোম পেজ সম্পূর্ণ **আপনার নিয়ন্ত্রণে** — Admin → Settings → Home Layout থেকে section drag করে সাজান, যেকোনোটা on/off করুন। কোড ছোঁয়া লাগে না।
+
+### ✨ ২টি হোম ডিজাইন প্রিসেট (একই কোড, ভিন্ন চেহারা)
+
+- **Marketplace প্রিসেট** — অনেক প্রোডাক্টের শপের জন্য: ব্যানার + flash sale + trending/popular/new + category grid + curated strip (নিচের সব section)
+- **🆕 Boutique প্রিসেট** — অল্প প্রোডাক্টের (৫–৮টা) premium শপের জন্য: animated **Hero Spotlight** + **Product Features** + **Story Band** storytelling layout — অল্প product-এও পেজ ফাঁকা না লেগে দামি ও আকর্ষণীয় দেখায়
+
+> দুটোই built-in — Admin থেকে এক প্রিসেটের section ON, অন্যটার OFF করে switch করুন।
+
+### হোম পেজের section সমূহ (যেকোনোটা toggle/reorder)
 
 - **ডায়নামিক ব্যানার ও স্লাইডার** — হোম পেজের উপরে আকর্ষণীয় ছবি/অফার স্লাইডশো
 - **প্রমোশনাল ঘোষণা বার** — পেজের একদম উপরে rolling announcement (যেমন: "Free Delivery on orders over ৳1000")
@@ -31,12 +40,14 @@ FruitSnacks একটি **তিন-স্তর বিশিষ্ট সম�
 - **ট্রেন্ডিং প্রোডাক্ট সেকশন** — যে প্রোডাক্টগুলো এখন বেশি বিক্রি হচ্ছে
 - **জনপ্রিয় প্রোডাক্ট** — সবসময় ভালো বিক্রি হওয়া আইটেম
 - **নতুন প্রোডাক্ট সেকশন** — সর্বশেষ যোগ করা প্রোডাক্ট
-- **"Just For You" পার্সোনালাইজড সেকশন** — গ্রাহকের জন্য বিশেষ সুপারিশ
 - **ই-কমার্স চয়েস** — কিউরেটেড সেরা পিকস
 - **ক্যাটাগরি-ভিত্তিক প্রোডাক্ট গ্রিড** — প্রতিটি ক্যাটাগরির আলাদা সেকশন
 - **প্রমোশনাল ব্যানার ও অ্যাড সেকশন** — মার্কেটিং স্পেস
+- **🆕 Brand Story সেকশন** — ছবি + গল্প + CTA দিয়ে ব্র্যান্ড পরিচিতি
+- **🆕 Reviews Carousel** — গ্রাহক রিভিউ স্লাইডার (auto-featured বা হাতে-বাছাই)
+- **🆕 Site FAQ সেকশন** — হোম পেজে সাইট-ব্যাপী সাধারণ প্রশ্নোত্তর
+- **🆕 Newsletter সাইনআপ** — ইমেইল/SMS সাবস্ক্রাইব সংগ্রহ
 - **ট্রাস্ট কার্ড** — Free delivery, Quality guarantee, Easy return ইত্যাদি দেখানোর সেকশন
-- **মাল্টি-ব্র্যান্ড শোকেস** — যদি একাধিক ব্র্যান্ডের প্রোডাক্ট থাকে
 
 ## প্রোডাক্ট পেজ — সম্পূর্ণ Unique
 
@@ -103,8 +114,7 @@ FruitSnacks একটি **তিন-স্তর বিশিষ্ট সম�
 বহু ধরনের পেজে গ্রাহক প্রোডাক্ট খুঁজে পাবে:
 
 - **All Products পেজ** — সমস্ত প্রোডাক্টের তালিকা
-- **Category page** — যেকোনো ক্যাটাগরির প্রোডাক্ট (3-level deep)
-- **Sub-category page** — আরও নির্দিষ্ট ফিল্টার
+- **Category page** — যেকোনো ক্যাটাগরির প্রোডাক্ট (যেকোনো গভীরতার nested category, subtree সহ)
 - **Brand page** — নির্দিষ্ট ব্র্যান্ডের সব প্রোডাক্ট
 - **All Brands page** — সব ব্র্যান্ডের তালিকা
 - **Latest products** — সর্বশেষ
@@ -119,7 +129,7 @@ FruitSnacks একটি **তিন-স্তর বিশিষ্ট সম�
 
 - **Price range slider** — সর্বনিম্ন/সর্বোচ্চ দাম
 - **Multi-attribute filter** — Color, size, brand একসাথে
-- **Specification filter** — Material, weight, origin
+- **Spec/attribute filter** — Material, weight, origin ইত্যাদি
 - **Sorting options** — Price low-high, high-low, newest, popularity
 - **Sidebar filter panel** — সব option একসাথে
 - **Real-time search** — typing-এর সাথে সাথে ফলাফল
@@ -181,7 +191,7 @@ FruitSnacks একটি **তিন-স্তর বিশিষ্ট সম�
 - **Order details** — প্রতিটি অর্ডারের সম্পূর্ণ invoice
 - **Invoice download/print** — printable format
 - **Order tracking** — Invoice ID দিয়ে status check (লগইন ছাড়াই)
-- **Live tracking stepper** — Pending → Processing → Shipped → Delivered visualized
+- **Live tracking stepper** — ৯টি স্ট্যাটাস visualized (Pending → On Hold → Confirmed → Processing → Shipped → Delivered → Completed, + Cancel/Return)
 - **Pathao/Steadfast tracking integration** — courier-side update auto-fetch
 - **Order cancel request**
 - **Return request**
@@ -206,7 +216,7 @@ FruitSnacks একটি **তিন-স্তর বিশিষ্ট সম�
 - **Quantity-based discount** — যেমন: ৩টা কিনলে ২০% off
 - **Multiple products per offer**
 - **Live countdown** — অফার শেষের আগে urgency create
-- **Offer-specific order flow** — আলাদা ট্র্যাকিং
+- **Unified order flow** — offer অর্ডারও সাধারণ অর্ডারের সাথে এক জায়গায় (আলাদা সিস্টেম নয়); admin-এ Offer Orders ট্যাবে আলাদা দেখা যায়
 
 ### Flash Sale
 
@@ -313,6 +323,17 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 - **Skeleton loaders** — slow connection-এও smooth UX
 - **Bangla font support** — সম্পূর্ণ Bangla typography
 
+## 🆕 চ্যাট ও যোগাযোগ (Chat Widgets)
+
+স্টোরফ্রন্টে ৩টা floating chat button — গ্রাহক এক ক্লিকে আপনার সাথে যোগাযোগ করতে পারে। প্রতিটা Admin → Settings → Storefront Behaviour থেকে on/off ও কনফিগার করা যায়:
+
+- **WhatsApp** — আপনার নম্বরে সরাসরি WhatsApp চ্যাট
+- **Facebook Messenger** — আপনার Page-এর inbox-এ (Page ID দিন)
+- **Live Chat** — Tawk.to / Crisp ইত্যাদি embed (24/7 live chat dashboard)
+- **Position selector** — button কোন কোণায় বসবে (bottom-right ইত্যাদি)
+
+> তিনটাই আপনার নিজের external চ্যাট টুলে message নিয়ে যায় — আলাদা সফটওয়্যার লাগে না।
+
 ## Policy Pages (Pre-built)
 
 সব মূল policy pages আগে থেকে যুক্ত:
@@ -354,14 +375,13 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 
 ## প্রোডাক্ট ম্যানেজমেন্ট
 
-### Catalog Setup (3-Level Hierarchy)
+### Catalog Setup (Nested Category Tree — যেকোনো গভীরতা)
 
-- **Category** — top level (যেমন: "Dried Fruits")
-- **Sub-category** — ২য় level (যেমন: "Nuts")
-- **Child category** — ৩য় level (যেমন: "Almonds")
+- **Nested Category** — একটাই ক্যাটাগরি সিস্টেম, **যেকোনো গভীরতায়** নেস্টেড (যেমন: Dried Fruits → Nuts → Almonds → Organic Almonds...)। আগের আটকানো ৩-লেভেলের সীমা নেই — যত গভীর দরকার তত
+- **Drag re-parent** — ক্যাটাগরি অন্য parent-এর নিচে সরানো যায় (কতগুলো sub-category ও product প্রভাবিত হবে তা confirm dialog-এ দেখায়)
 - **Brand management** — multiple brand support
-- **Attribute setup** — Color, Size, Pack variations
-- **Specification setup** — Material, Weight, Origin etc.
+- **Attribute setup** — Color, Size, Pack ইত্যাদি variation + filter (একই attribute দুটোতেই কাজ করে — single source of truth)
+- **Product Spec rows** — প্রতি প্রোডাক্টে niche-neutral custom field (label + value + icon), যেকোনো পণ্যের জন্য
 
 প্রতিটিতে:
 - Name, slug (auto-generated), logo, video upload
@@ -376,7 +396,7 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 #### Basic Information
 - Product name, slug, SKU, barcode
 - Status, publisher tracking
-- 3-level category assignment
+- Nested category assignment (যেকোনো গভীরতা; product-এ category optional)
 - Brand, supplier reference
 - Trending toggle
 
@@ -400,9 +420,9 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 - Per-variation: weight in grams (for accurate Pathao shipping)
 - Per-variation: custom badge text
 
-#### Specifications & Attributes
-- Multi-attribute setup
-- Specification values
+#### Attributes & Spec Fields
+- Multi-attribute setup (variation + filter — একই attribute)
+- Niche-neutral custom spec rows (label + value + icon)
 - Visual color/size selector setup
 
 #### SEO Per Product
@@ -438,12 +458,16 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 
 - **All orders table** — paginated, searchable
 - **Filter by:**
-  - Order status (Pending, Processing, Shipped, Delivered, Cancel, Return)
+  - Order status (Pending, On Hold, Confirmed, Processing, Shipped, Delivered, Completed, Cancel, Return — ৯টা)
+  - Order type (regular / offer ইত্যাদি — Offer Orders ট্যাব)
   - Date range
   - Phone number
   - Invoice ID
 - **Quick stats** — count per status
 - **Bulk actions** — multiple orders একসাথে
+- **🆕 Create Order (POS)** — admin নিজে ফোন/দোকান থেকে অর্ডার বসাতে পারে
+- **🆕 Abandoned Cart** — যারা checkout শুরু করে শেষ করেনি (recovery campaign)
+- **SMS on confirm** — অর্ডার confirm করলে গ্রাহককে স্বয়ংক্রিয় SMS
 
 ### Order Detail View
 
@@ -598,20 +622,16 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 ### ✨ FAQ Template Library
 
 - **Reusable FAQ entries** — যেকোনো প্রোডাক্টে copy করে paste করা যাবে
-- **Categories:**
-  - Shelf life
-  - Storage
-  - Ingredients
-  - Usage
-  - Health
-  - General
+- **Free-text Topic** — নিজের যেকোনো টপিক বানান (shelf life / storage / health / warranty / skin type — যেকোনো niche)
+- **Category Scope** — কোনো template শুধু নির্দিষ্ট ক্যাটাগরির (+ তার sub-category) প্রোডাক্টে suggest হবে, নয়তো সব প্রোডাক্টে
+- **Dynamic placeholder** — `{{token}}` দিয়ে প্রোডাক্টের আসল ডেটা (weight, origin ইত্যাদি) auto-বসে
 - **Question ও answer pair**
 - **Status toggle** (active/inactive)
 
-### Sub-category Default Theme
+### Category Default Theme
 
-- প্রতিটি sub-category-এ default theme assign করা যায়
-- সেই sub-category-এ নতুন product create করলে default theme auto-apply
+- যেকোনো ক্যাটাগরি node-এ default theme assign করা যায়
+- সেই ক্যাটাগরিতে নতুন product create করলে default theme auto-apply
 
 ## গ্রাহক ম্যানেজমেন্ট
 
@@ -622,7 +642,8 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
   - Total spent
   - Status (active/inactive)
 - **Customer create by admin** (admin override)
-- **Wallet amount tracking** (future loyalty)
+- **Wallet ও Loyalty point** — admin credit/debit + ledger history (live, future নয়)
+- **Wishlist viewer** — গ্রাহকের সেভ করা প্রোডাক্ট admin দেখতে পারে
 - **Search by phone**
 
 ## Staff ও Role ম্যানেজমেন্ট
@@ -632,18 +653,19 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 - **Custom role create** — আপনার team structure অনুযায়ী
 - **~100 permission flags** — চেকবক্স দিয়ে individual control
 - **Permission grouped by module:**
-  - Catalog (category, brand, attribute, etc.)
+  - Catalog (category, brand, attribute)
   - Products
-  - Orders
-  - Customers
-  - Marketing (campaign, coupon, offer, banner)
-  - Themes (new!)
-  - FAQ Templates (new!)
-  - Reviews & Questions
-  - Site Settings
+  - Orders (+ admin Create Order / POS)
+  - Customers (+ wallet/loyalty/wishlist viewer)
+  - Marketing (campaign, coupon, offer, flash sale, banner)
+  - Themes, FAQ Templates, Trust Point
+  - Reviews & Questions (+ Seed Reviews)
+  - Site Settings (+ Secrets — আলাদা flag, যাতে staff owner-এর token rotate করতে না পারে)
+  - Site FAQ, Newsletter, Demo Data clear
   - Page SEO
   - Staff & Roles
 - **Per-flag granular control** (Show / Create / Update / Delete)
+- **~100+ permission flag** — bootstrap script schema থেকে super-admin role বানায়, তাই নতুন flag যোগ করলেও stale হয় না
 
 ### Staff (Sub-admins)
 
@@ -664,8 +686,16 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 - **All reviews moderation** — pending, active, in-active toggle
 - **Reply to review** — admin response
 - **Star filtering** — শুধু low-rated বা high-rated দেখা
+- **🆕 Seed Reviews** — শপ চালুর সময় বিশ্বাসযোগ্য রিভিউ বসানো (manual multi-product বা bulk JSON + ছবি)
 - **All questions** — customer questions তালিকা
 - **Reply to question** — answer প্রকাশ
+
+## 🆕 কনটেন্ট টুলস
+
+- **Site FAQ** — হোম পেজের সাইট-ব্যাপী প্রশ্নোত্তর (product FAQ থেকে আলাদা)
+- **Newsletter Subscribers** — সাবস্ক্রাইবার তালিকা + CSV export
+- **Trust Point** ("আমাদের প্রতিশ্রুতি") — হোম পেজের প্রতিশ্রুতি কার্ড
+- **Warehouse** — একাধিক ওয়্যারহাউস (courier weight/origin)
 
 ## Site Settings — Central Configuration
 
@@ -711,14 +741,14 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 - Multiple announcement items (rolling banner)
 - Per-item: text + optional icon
 
-### Analytics Toggles
-- Meta Pixel on/off
-- Meta CAPI on/off
-- TikTok Pixel on/off
-- TikTok CAPI on/off
-- GTM on/off
-- GA4 on/off
-- Clarity on/off
+### Analytics (DB-driven — কোড ছাড়া Admin থেকে সেট)
+- প্রতিটার **ID Admin থেকে বসান** (env লাগে না): Meta Pixel, TikTok Pixel, GTM, GA4, Clarity
+- প্রতিটার on/off toggle
+- **CAPI access token** — আলাদা Secrets section-এ (নিরাপদ, public-এ আসে না), Meta + TikTok
+
+### 🆕 Demo Data ব্যবস্থাপনা
+- নতুন শপ presentable দেখাতে built-in **demo catalog** (`npm run seed:demo`) — প্রোডাক্ট, ক্যাটাগরি, রিভিউ, ব্যানার, থিম সহ
+- কাজ শুরু করার সময় **এক ক্লিকে Clear** (type `CLEAR` confirm) — শুধু demo row মোছে, **আপনার আসল ডেটা নিরাপদ**
 
 ### SMS Configuration
 - Provider name
@@ -784,7 +814,7 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 
 ## API Capabilities
 
-- **৩৭+ feature modules** — প্রতিটি independent
+- **৪৫+ feature modules** — প্রতিটি independent
 - **CRUD operations** — Create, Read, Update, Delete every entity
 - **Pagination** — সব list endpoint-এ
 - **Search** — full-text style search (regex-based)
@@ -855,7 +885,7 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 
 ## ৪. API Endpoints
 
-✅ **৩৭+ feature module** — full REST API
+✅ **৪৫+ feature module** — full REST API
 ✅ **Documented endpoints** — method, path, auth, permission সব
 ✅ **Standardized response format**
 ✅ **Comprehensive error handling**
@@ -958,7 +988,7 @@ Google র‍্যাঙ্কিং-এ আগানোর জন্য সম
 
 ## 1️⃣ Production-Ready
 
-কোনো prototype বা MVP নয় — এটা একটি **ফুল-ফাংশনাল, ডেপ্লয়মেন্ট-রেডি** প্ল্যাটফর্ম। ৩৭+ মডিউল, ৬০+ পেজ, ১০০+ কম্পোনেন্ট।
+কোনো prototype বা MVP নয় — এটা একটি **ফুল-ফাংশনাল, ডেপ্লয়মেন্ট-রেডি** প্ল্যাটফর্ম। ৪৫+ মডিউল, ৬০+ পেজ, ১০০+ কম্পোনেন্ট।
 
 ## 2️⃣ Modern Tech Stack
 

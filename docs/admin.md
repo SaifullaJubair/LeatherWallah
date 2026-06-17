@@ -9,6 +9,8 @@
 
 FruitSnacks Admin সম্পূর্ণ অ্যাডমিন প্যানেল — এখানে অ্যাডমিন/স্টাফরা প্রোডাক্ট, ক্যাটাগরি, অর্ডার, ক্যাম্পেইন, কুপন, থিম, FAQ, সাইট সেটিং সব কিছু ম্যানেজ করে। কোনো SSR নেই, পুরোটাই client-side React app যা ব্যাকএন্ড API-তে call করে।
 
+> ⚠️ **এই ডকুমেন্ট ২০২৬-০৬-১৬ তে full re-audit করা হয়েছে।** মূল পরিবর্তন: (১) ক্যাটাগরি এখন **nested tree** (পুরোনো Sub/Child category + Specification পেজ আর নেই); (২) Offer Order পেজ মুছে গেছে (order-এ merge); (৩) sidebar **৮-group**-এ পুনর্গঠিত; (৪) নতুন পেজ — Create Order (POS), Seed Reviews, Flash Sale, Site FAQ, Newsletter, Warehouse, Wishlist, Loyalty, Wallet, Abandoned Cart, Low Stock, Trust Point; (৫) Settings-এ Home Layout (drag-drop + boutique toggle), Demo Data, Chat widget, Analytics-IDs+secrets tab।
+
 ### Technology Stack
 
 | টেকনোলজি | ব্যবহার |
@@ -87,7 +89,7 @@ SignInPage form submit
 
 ### Sidebar Permission Filtering
 
-[`src/shared/SideNavBar/SideNavBar.jsx`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx)-এ প্রতিটি menu item-এর আগে `user?.role_id?.<permission_flag>` check হয়। অ্যাডমিনের role-এ যদি flag `true` না থাকে, সেই menu hidden।
+[`src/shared/SideNavBar/SideNavBar.jsx`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx) এখন **৮টা collapsible group**-এ সাজানো (~৪৫ menu), প্রতিটায় relevant Lucide icon। প্রতিটি menu item-এর আগে `user?.role_id?.<permission_flag>` check হয়। অ্যাডমিনের role-এ যদি flag `true` না থাকে, সেই menu hidden।
 
 উদাহরণ:
 ```jsx
@@ -222,44 +224,48 @@ src/
 
 GET `/dashboard` থেকে stats আনে — total orders, revenue, customers, top products। Recharts দিয়ে graph render।
 
-### 2. Category Management (৩-লেভেল)
+### 2. Category Management (Nested Tree)
+
+> ⚠️ পুরোনো ৩টা আলাদা পেজ (Sub Category / Child Category / Specification) **আর নেই**। এখন একটাই Category পেজ যেকোনো গভীরতার tree handle করে; Specification → attribute + product custom_fields-এ merge।
 
 | Page | Path | API | Permission |
 |------|------|-----|------------|
-| Category | `/category` | `/category/dashboard` | `category_show` |
-| Sub Category | `/sub-category` | `/sub_category/dashboard` | `sub_category_show` |
-| Child Category | `/child-category` | `/child_category/dashboard` | `child_category_show` |
+| Category (nested) | `/category` | `/category/dashboard` · `/category/tree` · `/category/children/:id` | `category_show` |
 | Brand | `/brand-category` | `/brand/dashboard` | `brand_show` |
 | Attribute | `/attribute` | `/attribute/dashboard` | `attribute_show` |
-| Specification | `/specification-list` | `/specification/dashboard` | `specification_show` |
 
-প্রতিটায় same pattern: list table + add modal + update modal + delete confirmation (SweetAlert)।
+Category পেজে nested tree picker — parent select করে যেকোনো গভীরতায় node বানানো যায়। Re-parent করলে confirm dialog descendant + product count দেখায় (`/category/reparent-impact/:id`)। leaf-only delete। প্রতিটায় add/update modal + SweetAlert delete confirmation।
 
 ### 3. Product Management
 
 | Page | Path | API |
 |------|------|-----|
-| Product List | `/product/product-list` | `/product/dashboard` |
+| Product List | `/product/product-list` | `/product/dashboard` (+ Variations modal, Low Stock) |
 | Add Product | `/product/product-create` | POST `/product` |
-| Update Product | `/product/product-update/:id` | PATCH `/product` |
-| Product Page Content Edit | `/product/page-content/:id` | (Dynamic Product Page System) PATCH `/product` |
-| Variations | (Embedded in product update) | `/variation/by-product/:productId` |
+| Update Product | `/product/product-update/:id` | PATCH `/product` (full rebuild) |
+| Product Page Content Edit | `/product/page-content/:id` | theme/benefits/nutrition/FAQ/floating tab |
+| Low Stock | `/low-stock` | alert-quantity-এর নিচে নামা product |
+| Variations | (Product List modal) | `/variation/by-product/:productId` · PATCH `/variation/:id` |
 
-⚠️ Product create/update পেজ বেশ complex — image upload, video upload, variations, attributes, specifications, theme, FAQ সব এক ফর্মে।
+⚠️ Product create/update পেজ বেশ complex — image upload, video upload (swap/remove mode), variations (multi-image + video per variation), attributes, theme, FAQ সব এক ফর্মে। **partial-update:** quick (price/stock), images (reorder/add/remove), page-content, variation — full rebuild এড়াতে আলাদা endpoint। Page Content → Floating tab = per-product floating override (inherit/hide/replace/extra)।
 
 ### 4. Order Management
 
 | Page | Path | API | Filter |
 |------|------|-----|--------|
-| Order List | `/order` | `/order/dashboard` | সব অর্ডার |
+| Order List | `/order` | `/order/dashboard` | সব অর্ডার (+ Offer Orders tab = `?order_type=offer`) |
+| Create Order (POS) | `/order/create` | POST `/order` (`order_create_admin`) | admin manual order |
 | Pathao Order | `/pathao-order` | `/order/pathao` | শুধু Pathao |
 | Steadfast Order | `/steadfast-order` | `/order/steadfast` | শুধু Steadfast |
-| Order Details | `/all-order-info/:id` | `/order/:order_id` | line items সহ |
+| Order Details | `/all-order-info/:id` | `/order/:order_id` | line items + internal note + cancel/return reason |
 | Fraud Check | `/fraud-check` | POST `/fraud/check` | phone-based risk check |
+| Abandoned Cart | `/abandoned-cart` | `/abandoned-cart` (`order_show`) | incomplete checkout recovery |
 
-Order action: status update, courier-এ send (Pathao/Steadfast), bulk send, sync, cancel। প্রতিটি action courier route-এ POST/PATCH।
+Order action: status update (৯-value status — on_hold/confirmed/completed সহ; valid forward transition only), courier-এ send (Pathao/Steadfast), bulk send, sync, cancel (reason prompt)। order **confirm**-এ customer-কে SMS যায়। Offer order আলাদা পেজ নয় — order_type tab। ViewAllOrderInfo-তে editable internal note + order_type badge।
 
-### 5. Offer & Campaign
+### 5. Offer, Campaign & Flash Sale
+
+> ⚠️ পুরোনো **Offer Order List / Single Offer Order পেজ মুছে গেছে** — offer order এখন Order List-এর `order_type=offer` tab-এ।
 
 | Page | Path | কাজ |
 |------|------|-----|
@@ -267,8 +273,7 @@ Order action: status update, courier-এ send (Pathao/Steadfast), bulk send, syn
 | Add Offer | `/add-offer` | POST `/offer` |
 | Campaign List | `/campaign-list` | `/campaign/dashboard` |
 | Add Campaign | `/add-campaign` | POST `/campaign` |
-| Offer Order List | `/offer-order-list` | `/offer_order/dashboard` |
-| Single Offer Order | `/all-offerOrder-info/:id` | `/offer_order/:_id` |
+| Flash Sale | `/flash-sale` | `/flash-sale` (`offer_create`) |
 
 ### 6. Staff & Role (RBAC Management)
 
@@ -285,9 +290,11 @@ Role create/update পেজে [`src/data/permissionData.js`](../FruitSnacksAdm
 | Page | Path | API |
 |------|------|-----|
 | Review | `/review` | `/review/dashboard` |
+| Pending Reviews | `/review/pending` | moderation queue (active/in-active toggle) |
+| Seed Reviews | `/review/seed` | `/review/seed/manual` · `/review/seed/bulk` (`review_seed_*`) |
 | Question | `/question` | `/question/dashboard` |
 
-Admin reply দিতে পারে review/question-এ।
+Admin reply দিতে পারে review/question-এ। Seed Reviews: Manual tab = searchable multi-select product picker + image upload; Bulk tab = JSON rows + shared image + validate(dry-run)/save দুই বাটন (lazy S3 upload — abandon করলে orphan হয় না)।
 
 ### 8. Coupon
 
@@ -313,13 +320,24 @@ Admin reply দিতে পারে review/question-এ।
 | Theme Preview | `/theme/preview/:id` | GET `/theme/:id` |
 | FAQ Templates | `/faq-template` | `/faq-template` |
 
-Theme পেজে: colors picker, floating asset upload (with section/position/animation choice), typography picker, button style। Live preview ([`ColorAutoPreview.jsx`](../FruitSnacksAdmin/src/components/Theme/ColorAutoPreview.jsx))।
+Theme পেজে: colors picker, floating asset upload (section/position/**align**/animation choice — id-stable), typography picker, button style। Live preview ([`ColorAutoPreview.jsx`](../FruitSnacksAdmin/src/components/Theme/ColorAutoPreview.jsx))। Theme editor-এ global floating manager (`ThemeFloatingManager.jsx`); per-product override Product Page Content → Floating tab-এ।
+
+FAQ Templates (`/faq-template`): **free-text Topic** (পুরোনো enum নয়) + nested-category **Scope** picker + clickable placeholder chips (`{{token}}` insert, real label দেখায়) + unfilled-placeholder warn। "Category" column → "Topic"; নতুন Scope column। নতুন topic/placeholder save/delete-এ live cache refresh।
 
 ### 11. Site Setting
 
-**Path:** `/settings` ও `/settings/:tab` | **API:** GET/PATCH `/setting`
+**Path:** `/settings` ও `/settings/:tab` | **API:** GET/PATCH `/setting` · `/setting/secrets` · `/setting/home_layout`
 
-একাধিক tab — branding, contact, social, policy, shipping, analytics, SMS, email, courier toggles, announcement bar। `setting.interface.ts`-এ যত field, সব এই page থেকে editable।
+Settings এখন **৪-group left sub-nav**। Tab সমূহ:
+- **Branding / Contact / Social / Policy / Shipping** — মূল config
+- **Analytics** — DB-driven public ID (Meta Pixel / TikTok / GTM / GA4 / Clarity) + toggle; **Secrets** section = CAPI/SMS/courier token (masked, `setting_secrets_update` gated, public `/setting`-এ আসে না)
+- **Email Provider** — SMTP + Test Email বাটন (`/setting/test-email`)
+- **Storefront Behaviour** — ১৩ toggle + **Chat widgets** (Messenger toggle+Page-ID, Live Chat toggle+embed textarea, position selector)
+- **Feature Cards** — home trust/feature card
+- **Home Layout** (`/setting/home_layout`) — @dnd-kit **drag-drop section reorder** + per-section collapsible config; **boutique toggle** (hero_spotlight / product_features / story_band); brand story, reviews carousel, site FAQ, newsletter config
+- **Demo Data** — demo row count preview + এক-ক্লিক **Clear** (type `CLEAR` double-confirm, `demo_data_clear` gated)
+
+> ⚠️ Home Layout-এ `home_section_array` সবসময় **পূর্ণ ১৮ section** রাখতে হয় (অবাঞ্ছিতগুলো toggle off) — trim করলে Admin আর Flash Sale/Promo যোগ করতে পারবে না।
 
 ### 12. Page SEO Management
 
@@ -339,7 +357,21 @@ Theme পেজে: colors picker, floating asset upload (with section/position/
 
 **Path:** `/admin/my-profile` | **API:** GET `/admin_reg_log` (current user)
 
-প্রোফাইল ছবি, name, password change।
+প্রোফাইল ছবি, name, password change। Forgot password: `/forget-password` — phone/email toggle + 6-box OTP।
+
+### 16. নতুন পেজ (Storefront extras + Marketing)
+
+| Page | Path | API | Permission |
+|------|------|-----|------------|
+| Trust Point | `/trust-point` | `/trust-point` | `trust_point_update` |
+| Site FAQ | `/site-faq` | `/site-faq` | `site_faq_*` |
+| Newsletter | `/newsletter-subscribers` | `/newsletter-subscriber` (+CSV export) | `newsletter_*` |
+| Warehouse | `/warehouse` | `/warehouse` | `setting_show`/`setting_update` |
+| Wishlist (admin viewer) | `/wishlist` | `/wishlist/admin` | `user_show` |
+| Loyalty | `/loyalty` | `/loyalty/history/admin` + adjust | `user_show`/`user_update` |
+| Wallet | `/wallet` | `/wallet/history/admin` + adjust | `user_show`/`user_update` |
+
+> Trust Point ("আমাদের প্রতিশ্রুতি") site setting-এর অংশ নয় — নিজস্ব মডিউল/পেজ।
 
 ---
 

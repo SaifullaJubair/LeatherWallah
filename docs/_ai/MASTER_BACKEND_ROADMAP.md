@@ -170,5 +170,7 @@ Once Stage 1 is fully done (all backend phases + V1 pass-through + deploy-ready)
 - **Per-app `CLAUDE.md`** ×3 (root + Backend + Admin + Frontend) + per-app `README` ×3 — update stack/conventions/run notes to match V2-of-V1 reality (e.g. root CLAUDE.md "Active Feature Work" + "3-Level Category Hierarchy" sections are now wrong → nested tree).
 - Best done at the END so the docs capture the settled picture (don't redo per-phase). The `_ai/` docs + handoff memory already hold the live truth meanwhile.
 
+> ✅ **2026-06-16 — DONE (ALL root docs + CLAUDE.md):** `backend.md` (nested-tree rewrite, dropped sub/child/specification/offerOrder modules, +12 new modules, order-unification/9-status/faq-overhaul/home-layout/chat/demo/security), `admin.md`, `frontend.md`, `features.md` full re-audited against code. Second pass: `overview.md` (modules/category/bootstrap), `setup-guide.md` (manual-Mongo→`npm run bootstrap`, CORS env, nested category), `issues.md` (added "many fixed since" banner — not entry-by-entry re-verified), Backend/Admin/Frontend `CLAUDE.md` (module table, default_theme_id, wishlist-now-DB, removed-page notes). `SAMPLE_FORMAT.md` = format sample, left by design. `_ai/` notes = each self-dated/self-statused snapshot, intentionally NOT edited. ⚠️ NOT committed yet (docs repo + 3 app repos).
+
 ## Cross-refs
 Detail/rationale already in `docs/_ai/BACKEND_AUDIT.md` (structural) + `docs/_ai/CLONE_NOW_FIXES.md` (incremental) + `docs/_ai/SAAS_FUTURE_PLAN.md` (future). This file = the unified ordered superset.

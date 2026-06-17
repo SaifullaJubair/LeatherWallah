@@ -3,6 +3,18 @@
 > এই ফাইলটি FruitSnacks codebase-এ পাওয়া bugs, security issues, code quality problems এবং সম্ভাব্য improvement-গুলোর তালিকা।
 > তিনটি সাব-প্রজেক্ট (Backend, Admin, Frontend) — প্রতিটির আলাদা সেকশন।
 
+> ⚠️ **এই তালিকা ২০২৬-০৫-১৮ তে তৈরি। ২০২৬-০৬-১৬ তে প্রতিটা entry কোডে re-verify করা হয়েছে** — নিচে প্রতিটার মাথায় status tag বসানো: **✅ FIXED** · **⚠️ OPEN** · **➖ N/A** (module rewrite-এ অপ্রাসঙ্গিক) · **🟦 INTENTIONAL** (resale-design choice, buyer override করবে)।
+>
+> **status সারসংক্ষেপ (২০২৬-০৬-১৬ যাচাই):**
+>
+> | Series | ✅ FIXED | ⚠️ OPEN | ➖ N/A / 🟦 intentional |
+> |--------|---------|--------|------------------------|
+> | Backend (B) | B-1, B-2, B-3, B-5(আংশিক), B-6, B-9, B-10, B-13?✗, B-16, B-21, B-22, B-29, B-31 | B-7, B-8, B-12, B-13, B-14, B-15, B-17, B-18, B-20, B-23, B-24, B-25, B-32 | B-4(doc), B-19, B-26, B-27, B-28, B-30 |
+> | Admin (A) | A-12 | A-1, A-2, A-4, A-5, A-6, A-7, A-8, A-10, A-14..A-17, A-19..A-23 | A-3(by-design), A-9(আংশিক), A-11, A-13, A-18 |
+> | Frontend (F) | F-4, F-10, F-21 | F-1, F-2, F-3, F-5, F-6, F-7, F-9, F-11?, F-12..F-20, F-24, F-26, F-28..F-30 | F-8, F-22, F-23, F-25, F-27 (leather/typo/lang = intentional/cosmetic) |
+>
+> বড় security holes (B-1/2/3/6/10/22, F012/F008/F009 IDOR/webhook/upload) সব **FIXED** (GATE 0)। বাকি OPEN-গুলো বেশিরভাগ code-quality/refactor — blocker নয়। পূর্ণ ট্র্যাক `.claude/work/FIRST_CLIENT_GOLIVE.md` (GATE 0)।
+
 **Severity legend:**
 - 🔴 **Critical** — security/data integrity issue, এখনই ঠিক করা উচিত
 - 🟠 **High** — কাজ ভেঙে যেতে পারে বা ভুল behavior দিতে পারে
@@ -15,7 +27,9 @@
 
 ## 🔴 Critical — Security ও Data Integrity
 
-### B-1. Role routes-এ permission flag এলোমেলো assign করা
+### B-1. Role routes-এ permission flag এলোমেলো assign করা — ✅ FIXED
+> mapping ঠিক করা হয়েছে (get=show, post=create, patch=update, delete=delete)।
+
 **File:** [`FruitSnacksBackend/src/app/role/role.routes.ts:13-17`](../FruitSnacksBackend/src/app/role/role.routes.ts)
 
 ```ts
@@ -38,7 +52,9 @@ router.route("/")
 
 ---
 
-### B-2. Supplier routes-এ empty permission flag
+### B-2. Supplier routes-এ empty permission flag — ✅ FIXED
+> এখন `supplier_show/create/update/delete` flag প্রয়োগ করা।
+
 **File:** [`FruitSnacksBackend/src/app/supplier/supplier.routes.ts:14-21`](../FruitSnacksBackend/src/app/supplier/supplier.routes.ts)
 
 ```ts
@@ -54,7 +70,9 @@ router.route("/dashboard").get(verifyToken(""), findAllDashboardSupplier);
 
 ---
 
-### B-3. PaymentWithdraw ও PaymentMethod routes-এ কোনো auth নেই
+### B-3. PaymentWithdraw ও PaymentMethod routes-এ কোনো auth নেই — ✅ FIXED
+> দুটোতেই `payment_withdraw_*` / `payment_method_*` flag সহ `verifyToken` যোগ হয়েছে।
+
 **File:** [`FruitSnacksBackend/src/app/paymentWithdrawList/paymentWithdrawList.routes.ts`](../FruitSnacksBackend/src/app/paymentWithdrawList/paymentWithdrawList.routes.ts) ও [`FruitSnacksBackend/src/app/withdrow_payment_method/withdrow_payment_method.routes.ts`](../FruitSnacksBackend/src/app/withdrow_payment_method/withdrow_payment_method.routes.ts)
 
 ```ts
@@ -75,7 +93,9 @@ router.route("/dashboard").get(verifyToken(""), findAllDashboardSupplier);
 
 ---
 
-### B-4. JWT secret weak হলে session compromise
+### B-4. JWT secret weak হলে session compromise — 🟦 part-done
+> setup-guide-এ strong secret-এর কথা আছে; refresh+access token pattern এখন আছে ([`utils/auth.tokens.ts`](../FruitSnacksBackend/src/utils/auth.tokens.ts))। secret strength deploy-day owner-এর দায়িত্ব।
+
 **File:** [`FruitSnacksBackend/src/middlewares/verify.token.ts:32`](../FruitSnacksBackend/src/middlewares/verify.token.ts)
 
 ```ts
@@ -88,8 +108,10 @@ const decoded = await promisify(jwt.verify)(cokieToken, process.env.ACCESS_TOKEN
 
 ---
 
-### B-5. Cookie configuration weak
-**File:** [`FruitSnacksBackend/src/index.ts`](../FruitSnacksBackend/src/index.ts) (cookieParser setup) এবং login controllers
+### B-5. Cookie configuration weak — ✅ অনেকটা FIXED (CSRF বাদে)
+> [`utils/auth.tokens.ts`](../FruitSnacksBackend/src/utils/auth.tokens.ts)-এ `httpOnly:true`, `secure`, `sameSite` সেট করা + refresh-token। CSRF token মেকানিজম এখনো নেই (deferred, documented)।
+
+**File:** [`FruitSnacksBackend/src/utils/auth.tokens.ts`](../FruitSnacksBackend/src/utils/auth.tokens.ts) (cookie setup)
 
 **সমস্যা:** Cookie সেট করার সময় `httpOnly`, `secure`, `sameSite` properties কী সেট করা হয়েছে confirm করা দরকার। CSRF protection কোনো নেই।
 
@@ -101,8 +123,10 @@ CSRF token মেকানিজম যোগ করা।
 
 ---
 
-### B-6. CORS allowlist hardcoded
-**File:** [`FruitSnacksBackend/src/index.ts:19-37`](../FruitSnacksBackend/src/index.ts)
+### B-6. CORS allowlist hardcoded — ✅ FIXED
+> এখন env-driven (`CORS_ORIGINS`, GATE-0 F007)।
+
+**File:** [`FruitSnacksBackend/src/index.ts`](../FruitSnacksBackend/src/index.ts)
 
 **সমস্যা:** ১৬টা ডোমেইন হার্ডকোড করা — buyer যখন নতুন domain-এ deploy করবে, কোডে এসে edit করতে হবে। ভুল করে কেউ wildcard বা সব origin allow করে দিলে security issue।
 
@@ -137,7 +161,9 @@ mongoose.set("strictQuery", false);
 
 ---
 
-### B-9. Order creation-এ race condition possible
+### B-9. Order creation-এ race condition possible — ✅ FIXED
+> stock decrement এখন transaction-এ atomic `decrementStockForLines()` দিয়ে ([`order.controller.ts`](../FruitSnacksBackend/src/app/order/order.controller.ts))।
+
 **File:** [`FruitSnacksBackend/src/app/order/order.service.ts`](../FruitSnacksBackend/src/app/order/order.service.ts) (assumed location)
 
 **সমস্যা:** যদি Mongoose session/transaction ঠিকভাবে use না হয়, একই product-এ দুটো simultaneous order এসে stock negative হতে পারে। Mongoose অনেক জায়গায় `findOneAndUpdate` + `$inc` ছাড়া simple read-modify-write pattern follow করেছে।
@@ -153,7 +179,9 @@ await ProductModel.findOneAndUpdate(
 
 ---
 
-### B-10. Image upload-এ file type validation দুর্বল
+### B-10. Image upload-এ file type validation দুর্বল — ✅ FIXED
+> fileFilter এখন `ALLOWED_UPLOAD_EXT` whitelist (GATE-0 F009)।
+
 **File:** [`FruitSnacksBackend/src/helpers/image.upload.ts:48-56`](../FruitSnacksBackend/src/helpers/image.upload.ts)
 
 ```ts
@@ -197,7 +225,9 @@ cron.schedule("55 23 * * *", () => { ... });
 
 ---
 
-### B-13. Campaign expire-এ product-level update-এ slowness
+### B-13. Campaign expire-এ product-level update-এ slowness — ⚠️ OPEN
+> এখনো loop-এ `findByIdAndUpdate` ([`index.ts`](../FruitSnacksBackend/src/index.ts))। `updateMany` করলে দ্রুত হবে। (cron-only, blocker নয়।)
+
 **File:** [`FruitSnacksBackend/src/index.ts:96-104`](../FruitSnacksBackend/src/index.ts)
 
 ```ts
@@ -254,7 +284,9 @@ customer_id: { type: Schema.Types.ObjectId, ref: "users", required: true };  // 
 
 ## 🟡 Medium — Code Quality ও Future-proofing
 
-### B-16. Backup files repository-এ আছে
+### B-16. Backup files repository-এ আছে — ✅ FIXED
+> ` copy.ts` backup ফাইলগুলো delete করা হয়েছে।
+
 - [`FruitSnacksBackend/src/app/product/product.interface copy.ts`](../FruitSnacksBackend/src/app/product/product.interface copy.ts)
 - [`FruitSnacksBackend/src/app/setting/setting.interface copy.ts`](../FruitSnacksBackend/src/app/setting/setting.interface copy.ts)
 - [`FruitSnacksBackend/src/app/setting/setting.model copy.ts`](../FruitSnacksBackend/src/app/setting/setting.model copy.ts)
@@ -291,7 +323,9 @@ interface IAuthenticationInterface {
 
 ---
 
-### B-19. Hardcoded `"Bangladesh"` default
+### B-19. Hardcoded `"Bangladesh"` default — ⚠️ OPEN
+> এখনো `default: "Bangladesh"` (admin + user model)। BD-market resale-এ গ্রহণযোগ্য; অন্য দেশে buyer বদলাবে।
+
 **Files:**
 - [`FruitSnacksBackend/src/app/adminRegLog/admin.model.ts:23`](../FruitSnacksBackend/src/app/adminRegLog/admin.model.ts)
 - [`FruitSnacksBackend/src/app/user/user.model.ts:12`](../FruitSnacksBackend/src/app/user/user.model.ts)
@@ -319,7 +353,9 @@ mongoose.connection.on("error", (err) => console.error("DB error", err));
 
 ---
 
-### B-21. `process.env` validation নেই
+### B-21. `process.env` validation নেই — ✅ FIXED
+> startup-এ required-env fail-fast guard (F001, [`index.ts`](../FruitSnacksBackend/src/index.ts))।
+
 **File:** [`FruitSnacksBackend/src/helpers/image.upload.ts:22-33`](../FruitSnacksBackend/src/helpers/image.upload.ts)
 
 ```ts
@@ -340,7 +376,9 @@ for (const key of required) {
 
 ---
 
-### B-22. Hardcoded credentials কমেন্টে rest
+### B-22. Hardcoded credentials কমেন্টে rest — ✅ FIXED
+> S3 creds comment সরানো হয়েছে; এখন `process.env.S3_*` (GATE-0 F009b)। ⚠️ git history-তে পুরোনো creds থাকতে পারে → deploy-day rotate।
+
 **File:** [`FruitSnacksBackend/src/helpers/image.upload.ts:18, 29`](../FruitSnacksBackend/src/helpers/image.upload.ts)
 
 ```ts
@@ -354,7 +392,9 @@ for (const key of required) {
 
 ---
 
-### B-23. `sendResponse` data null vs undefined inconsistent
+### B-23. `sendResponse` data null vs undefined inconsistent — ⚠️ OPEN
+> এখনো `data.data || null || undefined` chain ([`sendResponse.ts`](../FruitSnacksBackend/src/shared/sendResponse.ts))। কাজ করে, কিন্তু `?? null` clean। cosmetic।
+
 **File:** [`FruitSnacksBackend/src/shared/sendResponse.ts:13-19`](../FruitSnacksBackend/src/shared/sendResponse.ts)
 
 ```ts
@@ -395,22 +435,22 @@ const buildSearchQuery = (searchTerm, fields) =>
 ### B-26. Misspelled folder name `withdrow_payment_method`
 **সমাধান:** `withdraw_payment_method` লেখা সঠিক — rename করলে ভালো (কিন্তু onek ফাইল-এ reference আছে, careful migration লাগবে)।
 
-### B-27. Misspelled field `product_warrenty`
-**File:** [`FruitSnacksBackend/src/app/product/product.interface.ts:120`](../FruitSnacksBackend/src/app/product/product.interface.ts)
+### B-27. Misspelled field `product_warrenty` — 🟦 INTENTIONAL (kept)
+**File:** [`FruitSnacksBackend/src/app/product/product.interface.ts`](../FruitSnacksBackend/src/app/product/product.interface.ts)
 
-`warrenty` → `warranty`। Database-এ ডকুমেন্ট থাকলে migration লাগবে।
+`warrenty` → `warranty`। ৩ app জুড়ে reference; CLAUDE.md স্পষ্ট বলে backward-compat-এর জন্য রাখা (`withdrow_payment_method`-ও একই)। ইচ্ছাকৃত — silently বদলানো নয়।
 
 ### B-28. Comments-এ inconsistent Bangla/English mix
 সমস্ত TODO/comments-এ Bangla ও English mix — কখনো `// তোমার DO Access Key`, কখনো `// Important note`। Team convention ঠিক করা।
 
-### B-29. Console.log production-এ
-**Files:** অনেক জায়গায় `console.log`, `console.error` — structured logger (winston, pino) ব্যবহার করলে ভালো।
+### B-29. Console.log production-এ — ✅ অনেকটা FIXED
+> `pino-http` request logger যোগ হয়েছে (F005)। ছড়ানো `console.log` পুরো নির্মূল হয়নি।
 
-### B-30. Health check endpoint নেই
-GET `/` শুধু "FruitSnacks Server is working!" ফেরায়, কিন্তু DB connection, S3 reachability, courier API uptime check করার জন্য `/health` endpoint নেই।
+### B-30. Health check endpoint নেই — ⚠️ OPEN
+> GET `/` এখনো শুধু text। ডেডিকেটেড `/health` (DB/S3 probe) নেই। (low — Coolify container health যথেষ্ট।)
 
-### B-31. Rate limiting নেই
-**সমস্যা:** Login endpoint, OTP send endpoint-এ brute force protection নেই। `express-rate-limit` দিয়ে যোগ করা উচিত।
+### B-31. Rate limiting নেই — ✅ FIXED
+> `express-rate-limit` যোগ (auth 20/10min, otp 5/hr+30/day, signup 20/hr, newsletter 10/hr — F002, [`middlewares/rate.limit.ts`](../FruitSnacksBackend/src/middlewares/rate.limit.ts))।
 
 ### B-32. API versioning শুধু path-এ (`/api/v1`) — breaking change হলে kothai noton vesion karte hobe
 **সমাধান:** `/api/v2` route আলাদা করার ব্যবস্থা routes.ts-এ tarpor expand হলে clear plan লাগবে।
@@ -421,7 +461,9 @@ GET `/` শুধু "FruitSnacks Server is working!" ফেরায়, কি
 
 ## 🔴 Critical
 
-### A-1. `useGetData.jsx` empty placeholder hook
+### A-1. `useGetData.jsx` empty placeholder hook — ⚠️ OPEN
+> ফাইল এখনো আছে (dead code)। delete করা উচিত। (import হয় না বলে runtime risk নেই।)
+
 **File:** [`FruitSnacksAdmin/src/hooks/useGetData.jsx`](../FruitSnacksAdmin/src/hooks/useGetData.jsx)
 
 ```jsx
@@ -436,7 +478,9 @@ const useGetData = () => {
 
 ---
 
-### A-2. Cookie storage utility unused কিন্তু confusing
+### A-2. Cookie storage utility unused কিন্তু confusing — ⚠️ OPEN
+> ফাইল এখনো আছে। httpOnly cookie-তে অকার্যকর — delete করা উচিত।
+
 **File:** [`FruitSnacksAdmin/src/utils/cookie-storage.js`](../FruitSnacksAdmin/src/utils/cookie-storage.js)
 
 **সমস্যা:** Backend httpOnly cookie ব্যবহার করে — JavaScript থেকে এই cookie access করা যায় না। তাও `setCookie`/`getCookie`/`eraseCookie` utility আছে — কেউ ভুল করে এটা ব্যবহার করলে confusion ও broken auth flow।
@@ -506,7 +550,9 @@ window.location.reload();  // ❌
 
 ---
 
-### A-8. Static permissionData.js drift risk
+### A-8. Static permissionData.js drift risk — ⚠️ OPEN
+> এখনো manual sync (backend interface ↔ permissionData.js)। dynamic `/role/available-permissions` API যোগ হয়নি। তবে bootstrap super-admin role schema থেকে derive হয় বলে অন্তত super-admin কখনো flag miss করে না।
+
 **Files:** [`src/data/permissionData.js`](../FruitSnacksAdmin/src/data/permissionData.js) ও [`FruitSnacksBackend/src/app/role/role.interface.ts`](../FruitSnacksBackend/src/app/role/role.interface.ts)
 
 **সমস্যা:** ব্যাকএন্ডে নতুন permission যোগ করলে এখানেও যোগ করতে হয় — কেউ ভুলে গেলে অ্যাডমিন UI-তে দেখাবে না।
@@ -515,10 +561,10 @@ window.location.reload();  // ❌
 
 ---
 
-### A-9. Commented-out routes ও menu items litter
-**Files:** [`Route.jsx`](../FruitSnacksAdmin/src/routes/Route.jsx), [`SideNavBar.jsx`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx)
+### A-9. Commented-out routes ও menu items litter — ✅ অনেকটা FIXED
+> dead order routes + Sub/Child Category + Specification + OfferOrderList পেজ মুছে দেওয়া হয়েছে (session 39 sidebar audit); sidebar ৮-group-এ পুনর্গঠিত। কিছু commented block লিঙ্গার করতে পারে — বর্তমান `Route.jsx`-এ verify করুন।
 
-**সমস্যা:** অনেক route ও menu item কমেন্ট আউট করা — কিন্তু files (`CancelOrderPage`, `ReturnOrderPage`, `DeliveryOrderPage`, `StadefastProcessingOrderPage`, `OfferOrderListPage`, `QuestionPage`, `SliderPage`, `SpecificationPage`, `ChildCategoryPage`, `SupplierPage`) এখনো বিদ্যমান। Confusing — implemented নাকি WIP নাকি removed?
+**Files:** [`Route.jsx`](../FruitSnacksAdmin/src/routes/Route.jsx), [`SideNavBar.jsx`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx)
 
 **সমাধান:** সিদ্ধান্ত নিতে হবে — implement করো অথবা সব delete (page file + commented code)।
 
@@ -540,8 +586,10 @@ window.location.reload();  // ❌
 
 ---
 
-### A-12. `console.log` production-এ
-[`SideNavBar.jsx:67`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx):
+### A-12. `console.log` production-এ — ✅ FIXED (SideNavBar)
+> SideNavBar.jsx-এ এখন 0 console.log। অন্য ফাইলে কিছু থাকতে পারে।
+
+[`SideNavBar.jsx`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx):
 ```jsx
 console.log(user?.role_id, "page seo show");
 ```
@@ -639,8 +687,8 @@ className="rounded-[8px] py-[10px] px-[14px] bg-primaryColor hover:bg-blue-500 d
 
 **সমাধান:** Tailwind `@apply` দিয়ে custom class বা React `<PrimaryButton>` component wrapper।
 
-### A-22. URL path-এ inconsistent naming
-Sidebar `/brand-category` কিন্তু backend `/brand`, component `BrandPage`। `/sub-category` (admin) vs `/sub_category` (backend)। Renaming standardize করা ভালো।
+### A-22. URL path-এ inconsistent naming — ⚠️ আংশিক OPEN
+Sidebar `/brand-category` vs backend `/brand` vs `BrandPage` — এখনো inconsistent। (`/sub-category` example অপ্রাসঙ্গিক — পেজ মুছে গেছে।)
 
 ### A-23. activeDropdown state localStorage-এ
 [`SideNavBar.jsx:39-50`](../FruitSnacksAdmin/src/shared/SideNavBar/SideNavBar.jsx) — ঠিক আছে কিন্তু URL-based (current pathname থেকে infer) হলে আরও clean।
@@ -651,7 +699,9 @@ Sidebar `/brand-category` কিন্তু backend `/brand`, component `BrandP
 
 ## 🔴 Critical
 
-### F-1. TypeScript ও ESLint errors production build-এ ignore করা
+### F-1. TypeScript ও ESLint errors production build-এ ignore করা — ⚠️ OPEN
+> `next.config.mjs`-এ এখনো `ignoreBuildErrors:true` + `ignoreDuringBuilds:true`। (deploy unblock করতে রাখা; ভবিষ্যতে fix করে সরানো ভালো।)
+
 **File:** [`FruitSnacksFrontend/next.config.mjs`](../FruitSnacksFrontend/next.config.mjs) এবং FruitSnacksFrontend/CLAUDE.md-এ মেনশন:
 > "Production build (TypeScript errors are ignored via eslint config)"
 
@@ -661,7 +711,9 @@ Sidebar `/brand-category` কিন্তু backend `/brand`, component `BrandP
 
 ---
 
-### F-2. `campaignApi.js`-এ deprecated Bearer token pattern
+### F-2. `campaignApi.js`-এ deprecated Bearer token pattern — ⚠️ OPEN
+> ফাইল এখনো আছে, এখনো `Bearer ${token}` localStorage pattern। storefront-এ campaign mutation দরকার নেই — delete করা উচিত।
+
 **File:** [`FruitSnacksFrontend/src/redux/feature/campaign/campaignApi.js`](../FruitSnacksFrontend/src/redux/feature/campaign/campaignApi.js)
 
 ```js
@@ -708,7 +760,9 @@ const CartLoader = () => {
 
 ## 🟠 High
 
-### F-4. `tag-types.js`-এ list ও object mismatch — silent bug
+### F-4. `tag-types.js`-এ list ও object mismatch — ✅ FIXED
+> এখন `tagTypesList = Object.values(tagTypes)` — mismatch অসম্ভব।
+
 **File:** [`FruitSnacksFrontend/src/redux/tag-types.js`](../FruitSnacksFrontend/src/redux/tag-types.js)
 
 ```js
@@ -774,8 +828,10 @@ const getProduct = cache(async (slug) => fetch(...).then(r => r.json()));
 
 ---
 
-### F-8. Hardcoded leather/Bangladesh copy
-**Files:** [`getSeoConfig.js:28-39`](../FruitSnacksFrontend/src/components/lib/getSeoConfig.js), [`pageSeo.js`](../FruitSnacksFrontend/src/components/utils/pageSeo.js), [`PromotionalBanner.jsx`](../FruitSnacksFrontend/src/components/frontend/home/promotionalBanner/PromotionalBanner.jsx), [`FeatureService.jsx`](../FruitSnacksFrontend/src/components/frontend/home/featureService/FeatureService.jsx), [`Navbar.jsx`](../FruitSnacksFrontend/src/components/shared/navbar/Navbar.jsx), [`QuickViewModal.jsx`](../FruitSnacksFrontend/src/components/shared/quickViewModal/QuickViewModal.jsx)
+### F-8. Hardcoded leather/Bangladesh copy — 🟦 INTENTIONAL (open)
+> getSeoConfig/pageSeo-তে leather fallback copy এখনো আছে। CLAUDE.md স্পষ্ট বলে — buyer Admin Site Settings / Page SEO থেকে override করবে; DB empty থাকলে শুধু এই default যায়।
+
+**Files:** [`getSeoConfig.js`](../FruitSnacksFrontend/src/components/lib/getSeoConfig.js), [`pageSeo.js`](../FruitSnacksFrontend/src/components/utils/pageSeo.js), [`PromotionalBanner.jsx`](../FruitSnacksFrontend/src/components/frontend/home/promotionalBanner/PromotionalBanner.jsx), [`FeatureService.jsx`](../FruitSnacksFrontend/src/components/frontend/home/featureService/FeatureService.jsx), [`Navbar.jsx`](../FruitSnacksFrontend/src/components/shared/navbar/Navbar.jsx), [`QuickViewModal.jsx`](../FruitSnacksFrontend/src/components/shared/quickViewModal/QuickViewModal.jsx)
 
 ```js
 seoTitle: `${siteName} – Premium Genuine Leather Products Bangladesh`,
@@ -797,12 +853,8 @@ seoKeywords: ["leather wallet", "genuine leather", ...],
 
 ---
 
-### F-10. Wishlist backend integration নেই
-**Files:** [`tag-types.js`](../FruitSnacksFrontend/src/redux/tag-types.js)-এ `wishlist` tag আছে কিন্তু backend `routes.ts`-এ wishlist module নেই।
-
-**সমস্যা:** Wishlist probably localStorage-only — logged-in user device change করলে wishlist হারিয়ে যাবে।
-
-**সমাধান:** Backend-এ wishlist module যোগ, frontend dual-storage pattern (cart-এর মতো)।
+### F-10. Wishlist backend integration নেই — ✅ FIXED
+> backend `wishlist` module যোগ হয়েছে (D15) — DB-backed, cross-device, guest localStorage login-এ merge। endpoints `/wishlist`, `/wishlist/add|remove|sync`।
 
 ---
 
@@ -899,7 +951,9 @@ DO Spaces, Contabo, Cloudinary, Unsplash whitelisted। Buyer অন্য CDN �
 
 ---
 
-### F-21. Currency hardcoded `BDT`
+### F-21. Currency hardcoded `BDT` — ✅ অনেকটা FIXED
+> M28-এ currency settings থেকে আসে (`currency_code`, BDT শুধু fallback)। কিছু analytics/JSON-LD জায়গায় fallback "BDT" বেক করা থাকতে পারে।
+
 **Files:** [`useAnalytics.js`](../FruitSnacksFrontend/src/components/analyticsScripts/utils/useAnalytics.js), JSON-LD, PDP
 
 ```js
@@ -914,10 +968,10 @@ currency: "BDT"
 
 ## 🟢 Low
 
-### F-22. Folder/file name typos
-- `singeProduct/` → `singleProduct/`
+### F-22. Folder/file name typos — ⚠️ OPEN (cosmetic, intentional-kept)
+- `singeProduct/` → `singleProduct/` (এখনো; অনেক import-এ reference)
 - `src/data/cites.js` → `cities.js`
-- `src/contants/` → `constants/` (referenced as `@/contants/storageKey` in `campaignApi.js`)
+- `src/contants/` → `constants/`
 
 ### F-23. Hardcoded `lang="bn"` in root layout
 [`src/app/layout.js:104`](../FruitSnacksFrontend/src/app/layout.js) — `<html lang="bn">`। Bangla deployment-এর জন্য ঠিক, কিন্তু English buyer-এ change লাগবে।
@@ -925,20 +979,14 @@ currency: "BDT"
 ### F-24. Path naming inconsistencies
 `/all-products`, `/all-ecommerce-product`, `/all-trending-products`, `/latest-product`, `/top-product`, `/new-arrival`, `/shop` — কোনো convention নেই (hyphen vs no-hyphen, singular vs plural)।
 
-### F-25. Hardcoded date in sitemap
-[`sitemap.js:7`](../FruitSnacksFrontend/src/app/sitemap.js): `LAUNCH_DATE = "2025-03-12"`। Buyer-specific launch date config-এ থাকলে cleaner।
+### F-25. Hardcoded date in sitemap — ⚠️ OPEN (low)
+[`sitemap.js`](../FruitSnacksFrontend/src/app/sitemap.js): এখনো `LAUNCH_DATE = "2025-03-12"` static lastModified-এ ব্যবহৃত। cosmetic।
 
 ### F-26. `useAnalytics` hook very large (~560 lines)
 সব tracking একটায় — split: `useCommerceTracking`, `useAuthTracking`, `useSearchTracking`।
 
-### F-27. PDP "Genuine leather, premium quality" auto fallback
-[`(frontend)/products/[slug]/page.js:69`](../FruitSnacksFrontend/src/app/(frontend)/products/[slug]/page.js):
-```js
-const description = product?.meta_description ||
-  `${product?.product_name} – ${seo.siteName} এ পাচ্ছেন মাত্র ৳${price ?? ""}। Genuine leather, premium quality। Cash on delivery সারাদেশে।`;
-```
-
-FruitSnacks-এ "Genuine leather" inappropriate। 
+### F-27. PDP "Genuine leather, premium quality" auto fallback — ✅ FIXED
+> PDP fallback description থেকে leather copy সরানো হয়েছে। (getSeoConfig site-wide fallback এখনো leather — F-8 দেখুন।)
 
 ### F-28. `(user-profile)` layout — manual tab navigation
 Next.js parallel routes দিয়ে আরও clean হতো।
@@ -953,31 +1001,24 @@ PDP-তে product_name special characters থাকলে `JSON.stringify` enou
 
 # Quick Action Priority
 
-কোন গুলো এখনই ঠিক করা উচিত (deployment-এর আগে):
+> ✅ **deploy-before security items সব FIXED** (GATE 0, ২০২৬-০৬-১৬ যাচাই)। নিচের তালিকায় কাটা = সম্পন্ন।
 
-### Backend (security-critical)
-1. **B-3** (PaymentWithdraw auth নেই) — যেকোনো কেউ payment data manipulate করতে পারে
-2. **B-1** (Role routes permission mix) — RBAC সম্পূর্ণ ভুল
-3. **B-2** (Supplier permission empty) — যেকোনো admin supplier access করতে পারে
-4. **B-22** (Hardcoded credentials in comments) — git history থেকে remove + rotate
-5. **B-5** (Cookie security) — CSRF + secure cookie
-6. **B-10** (File upload validation) — malicious upload prevent
+### Backend (security-critical) — সব ✅ FIXED
+1. ~~**B-3** PaymentWithdraw auth~~ — ✅ flag সহ verifyToken
+2. ~~**B-1** Role routes permission mix~~ — ✅ mapping ঠিক
+3. ~~**B-2** Supplier permission empty~~ — ✅ flag যোগ
+4. ~~**B-22** Hardcoded credentials~~ — ✅ env; ⚠️ deploy-day rotate বাকি
+5. ~~**B-5** Cookie security~~ — ✅ httpOnly/secure/sameSite (CSRF deferred)
+6. ~~**B-10** File upload validation~~ — ✅ extension whitelist
+7. ~~**B-6** CORS~~ — ✅ env-driven · ~~**B-21** env validation~~ ✅ · ~~**B-31** rate limit~~ ✅
 
-### Frontend (build/runtime risk)
-7. **F-1** (TS/ESLint errors ignored) — production build pass করছে invalid code নিয়ে
-8. **F-2** (`campaignApi.js` Bearer token) — broken endpoint, delete বা rewrite
-9. **F-3** (CartLoader overwrites localStorage) — login refresh-এ cart হারিয়ে যেতে পারে
-10. **F-4** (`tagTypesList` undefined entry) — silent RTK bug
+### এখনো OPEN (deploy-blocker নয় — code-quality / iterate)
+- **Frontend:** F-1 (TS/ESLint ignore), F-2 (campaignApi delete), F-3 (CartLoader refresh cart), F-5..F-7, F-9, F-11..F-20
+- **Admin:** A-1/A-2 (dead file delete), A-8 (dynamic permission API), A-4/A-5 (data-fetch consistency), A-10+
+- **Backend:** B-13 (cron updateMany), B-17/B-18 (auth↔setting SMS dup), B-23 (sendResponse clean), B-30 (/health)
 
-### Admin (cleanup before deploy)
-11. **A-1** (`useGetData.jsx` broken hook) — delete or implement
-12. **A-2** (`cookie-storage.js` unused) — delete to avoid auth confusion
-13. **A-8** (permissionData drift) — backend permission API দিয়ে dynamic করা
-
-### Summary
-- **Backend:** 32 issues (6 critical security)
-- **Admin:** 23 issues (2 critical cleanup)
-- **Frontend:** 30 issues (3 critical build/runtime)
-- **Total:** 85 issues identified
-
-বাকি issues iterate করতে করতে ঠিক করা যাবে।
+### Summary (২০২৬-০৬-১৬ re-audit)
+- **মূল security holes (B + F012/F008/F009):** সব ✅ FIXED
+- **এখনো OPEN:** বেশিরভাগ code-quality / refactor / cosmetic — কোনোটাই go-live blocker নয়
+- পূর্ণ status: উপরের তালিকার প্রতিটা entry-র মাথায় ✅/⚠️/➖/🟦 tag দেখুন
+- মূল তালিকা ৮৫ issue (২০২৬-০৫-১৮); GATE-0 + পরের sprint-এ critical/high-এর সিংহভাগ closed

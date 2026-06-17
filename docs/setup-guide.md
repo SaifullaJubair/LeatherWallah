@@ -3,6 +3,8 @@
 > এই গাইড অনুসরণ করে আপনি FruitSnacks codebase clone করে নিজের নতুন brand-এ চালাতে পারবেন।
 > Total সময়: প্রথমবার ~৪-৬ ঘন্টা (account setup সহ), শুধু code part ~৩০ মিনিট।
 
+> ⚠️ **২০২৬-০৬-১৬ তে re-audit।** মূল সরলীকরণ: প্রথম admin এখন **`npm run bootstrap`** দিয়ে এক কমান্ডে (আগের manual Compass JSON insert বাদ); CORS env-driven (`CORS_ORIGINS`, code edit লাগে না); ক্যাটাগরি nested tree (Sub/Child Category পেজ নেই)।
+
 ---
 
 ## 📋 যা যা আগে থেকে দরকার (Prerequisites)
@@ -330,146 +332,46 @@ npm run dev
 
 # 👤 PART 6 — প্রথম Admin Account তৈরি
 
-Database fresh — কোনো admin বা role নেই। MongoDB-তে manual entry লাগবে।
+Database fresh — কোনো admin বা role নেই। আগে manual MongoDB entry লাগত; **এখন একটাই কমান্ড** সব করে দেয়।
 
-## Step 11: MongoDB Compass দিয়ে প্রথম Role ও Admin তৈরি
+## Step 11: `npm run bootstrap` — এক কমান্ডে প্রথম Admin
 
-### ১১.১ MongoDB Compass install ও connect
+> ✅ পুরোনো manual Compass-এ role+admin JSON insert করার ঝামেলা আর নেই। bootstrap script স্কিমা থেকে super-admin role (সব permission flag `true` — তাই নতুন feature এলেও কখনো বাদ পড়ে না), super-admin user, settings doc, pageSeo + starter FAQ template — সব fresh DB-তে তৈরি করে। Idempotent (একাধিকবার চালালেও সমস্যা নেই)।
 
-1. https://www.mongodb.com/products/compass থেকে download করুন
-2. Open করে **New Connection** → আপনার MONGO_URI paste করুন
-3. Connect → আপনার database (`myshop`) দেখতে পাবেন
+### ১১.১ super-admin credential `.env`-এ দিন
 
-### ১১.২ প্রথম Role তৈরি
+`FruitSnacksBackend/.env`-এ যোগ করুন:
 
-1. Database → Collections → **roles** collection (যদি না থাকে create করুন)
-2. **Add Data** → **Insert Document**
-3. JSON View-এ এই content paste করুন:
-
-```json
-{
-  "role_name": "Super Admin",
-  "category_show": true,
-  "category_post": true,
-  "category_update": true,
-  "category_delete": true,
-  "sub_category_show": true,
-  "sub_category_post": true,
-  "sub_category_update": true,
-  "sub_category_delete": true,
-  "child_category_show": true,
-  "child_category_post": true,
-  "child_category_update": true,
-  "child_category_delete": true,
-  "brand_show": true,
-  "brand_post": true,
-  "brand_update": true,
-  "brand_delete": true,
-  "attribute_show": true,
-  "attribute_post": true,
-  "attribute_update": true,
-  "attribute_delete": true,
-  "specification_show": true,
-  "specification_post": true,
-  "specification_update": true,
-  "specification_delete": true,
-  "product_show": true,
-  "product_create": true,
-  "product_update": true,
-  "product_delete": true,
-  "offer_show": true,
-  "offer_create": true,
-  "offer_update": true,
-  "offer_delete": true,
-  "campaign_show": true,
-  "campaign_create": true,
-  "campaign_update": true,
-  "campaign_delete": true,
-  "user_show": true,
-  "user_create": true,
-  "user_update": true,
-  "user_delete": true,
-  "role_show": true,
-  "role_create": true,
-  "role_update": true,
-  "role_delete": true,
-  "review_show": true,
-  "review_update": true,
-  "question_show": true,
-  "question_update": true,
-  "coupon_show": true,
-  "coupon_create": true,
-  "coupon_update": true,
-  "coupon_delete": true,
-  "banner_show": true,
-  "banner_create": true,
-  "banner_update": true,
-  "banner_delete": true,
-  "slider_show": true,
-  "slider_create": true,
-  "slider_update": true,
-  "slider_delete": true,
-  "site_setting_update": true,
-  "page_seo_show": true,
-  "page_seo_update": true,
-  "order_show": true,
-  "order_update": true,
-  "offer_order_show": true,
-  "offer_order_update": true,
-  "customer_show": true,
-  "customer_create": true,
-  "customer_update": true,
-  "customer_delete": true,
-  "theme_show": true,
-  "theme_create": true,
-  "theme_update": true,
-  "theme_delete": true,
-  "faq_template_show": true,
-  "faq_template_create": true,
-  "faq_template_update": true,
-  "faq_template_delete": true
-}
+```
+SUPER_ADMIN_PHONE=+8801XXXXXXXXX     # E.164 format (login form-এর সাথে মিলবে)
+SUPER_ADMIN_PASSWORD=YourStrongPass
 ```
 
-4. Insert → **\_id** value কপি করে রাখুন (এটা হল আপনার role ID)
+> না দিলে demo fallback ব্যবহার হয়: phone `01700000000`, password `123456` — **launch-এর পর অবশ্যই বদলান।**
 
-### ১১.৩ Password Hash তৈরি
+### ১১.২ bootstrap চালান
 
-Backend bcrypt দিয়ে password store করে। তাই plain password চলবে না।
-
-**সহজ উপায় — online bcrypt generator:**
-
-1. https://bcrypt-generator.com → password type করুন (যেমন `Admin@123`)
-2. **Rounds: 10** select করুন
-3. Encrypt → একটা long string পাবেন (যেমন `$2a$10$...`) — এটাই hashed password
-4. কপি করে রাখুন
-
-### ১১.৪ Admin User তৈরি
-
-1. Compass-এ **admins** collection → Add Document
-2. JSON View-এ:
-
-```json
-{
-  "admin_name": "Owner",
-  "admin_phone": "+8801XXXXXXXXX",
-  "admin_password": "<১১.৩-তে generated hashed password>",
-  "admin_country": "Bangladesh",
-  "admin_status": "active",
-  "role_id": { "$oid": "<১১.২-এ পাওয়া role _id>" }
-}
+```bash
+cd FruitSnacksBackend && npm run bootstrap
 ```
 
-⚠️ `admin_phone` এ পুরো international format দিন (`+8801XXXXXXXXX`)
-⚠️ `role_id`-এ `{ "$oid": "..." }` format রাখুন — শুধু string দিলে হবে না
+স্কিমা বদলালে পরে শুধু super-admin role refresh করতে: `npm run bootstrap -- --sync-superadmin`।
 
-3. Insert
+### ১১.৩ (ঐচ্ছিক) Demo catalog
 
-### ১১.৫ Admin-এ লগইন test
+শপ presentable দেখাতে built-in food demo (প্রোডাক্ট/ক্যাটাগরি/রিভিউ/থিম):
+
+```bash
+npm run seed:demo
+```
+
+পরে Admin → Settings → Demo Data → Clear (type `CLEAR`) দিয়ে মুছে ফেলুন — আপনার আসল ডেটা নিরাপদ থাকে।
+
+### ১১.৪ Admin-এ লগইন test
 
 1. Browser-এ http://localhost:3001 → SignIn page
-2. Phone: `+8801XXXXXXXXX` (আপনি যা দিয়েছিলেন)
-3. Password: `Admin@123` (আপনি বেছেছিলেন, hashed না)
+2. Phone: `SUPER_ADMIN_PHONE` (বা demo `01700000000`)
+3. Password: `SUPER_ADMIN_PASSWORD` (বা demo `123456`)
 4. Login!
 
 🎉 যদি admin dashboard দেখা যায় — সব ঠিকঠাক কাজ করছে।
@@ -529,61 +431,27 @@ Admin dashboard → **Setting** menu → এই tab-গুলো পূরণ �
 
 Save → frontend reload করে দেখুন আপনার logo, title সব update হয়েছে।
 
-## Step 13: Domain ও CORS Update
+## Step 13: Domain ও CORS Update (env-driven — code edit লাগে না)
 
-⚠️ এটা একটু technical — code edit করতে হবে।
+> ✅ CORS এখন **env-driven** (GATE-0 security)। আগের মতো `index.ts`-এ hardcoded array edit করা লাগে না — শুধু `.env`-এ domain দিন।
 
-**File:** `FruitSnacksBackend/src/index.ts` (line ~১৯-৩৭)
+`FruitSnacksBackend/.env`-এ:
 
-পুরোনো:
-```ts
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:4173",
-    "http://admin.fruitsnacksbd.com",
-    // ... fruitsnacksbd.com-এর সব variant
-    "https://fruitsnacks-frontend.vercel.app",
-  ],
-  credentials: true,
-};
+```
+CORS_ORIGINS=https://yourshop.com,https://www.yourshop.com,https://admin.yourshop.com
 ```
 
-পরিবর্তন করুন আপনার domain-এ:
-
-```ts
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",       // dev
-    "http://localhost:3001",       // dev
-    "http://localhost:4173",       // vite preview
-    "https://yourshop.com",        // আপনার domain
-    "https://www.yourshop.com",
-    "https://admin.yourshop.com",  // admin subdomain
-    "https://www.admin.yourshop.com",
-  ],
-  credentials: true,
-};
-```
-
-Backend restart করুন (Ctrl+C → `npm run dev` again)।
+(comma-separated; localhost dev origins ডিফল্টে allowed থাকে।) Backend restart করুন।
 
 ## Step 14: Initial Catalog Data যোগ করুন
 
 Admin Panel থেকে:
 
-### ১৪.১ Category
-- Sidebar → **Task** → **Category** → Create Category
-- Name, slug, logo upload
-- Serial 1 দিন
-- Status active
-
-কমপক্ষে ১টা category থাকতে হবে — না হলে product create করতে পারবেন না।
-
-### ১৪.২ Sub Category (Optional)
-- **Task** → **Sub Category** → Create
-- Parent category select করুন
+### ১৪.১ Category (Nested Tree)
+- Sidebar → **Catalog** → **Category** → Create Category
+- Name, slug, logo upload, Serial, Status active
+- **Nested:** parent select করে যেকোনো গভীরতায় sub-category বানাতে পারেন (আলাদা Sub/Child Category পেজ আর নেই — একটাই Category পেজ পুরো tree handle করে)
+- প্রোডাক্টে category এখন **optional** — তবে catalog সাজাতে কমপক্ষে ১টা রাখা ভালো
 
 ### ১৪.৩ Brand (Optional)
 - **Task** → **Brand Category** → Create

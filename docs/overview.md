@@ -3,6 +3,8 @@
 > এই ডকুমেন্ট পুরো FruitSnacks প্ল্যাটফর্মের high-level architecture, ৩টি sub-project কীভাবে interconnected, ডেটা কীভাবে flow করে — সব ব্যাখ্যা করে।
 > যদি project clone করে শুরু করতে চান, এই ফাইল প্রথমে পড়ুন।
 
+> ⚠️ **২০২৬-০৬-১৬ তে re-audit করা।** মূল আপডেট: ক্যাটাগরি এখন nested tree (পুরোনো 3-level সরানো), offerOrder মডিউল order-এ merge, module ৩৭ → ৪৫+, fresh-DB-তে `npm run bootstrap` দিয়ে super-admin তৈরি (manual নয়)।
+
 ---
 
 ## প্রজেক্ট কী
@@ -36,7 +38,7 @@ FruitSnacks/
 
 ### প্রতিটি প্রজেক্টের বিস্তারিত ডকুমেন্টেশন:
 
-- 📘 [docs/backend.md](backend.md) — Backend ৩৭+ মডিউল, API endpoints, schema
+- 📘 [docs/backend.md](backend.md) — Backend ৪৫+ মডিউল, API endpoints, schema
 - 📗 [docs/admin.md](admin.md) — Admin pages, components, data flow
 - 📕 [docs/frontend.md](frontend.md) — Frontend pages, Redux setup, SEO, analytics
 - 🐛 [docs/issues.md](issues.md) — পরিচিত bugs ও improvement opportunities (85টি)
@@ -75,7 +77,7 @@ FruitSnacks/
                 │  (port 5000)                │      │  (Mongoose)      │
                 │  api.fruitsnacksbd.com      │      └──────────────────┘
                 │                             │
-                │  ─ 37+ CRISM modules        │      ┌──────────────────┐
+                │  ─ 45+ CRISM modules        │      ┌──────────────────┐
                 │  ─ JWT cookie auth          │ ◄──► │  DigitalOcean    │
                 │  ─ RBAC (~100 perm flags)   │      │  Spaces (S3)     │
                 │  ─ Cron (campaign expire)   │      └──────────────────┘
@@ -96,7 +98,7 @@ FruitSnacks/
                 │  (port 3001)                │
                 │  admin.fruitsnacksbd.com    │
                 │                             │
-                │  ─ 30+ pages                │
+                │  ─ 35+ pages                │
                 │  ─ React Query              │
                 │  ─ Cookie auth (admin)      │
                 │  ─ Permission-gated UI      │
@@ -121,8 +123,8 @@ FruitSnacks/
 3. Backend MongoDB থেকে data fetch → return → Frontend HTML render
 4. কাস্টমার product detail page click → /products/:slug
 5. Frontend SSR: GET /product/:slug (no-cache) → Backend
-   - Backend populates: category (3-level), brand, theme, campaign
-   - Validates 3-level category active status
+   - Backend populates: category (nested tree + ancestor path), brand, theme, campaign
+   - Validates category active status
    - Returns product + variations
 6. Frontend renders: PDP with theme, JSON-LD, themed sections
 7. কাস্টমার "Add to Cart" → Redux dispatch addToCart
@@ -299,38 +301,40 @@ Backend [`src/index.ts`](../FruitSnacksBackend/src/index.ts)-এ allowed origins
 
 ### Common Flags
 
-- `category_show/post/update/delete`
-- `sub_category_show/post/update/delete`
+- `category_show/post/update/delete` (nested tree — পুরোনো sub_category/child_category/specification flag বাদ)
 - `product_show/create/update/delete`
-- `order_show/update`
-- `theme_show/create/update/delete` (নতুন)
-- `faq_template_show/create/update/delete` (নতুন)
-- `site_setting_update`
+- `order_show/update`, `order_create_admin` (POS)
+- `theme_show/create/update/delete`, `faq_template_*`, `trust_point_update`
+- `site_setting_update`, `setting_secrets_update`
+- `site_faq_*`, `newsletter_*`, `demo_data_clear`, `review_seed_*`
 - `page_seo_show/update`
 - ...
 
 ---
 
-## Critical Backend Modules (37+)
+## Critical Backend Modules (45+)
 
 ফুল লিস্ট [docs/backend.md](backend.md)-এ। গুরুত্বপূর্ণ গ্রুপ:
 
 | Group | Modules |
 |-------|---------|
 | **Auth & Users** | authentication, adminRegLog, user, role, getme, supplier |
-| **Catalog** | category (3-level), brand, attribute, specification, product, variation, productFilter |
-| **Commerce** | cart, order, orderProducts, courier (Pathao+Steadfast), webhook, fraud, coupon |
-| **Marketing** | campaign, offer, offerOrder, banner, slider, review, question |
-| **Admin Config** | setting, pageSeo, theme, faq_template, dashboard |
+| **Catalog** | category (nested tree), brand, attribute, product, variation, productFilter |
+| **Commerce** | cart, order (offer merged), orderProducts, courier (Pathao+Steadfast), webhook, fraud, coupon, payment |
+| **Marketing** | campaign, offer, flashsale, banner, slider, review, question |
+| **Storefront extras** | wishlist, wallet, loyalty, abandonedCart, productFeed, siteFaq, newsletterSubscriber, trustPoint |
+| **Admin Config** | setting, pageSeo, theme, faq_template, dashboard, warehouse, demo |
 | **Integrations** | metaPixel, tiktokPixel |
+
+> ❌ সরানো module: `sub_category`, `child_category`, `specification` (nested tree + attribute engine-এ merged), `offerOrder` (orders-এ merged)।
 
 ### Most Critical Cross-Module Connections
 
 ```
 products (model + 4 lifecycle hooks)
-  ├─ depends on: categories → subcategories → childcategories (3-level active check)
+  ├─ depends on: categories (nested tree — parent_id + category_path; category OPTIONAL)
   ├─ depends on: brands, themes, suppliers, campaigns, admins
-  └─ used by: variations, cart, orders, orderproducts, reviews, productFilter
+  └─ used by: variations, cart, orders, orderproducts, reviews, productFilter, wishlist
 
 orders
   ├─ depends on: users, products, coupons, variations
@@ -341,8 +345,8 @@ orders
 themes
   ├─ used_in_products counter (auto-synced by product hooks)
   ├─ is_deletable derived from counter
-  ├─ referenced by: products.theme_id, subcategories.default_theme_id
-  └─ floating_assets array (S3 images)
+  ├─ referenced by: products.theme_id, categories.default_theme_id
+  └─ floating_assets array (S3 images; product-level floating_overrides layer on top)
 ```
 
 ---
@@ -360,8 +364,8 @@ themes
 | **TikTok Conversion API** | Backend + Frontend | Server-side TikTok events |
 | **Google Tag Manager** | Frontend | GA4 + custom tracking |
 | **Microsoft Clarity** | Frontend | Heatmaps, session recordings |
-| **BulkSMS BD** | Backend | OTP SMS pathao |
-| **SSLCommerz, bKash** | Backend (planned/legacy reference) | Payment gateway |
+| **BulkSMS BD** | Backend | OTP SMS পাঠানো |
+| **SSLCommerz** | Backend (payment module) | Payment gateway (callback + IPN) |
 
 ---
 
@@ -444,9 +448,9 @@ PDP renders <ProductThemedSections /> with theme.colors,
 | S3 bucket | `artisen-leather` | **`fruit-snacks`** |
 | S3 key prefix | `artisen_leather_images/` | **`fruit_snacks_images/`** |
 
-### Active Development — Dynamic Product Page System
+### Dynamic Product Page System — ✅ DONE (+ পরবর্তী sprint shipped)
 
-পুরো spec ও phase tracker [FEATURE_PLAN.md](../FEATURE_PLAN.md)-এ। সারসংক্ষেপ:
+theming engine সম্পূর্ণ। তার পরেও shipped: nested category tree + variation/attribute/filter engine, order unification (offer merge, ৯-status), home layout builder + boutique preset, chat widgets, demo-seed, GATE-0 security, bootstrap। বিস্তারিত [docs/backend.md](backend.md) + handoff memory। theming সারসংক্ষেপ:
 - প্রতিটি product page-এ unique theme (color, font, floating fruit images)
 - `themes` collection — reusable theme presets
 - `faq_templates` collection — reusable FAQ entries
@@ -525,13 +529,15 @@ cd FruitSnacksAdmin && npm run dev     # http://localhost:3001
 cd FruitSnacksFrontend && npm run dev  # http://localhost:3000
 ```
 
-### ৪. প্রথম অ্যাডমিন তৈরি
+### ৪. প্রথম অ্যাডমিন তৈরি — `npm run bootstrap`
 
-Database fresh হলে কোনো admin নেই। সরাসরি MongoDB-তে:
-- ১টা `roles` document যোগ — সব permission flag `true` দিয়ে
-- ১টা `admins` document যোগ — bcrypt-hashed password, role_id reference
+Database fresh হলে কোনো admin নেই। আগের manual MongoDB insert আর লাগে না — এখন:
 
-(একটা seeding script যোগ করার scope আছে — currently manual)
+```bash
+cd FruitSnacksBackend && npm run bootstrap
+```
+
+স্কিমা থেকে super-admin role (সব flag true — তাই কখনো stale নয়), super-admin user (`.env` `SUPER_ADMIN_PHONE`/`PASSWORD`, fallback `01700000000`/`123456`), settings doc, auth doc, pageSeo + starter FAQ template seed করে। Idempotent। **এটাই হ্যান্ডওভারের entry point।** ঐচ্ছিক demo catalog: `npm run seed:demo`।
 
 ---
 
@@ -590,7 +596,7 @@ Database fresh হলে কোনো admin নেই। সরাসরি Mong
 
 ## সারসংক্ষেপ — One-Liner Each Project
 
-- **Backend** — একমাত্র সার্ভার, MongoDB-এর সাথে কথা বলে, JWT cookie auth, ৩৭+ মডিউল (CRISM pattern), Pathao/Steadfast/FraudBD/Meta/TikTok integrate করা।
+- **Backend** — একমাত্র সার্ভার, MongoDB-এর সাথে কথা বলে, JWT cookie auth, ৪৫+ মডিউল (CRISM pattern), Pathao/Steadfast/FraudBD/Meta/TikTok integrate করা।
 - **Admin** — React SPA, অ্যাডমিন/স্টাফ এখান থেকে product, order, customer, marketing, theme manage করে, permission-gated UI।
 - **Frontend** — Next.js storefront, কাস্টমার এখানে আসে, SSR/ISR দিয়ে SEO-optimized, Redux + RTK Query, cart dual-storage (localStorage + DB), analytics integrated।
 

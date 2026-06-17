@@ -107,7 +107,8 @@ src/app/
 │   ├── wishlist/
 │   ├── verify/                              → OTP verification
 │   ├── campaign/, campaign/[id]/
-│   ├── offer/, offer/[id]/, offer-orders/[userId]/[offerId]/
+│   ├── offer/, offer/[id]/   (offer checkout এখন POST /order; পুরোনো
+│   │       /offer-orders/* → purchase history-তে 301 redirect — next.config.mjs)
 │   ├── orders/[orderId]/                    → My order details
 │   ├── orders/order-success/                → Post-checkout success
 │   ├── orders/order-tracking/, [id]/        → Tracking
@@ -172,7 +173,7 @@ export const { useUserInfoQuery, useUserLoginMutation } = authApi;
 
 [`src/redux/tag-types.js`](../FruitSnacksFrontend/src/redux/tag-types.js)-এ সব ট্যাগ centralized:
 - `user`, `auth`, `getme`
-- `category`, `sub_category`, `child_category`, `filter`, `brand`, `specification`, `searchTerm`
+- `category`, `filter`, `brand`, `searchTerm` (+ legacy `sub_category`/`child_category`/`specification` tags — backend মডিউল merge হয়ে গেলেও tag-types.js-এ rows রয়ে গেছে, এখন unused)
 - `product`, `review`, `question`
 - `campaign`, `offer`, `coupon`, `banner`
 - `wishlist`, `order`, `site_setting`
@@ -339,25 +340,33 @@ Forget password:
 
 ## Page Categories
 
-### Home Page
+### Home Page (Dynamic Section Renderer — Track D)
 
-[`src/components/frontend/home/Home.jsx`](../FruitSnacksFrontend/src/components/frontend/home/Home.jsx) — বিভিন্ন section compose করে:
+> ⚠️ Home আর hardcoded section list নয়। [`Home.jsx`](../FruitSnacksFrontend/src/components/frontend/home/Home.jsx) এখন **async server component** — SSR-এ `home_section_array` ([`/setting`](../FruitSnacksFrontend/src/components/lib/getServerSettingData.js)) fetch করে। Banner + FlashSale server-side render হয়; বাকি section [`SectionRenderer.jsx`](../FruitSnacksFrontend/src/components/frontend/home/SectionRenderer.jsx) (`"use client"`) handle করে — **শুধু enabled section, `order` অনুসারে sort করে** render। Admin → Home Layout থেকে drag-drop reorder + toggle।
 
-1. **Banner** ([`Banner.jsx`](../FruitSnacksFrontend/src/components/frontend/home/banner/Banner.jsx)) — hero carousel
-2. **Feature Categories** — featured category cards
-3. **Flash Sale** — countdown + flash sale products
-4. **Latest Products** — recent products grid
-5. **Popular Products**
-6. **Trending Products**
-7. **Just For You** — personalized
-8. **Category-wise Product** — per category section
-9. **Promotional Banner**
-10. **Slider Ad**
-11. **Ads Section**
-12. **Feature Service** (trust cards)
-13. **ECommerce Choice**
+**Section registry** (`SECTION_COMPONENTS` — id `setting.services.ts`-এর `HOME_SECTION_DEFAULTS`-এর সাথে match করতে হয়):
 
-প্রতিটা section আলাদা lib function থেকে data নেয়।
+| Section id | Component | ধরন |
+|-----------|-----------|------|
+| `hero` / `flash_sale` | (server-side in Home.jsx) | hero carousel / flash countdown |
+| `trending_products` | TrendingProduct | grid strip |
+| `new_arrivals` | LatestProducts | grid strip |
+| `category_wise_strip` | CategoryWiseProduct | per-category |
+| `bestsellers` | PopularProducts | grid strip |
+| `promo_banner` | PromotionalBanner | marketing |
+| `feature_service` | FeatureService | trust cards |
+| `ecommerce_choice` | ECommerceChoice | curated |
+| `brand_story` | BrandStory | image+text+CTA (Track D) |
+| `reviews_carousel` | ReviewsCarousel | Swiper — auto_featured / manual_pick |
+| `site_faq` | SiteFaqSection | accordion (`/site-faq/active`) |
+| `newsletter` | NewsletterForm | email/sms/both subscribe |
+| **`hero_spotlight`** | **HeroSpotlight** | **boutique preset** |
+| **`product_features`** | **ProductFeatures** | **boutique preset** |
+| **`story_band`** | **StoryBand** | **boutique preset** |
+
+### Boutique home preset (অল্প-product শপের জন্য)
+
+পুরোনো marketplace grid অল্প product-এ (৫–৮টা) ফাঁকা দেখায় বলে একটা ২য় preset — premium animated storytelling। **Additive** (পুরোনো marketplace home অক্ষত, high-catalog preset হিসেবে)। ৩টা section ([`heroSpotlight/`](../FruitSnacksFrontend/src/components/frontend/home/heroSpotlight/), [`productFeatures/`](../FruitSnacksFrontend/src/components/frontend/home/productFeatures/), [`storyBand/`](../FruitSnacksFrontend/src/components/frontend/home/storyBand/)) + shared boutique components ([`home/boutique/`](../FruitSnacksFrontend/src/components/frontend/home/boutique/) — `bits.jsx`, `reveal.jsx`, `useBoutiqueProductActions.jsx`)। `trending_product`-flagged product Hero Spotlight + Product Features feed করে। Buy-now → checkout, responsive icon button (mobile icon-only / desktop +text), variation chip, image carousel। Admin → Home Layout-এ boutique section ON + grid section OFF করে switch করা হয়।
 
 ### Product Listing Pages
 
@@ -373,6 +382,8 @@ Forget password:
 | `/category/[...slug]` | `CategoryViewSection.jsx` | `/filter_product/...` |
 | `/all-brands` | `AllBrand.jsx` | `/brand` |
 | `/all-brands/brand-product/[id]` | (brand-filtered products) | `/product/brand_match_product` |
+
+> **Route consolidation (Sprint 3 Track E):** আলাদা legacy listing route-গুলো এখন এক `ProductListing` engine + `/shop?sort=...` routing-এ একত্রিত (latest/top/new-arrival "View More" → `/shop`)। পুরোনো 5টা listing route noIndex + 301 → `/shop`। `/shop` ও `/offer` এখন indexable (robots + pageSeo fix)।
 
 ### Product Detail Page (PDP)
 
@@ -420,7 +431,7 @@ Coupon apply: `POST /coupon/check_coupon` → validate → apply discount calc (
 - **Profile Setting** — name, address, image update
 - **Purchase History** — past orders
 - **Review** — written reviews + to-be-reviewed (delivered orders পাঠানো হয়েছে কিন্তু রিভিউ নেই)
-- **Offer History** — অফার অর্ডার
+- **Offer History** — অফার অর্ডার (এখন unified order; `order_type:"offer"`)
 - **Wishlist** — saved products
 - **Change Password**
 
@@ -527,6 +538,8 @@ Root [`layout.js`](../FruitSnacksFrontend/src/app/layout.js):
 
 Setting-এ toggle off হলে ID `null` হয় → script load হয় না।
 
+> **DB-driven IDs (S4+S5):** analytics ID (Meta Pixel/TikTok/GTM/GA4/Clarity) এখন **DB থেকে** আসে (Admin → Settings → Analytics), env থেকে নয় — buyer কোড ছাড়াই Admin থেকে সেট করতে পারে। CAPI access token Settings → Secrets-এ (public `/setting`-এ আসে না)। env var fallback হিসেবে থাকে।
+
 ### Event Tracking
 
 [`useAnalytics()` hook](../FruitSnacksFrontend/src/components/analyticsScripts/utils/useAnalytics.js) — unified API সব provider-এ একসাথে event পাঠায়:
@@ -555,6 +568,10 @@ Per-product theme apply করতে frontend-এ:
 - [`src/components/theme/AnnouncementBar.jsx`](../FruitSnacksFrontend/src/components/theme/AnnouncementBar.jsx) — top rolling banner (setting.announcement_bar থেকে)
 
 Product object-এ `theme_id` populated থাকে — colors, floating_assets, typography, button_style সব apply।
+
+### Floating images — section-anchored (rethink)
+
+[`src/lib/theme/`](../FruitSnacksFrontend/src/lib/theme/)-এর `mergeFloating()` theme-এর global `floating_assets[]`-এর উপর product-এর `floating_overrides` (hide/replace/extra) layer করে (dead-ref guard সহ), একবার PDP page-level-এ `theme.floating_assets`-এ inject করে — তারপর প্রতিটা section-এর `<FloatingAssets/>` merged set render করে। পুরোনো full-page `ProductFloatingImages` (z-index trap) সরানো হয়েছে; `globals.css`-এ `prefers-reduced-motion` float anim বন্ধ করে।
 
 ---
 
@@ -606,7 +623,16 @@ Product object-এ `theme_id` populated থাকে — colors, floating_assets
 
 ### Quick View Modal
 
-[`src/components/shared/quickViewModal/QuickViewModal.jsx`](../FruitSnacksFrontend/src/components/shared/quickViewModal/QuickViewModal.jsx) — product card-এ hover/click করে quick preview।
+[`src/components/shared/quickViewModal/QuickViewModal.jsx`](../FruitSnacksFrontend/src/components/shared/quickViewModal/QuickViewModal.jsx) — product card-এ hover/click করে quick preview (cart-edit mode-ও সাপোর্ট করে, `createPortal(…, document.body)`)।
+
+### Chat Widgets (floating, external handoff)
+
+[`src/components/shared/ChatWidgetStacker.jsx`](../FruitSnacksFrontend/src/components/shared/ChatWidgetStacker.jsx) — ৩টা floating button, কাস্টমারকে **external chat**-এ পাঠায় (কোনো in-app messaging/chat DB নেই):
+- **WhatsApp** → `wa.me/<owner phone>` (পুরোনো `enable_whatsapp_chat`)
+- **Messenger** → `m.me/<chat_messenger_page_id>` (FB Page inbox; `chat_messenger_show` দিয়ে gated)
+- **Live chat** → Tawk.to/Crisp embed (`chat_livechat_embed_code`, `chat_livechat_show` দিয়ে gated)
+
+> ⚠️ **key gotcha:** React `dangerouslySetInnerHTML` injected `<script>` execute করে না। তাই live-chat embed parse করে runtime-এ আসল `document.createElement("script")` দিয়ে re-create করা হয়। field name অবশ্যই `chat_*_show` (পুরোনো `chat_*_enabled` ছিল bug)। position `chat_widgets_position` setting থেকে। সব message আমাদের সিস্টেমের বাইরে handle হয়।
 
 ### Date Formatting
 
@@ -644,7 +670,7 @@ Product object-এ `theme_id` populated থাকে — colors, floating_assets
 | `/checkout` | `/order` (POST) + `/setting/zone` | client-side |
 | `/orders/:id` | `/order/:order_id` | client-side |
 | `/orders/order-tracking` | `/order/order_tracking` | client-side |
-| `/wishlist` | (localStorage based) | local |
+| `/wishlist` | `/wishlist` (DB-backed, D15) + guest localStorage merge | RTK Query |
 | `/campaign/:id` | `/campaign/:_id` | ISR |
 | `/offer/:id` | `/offer/:_id` | ISR |
 | `/user-profile` | `/get_me`, `/order`, etc. | RTK Query |
