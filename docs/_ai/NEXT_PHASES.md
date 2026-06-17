@@ -205,3 +205,30 @@ PDP polish first (1→2→3), since the page is nearly done. Then catalog
 correctness (8→9→10→11) as a block (they're related and high-value). Admin UX
 (6→7→12) can interleave. Floating images (4) when the sketch is ready. Home
 redesign last. Item 5 (verify old page) is a quick safety check, do anytime.
+
+> ⚠️ **Item 5 UPDATE (FE deep-audit 2026-06-18, F2.2):** `/products-original/[slug]`
+> route **does NOT exist** — the entire old non-themed `src/components/frontend/singeProduct/**`
+> tree is orphaned dead code, and the live PDP page comment claiming the fallback is stale.
+> Q2 effectively resolved by reality: there is no old page to keep. Either delete the
+> dead tree or rebuild the route if a fallback is genuinely wanted.
+
+---
+
+## ⚠️ Deep-Audit bug tickets (2026-06-18) — found, NOT yet fixed (owner did doc-only)
+
+Full findings: [ADMIN_DEEP_AUDIT_FINDINGS.md](ADMIN_DEEP_AUDIT_FINDINGS.md) ·
+[FRONTEND_DEEP_AUDIT_FINDINGS.md](FRONTEND_DEEP_AUDIT_FINDINGS.md) ·
+[BACKEND_DEEP_AUDIT_FINDINGS.md](BACKEND_DEEP_AUDIT_FINDINGS.md) (BE 9 fixed on `dev`).
+These are pre-next-phase reference bugs; triage + fix on `dev` when owner says go.
+
+**🔴 BLOCKERs (4):**
+- **FE F1.1** — cart doesn't attach flash/campaign → flash product shows REGULAR price in cart but backend charges flash (shown≠charged); campaign discount silently lost (campaign_id always null). BE enrich `findCartProductServices` + FE; edge-audit cart/checkout/price.
+- **FE F4.1/F3.1** — home ReviewsCarousel default `auto_featured` hits `GET /review?review_rating=5&has_photo=true` → 400 → section never renders. Needs public featured-reviews endpoint (BE) + field-name fix (F4.2).
+- **Admin A2.2/A2.3** — order-status forward-transition dropdown lives only in dead `OrderTable.jsx` (imported nowhere) → no reachable UI to advance status (only Cancel + courier sync); BE `updateOrder` has no transition validation. OWNER DECISION: wire dropdown into ViewAllOrderInfo vs courier-only.
+- **Admin A4.1** — Warehouse FE sidebar/page guard on nonexistent `setting_show`/`setting_update` → menu+page hidden for everyone (BE route already fixed B1). Likely 1-line FE repoint to `site_setting_update`.
+
+**🟠 HIGH:** FE F4.2 (carousel wrong field names), F3.3 (/shop sort page-local not catalog), F3.4 (3 default-ON home sections unwired → blank top), F1.3 (COD phone 2 formats), F1.2 (cart qty additive merge); Admin A4.2/A4.3 (permissionData commented → Question/Offer/Campaign ungrantable), A1.1 (simple-product draft blocked), A2.1 (/pathao-order broken).
+
+**🟡 MEDIUM/SMELL:** FE F1.4/F1.5 (invoice double-discount, ৳ hardcode), F4.3/F4.4 (dead /verify OTP), F4.5 (pixel double-fire), F2.1/F2.2 (2 dead component trees), F1.6 (dead cartUtils.productPrice); Admin A1.2, A2.4/A4.5 (Fraud/Supplier no guard), A3.2/A3.3/A3.4/A3.5, A4.4 (login reload).
+
+**🌱 multi-niche debt:** FE F2.15 hardcoded "food" section enum (FloatingAssets). FE F2.16 GOOD — custom_fields spec-table now renders (was an open gap; closed).
