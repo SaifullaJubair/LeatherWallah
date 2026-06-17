@@ -240,28 +240,39 @@ Category পেজে nested tree picker — parent select করে যেক�
 
 | Page | Path | API |
 |------|------|-----|
-| Product List | `/product/product-list` | `/product/dashboard` (+ Variations modal, Low Stock) |
+| Product List | `/product/product-list` | `/product/dashboard-rich` (annotated rows: `_variation_count`/`_stock_total`/`_is_low_stock`/`_flags`/`_has_theme`) |
 | Add Product | `/product/product-create` | POST `/product` |
-| Update Product | `/product/product-update/:id` | PATCH `/product` (full rebuild) |
+| Update Product | `/product/product-update/:id` | PATCH `/product` (full rebuild) · single-product fetch = `/product/dashboard/:id` |
 | Product Page Content Edit | `/product/page-content/:id` | theme/benefits/nutrition/FAQ/floating tab |
 | Low Stock | `/low-stock` | alert-quantity-এর নিচে নামা product |
-| Variations | (Product List modal) | `/variation/by-product/:productId` · PATCH `/variation/:id` |
+| Variations | (Product List modal) | read = `GET /product/dashboard/:id` → `.variations` · per-cell save = PATCH `/variation/:id` (whitelisted) |
 
-⚠️ Product create/update পেজ বেশ complex — image upload, video upload (swap/remove mode), variations (multi-image + video per variation), attributes, theme, FAQ সব এক ফর্মে। **partial-update:** quick (price/stock), images (reorder/add/remove), page-content, variation — full rebuild এড়াতে আলাদা endpoint। Page Content → Floating tab = per-product floating override (inherit/hide/replace/extra)।
+> `/variation/by-product/:productId` endpoint টা Variations modal নয়, Page Content → Variation Weight editor ব্যবহার করে।
+
+⚠️ Product create/update পেজ বেশ complex — image upload, video upload (swap/remove mode), variations (multi-image + video per variation), attributes, theme, FAQ সব এক ফর্মে। **partial-update (Product List থেকে ৬টি modal):** Price (`/product/quick`, tier price + masked buying-price reveal সহ), Stock (`/product/quick`), Images (`/product/images` mode=swap_main/add_other/reorder/remove_other), Video, Variations (per-cell PATCH `/variation/:id`), Analytics-Seed — full rebuild এড়াতে আলাদা endpoint। inline status/trending toggle-ও `/product/quick`। Page Content → Floating tab = per-product floating override (inherit/hide/replace/extra)।
+
+> **Create-mode draft autosave:** ফর্ম sessionStorage-এ debounced draft রাখে (key `fs_product_draft_create`, 30-min TTL) — navigate away করে ফিরলে "Draft restored" toast (Discard option সহ)।
+> **Category-default attribute:** category select করলে `GET /category/defaults/:id` থেকে default variant/filter attribute auto-apply (empty form = silent, না হলে Apply/Dismiss banner)।
+> **Variation engine:** প্রতিটি attribute হয় **Axis** (variation drive করে) নয়তো **Spec-only** (শুধু filter/PDP table); per-attribute `show_in_filter` toggle আছে। Inactive category/brand/attribute select করলে Save&Publish disable (শুধু Draft)।
+> ⚠️ List filter-এ `digital`/`preorder`/`subscription` type filter করা যায়, কিন্তু Add/Update ফর্ম শুধু `simple`/`variable`/`combo` create করতে দেয়।
 
 ### 4. Order Management
 
 | Page | Path | API | Filter |
 |------|------|-----|--------|
-| Order List | `/order` | `/order/dashboard` | সব অর্ডার (+ Offer Orders tab = `?order_type=offer`) |
-| Create Order (POS) | `/order/create` | POST `/order` (`order_create_admin`) | admin manual order |
-| Pathao Order | `/pathao-order` | `/order/pathao` | শুধু Pathao |
-| Steadfast Order | `/steadfast-order` | `/order/steadfast` | শুধু Steadfast |
-| Order Details | `/all-order-info/:id` | `/order/:order_id` | line items + internal note + cancel/return reason |
+| Order List | `/order` | tab অনুযায়ী ৩ endpoint: `/order/dashboard` (all/delivered/cancelled/pos/offer) · `/order/steadfast` · `/order/pathao` | সব অর্ডার (+ Offer Orders tab = `?order_type=offer`) |
+| Create Order (POS) | `/order/create` | POST `/order/create-admin` (`order_create_admin`) | admin manual order |
+| Pathao Order (legacy) | `/pathao-order` | ⚠️ `/order/dashboard?order_status=shipped` | নিচে A2.1 দ্রষ্টব্য |
+| Steadfast Order (legacy) | `/steadfast-order` | `/order/dashboard` (steadfast filter) | শুধু Steadfast |
+| Order Details | `/all-order-info/:id` | `/order/:order_id` | line items + editable internal note + cancel/return reason (view-only) |
 | Fraud Check | `/fraud-check` | POST `/fraud/check` | phone-based risk check |
 | Abandoned Cart | `/abandoned-cart` | `/abandoned-cart` (`order_show`) | incomplete checkout recovery |
 
-Order action: status update (৯-value status — on_hold/confirmed/completed সহ; valid forward transition only), courier-এ send (Pathao/Steadfast), bulk send, sync, cancel (reason prompt)। order **confirm**-এ customer-কে SMS যায়। Offer order আলাদা পেজ নয় — order_type tab। ViewAllOrderInfo-তে editable internal note + order_type badge।
+Order action: courier-এ send (Pathao/Steadfast), bulk send (≤50 cap, re-send guard server-side), sync, cancel (reason prompt)। order **confirm**-এ customer-কে SMS যায় (POS order-এ SMS/Meta/TikTok যায় না)। Offer order আলাদা পেজ নয় — order_type tab। ViewAllOrderInfo-তে editable internal note (`internal_note` public/customer response থেকে stripped) + order_type badge + editable Delivery Override card (`PATCH /order/delivery-info/:id` — courier recipient name/phone/address, billing থেকে আলাদা)।
+
+> ⚠️ **status enum ৯-value** (pending/on_hold/confirmed/processing/shipped/delivered/completed/cancel/return) DB-তে আছে, কিন্তু forward-transition `<select>` dropdown (+cancel/return reason prompt) বর্তমানে `components/Order/OrderTable.jsx`-এ — যেটা **কোথাও import করা নেই (dead code, A2.2)**। তাই reachable status-write শুধু list-এর Cancel বাটন + courier sync; admin UI দিয়ে pending→…→completed এগোনো যায় না, আর backend `updateOrder`-এ transition validation নেই (A2.3)। Order Details পেজে cancel/return reason শুধু **দেখা** যায়, set করা যায় না।
+> ⚠️ **legacy courier পেজ:** `/pathao-order` + `/steadfast-order` আলাদা পুরোনো স্ক্রিন (নিজস্ব table+dropdown), unified Order List-এর Pathao/Steadfast tab-এর duplicate। `/pathao-order` ভাঙা — সব courier-এর `shipped` order দেখায়, শুধু Pathao নয় (A2.1)।
+> **POS price authority:** POS-এ backend সব product/variation/campaign price DB থেকে recompute করে client price overwrite করে, কিন্তু `admin_manual_discount` + admin-নির্বাচিত `shipping_cost` recompute-এ টিকে থাকে; min_order/maintain_stock enforce হয়। POS shipping rate hardcoded (inside 60 / outside 120) — storefront DB shipping থেকে আলাদা হতে পারে।
 
 ### 5. Offer, Campaign & Flash Sale
 
@@ -273,7 +284,9 @@ Order action: status update (৯-value status — on_hold/confirmed/completed �
 | Add Offer | `/add-offer` | POST `/offer` |
 | Campaign List | `/campaign-list` | `/campaign/dashboard` |
 | Add Campaign | `/add-campaign` | POST `/campaign` |
-| Flash Sale | `/flash-sale` | `/flash-sale` (`offer_create`) |
+| Flash Sale | `/flash-sale` | `/flash-sale` (`offer_create`/`offer_update`/`offer_delete` reuse) |
+
+> Coupon status, Campaign status server-side default `in-active`; Flash Sale status default `active` (API দিয়ে status ছাড়া flash sale বানালে সাথে সাথে live)।
 
 ### 6. Staff & Role (RBAC Management)
 
@@ -283,7 +296,9 @@ Order action: status update (৯-value status — on_hold/confirmed/completed �
 | Staff Roles | `/staff-role` | `/role` |
 | Create Staff Role | `/create-staff-role` | POST `/role` |
 
-Role create/update পেজে [`src/data/permissionData.js`](../FruitSnacksAdmin/src/data/permissionData.js) থেকে সব available permission flag দেখানো হয় checkbox আকারে।
+Role create/update পেজে [`src/data/permissionData.js`](../FruitSnacksAdmin/src/data/permissionData.js) থেকে permission flag checkbox আকারে দেখানো হয়।
+
+> ⚠️ **permissionData.js সব flag দেখায় না।** Question / Offer / Campaign / Slider / Specification block বর্তমানে **commented-out** — তাই custom staff role এই permission কখনো পায় না (শুধু bootstrap-derived super-admin পায়, কারণ ওটা schema থেকে সব flag derive করে)। Role update = posted body-র `$set`, তাই UI-তে না থাকা flag null হয় না — super-admin edit করলেও permission টিকে থাকে; শুধু **নতুন** custom role এগুলো হারায় (A4.2/A4.3)।
 
 ### 7. Review & Question
 
@@ -303,6 +318,8 @@ Admin reply দিতে পারে review/question-এ। Seed Reviews: Manua
 | Your Coupon | `/your-coupon` | `/coupon/dashboard` |
 | Add Coupon | `/add-coupon` | POST `/coupon` |
 
+> `coupon_type` ৩ রকম: `fixed` · `percent` · **`bogo`** (buy-N-get-M)। BOGO হলে `coupon_amount` optional, আর `bogo_buy_qty`/`bogo_get_qty`/`bogo_get_discount_pct` field লাগে। Per-person cap `coupon_use_per_person` + total cap `coupon_use_total_person`। Status default `in-active`।
+
 ### 9. Banner & Slider
 
 | Page | Path | API |
@@ -320,9 +337,9 @@ Admin reply দিতে পারে review/question-এ। Seed Reviews: Manua
 | Theme Preview | `/theme/preview/:id` | GET `/theme/:id` |
 | FAQ Templates | `/faq-template` | `/faq-template` |
 
-Theme পেজে: colors picker, floating asset upload (section/position/**align**/animation choice — id-stable), typography picker, button style। Live preview ([`ColorAutoPreview.jsx`](../FruitSnacksAdmin/src/components/Theme/ColorAutoPreview.jsx))। Theme editor-এ global floating manager (`ThemeFloatingManager.jsx`); per-product override Product Page Content → Floating tab-এ।
+Theme পেজে: colors picker, floating asset upload (section/position/**align**/animation choice — id-stable), **two-font typography** (`heading_font` + `body_font`; পুরোনো single `font_key` legacy fallback, `style` field deprecated/unused), button style। Live preview ([`ColorAutoPreview.jsx`](../FruitSnacksAdmin/src/components/Theme/ColorAutoPreview.jsx))। Theme editor-এ global floating manager (`ThemeFloatingManager.jsx` — floating asset delete এখন array-index দিয়ে, stable id দিয়ে নয়, A3.5); per-product override Product Page Content → Floating tab-এ।
 
-FAQ Templates (`/faq-template`): **free-text Topic** (পুরোনো enum নয়) + nested-category **Scope** picker + clickable placeholder chips (`{{token}}` insert, real label দেখায়) + unfilled-placeholder warn। "Category" column → "Topic"; নতুন Scope column। নতুন topic/placeholder save/delete-এ live cache refresh।
+FAQ Templates (`/faq-template`): **free-text Topic** (পুরোনো enum নয়) + nested-category **Scope** picker + clickable placeholder chips (`{{token}}` insert, real label দেখায়)। প্রোডাক্টে value না থাকলে সেই FAQ PDP-তে auto-hide হয় (static note দেখানো হয়; save-এ live warning নেই)। underlying form field এখনো `category` নামে (UI label "Topic")। নতুন topic/placeholder save/delete-এ live cache refresh।
 
 ### 11. Site Setting
 
@@ -332,7 +349,7 @@ Settings এখন **৪-group left sub-nav**। Tab সমূহ:
 - **Branding / Contact / Social / Policy / Shipping** — মূল config
 - **Analytics** — DB-driven public ID (Meta Pixel / TikTok / GTM / GA4 / Clarity) + toggle; **Secrets** section = CAPI/SMS/courier token (masked, `setting_secrets_update` gated, public `/setting`-এ আসে না)
 - **Email Provider** — SMTP + Test Email বাটন (`/setting/test-email`)
-- **Storefront Behaviour** — ১৩ toggle + **Chat widgets** (Messenger toggle+Page-ID, Live Chat toggle+embed textarea, position selector)
+- **Storefront Behaviour** — ~১৯ field (৭ Tier-A + ৬ Tier-B + ৩ review toggle: `enable_reviews`/`auto_approve_reviews`/`enable_seeded_reviews`) + **Chat widgets** (Messenger toggle+Page-ID, Live Chat toggle+embed textarea, position selector)। ⚠️ live-chat embed (`chat_livechat_embed_code`) **secret নয়** — storefront-এ render করতে হয় বলে public `/setting`-এ আসে, plain `PATCH /setting`-এ save হয় (chat field সব `chat_*_show`, `_enabled` নয়)। chat config Home Layout tab-এও duplicate আছে — last-saved wins (A3.2)।
 - **Feature Cards** — home trust/feature card
 - **Home Layout** (`/setting/home_layout`) — @dnd-kit **drag-drop section reorder** + per-section collapsible config; **boutique toggle** (hero_spotlight / product_features / story_band); brand story, reviews carousel, site FAQ, newsletter config
 - **Demo Data** — demo row count preview + এক-ক্লিক **Clear** (type `CLEAR` double-confirm, `demo_data_clear` gated)
@@ -343,11 +360,13 @@ Settings এখন **৪-group left sub-nav**। Tab সমূহ:
 
 **Path:** `/page-seo` | **API:** `/page-seo`
 
-প্রতিটি page-এর জন্য SEO meta override (key-based)।
+প্রতিটি page-এর জন্য SEO meta override (key-based)। ⚠️ title length cap তিন জায়গায় তিন রকম (RHF maxLength 40 / counter /40 / isFormValid >60) — 41–60 char title-এ button enabled থাকে কিন্তু RHF error submit আটকায় (A3.4)।
 
 ### 13. Supplier
 
-**Path:** `/supplier` | **API:** `/supplier/dashboard` (Sidebar-এ commented out — direct URL access only)
+**Path:** `/supplier` | **API:** `/supplier/dashboard` | **Permission:** `supplier_show`/`supplier_create`
+
+> Sidebar-এ Inventory group-এর নিচে Suppliers মেনু **active** (`supplier_show` gated)। ⚠️ তবে SupplierPage-এ page-level RBAC guard নেই — permission ছাড়া staff সরাসরি `/supplier`-এ গেলে ভাঙা UI দেখে (data backend-gated, leak নেই — A4.5)।
 
 ### 14. Customer
 
@@ -366,7 +385,7 @@ Settings এখন **৪-group left sub-nav**। Tab সমূহ:
 | Trust Point | `/trust-point` | `/trust-point` | `trust_point_update` |
 | Site FAQ | `/site-faq` | `/site-faq` | `site_faq_*` |
 | Newsletter | `/newsletter-subscribers` | `/newsletter-subscriber` (+CSV export) | `newsletter_*` |
-| Warehouse | `/warehouse` | `/warehouse` | `setting_show`/`setting_update` |
+| Warehouse | `/warehouse` | `/warehouse` | backend route = `site_setting_update` (B1 fix) ⚠️ FE sidebar/page guard এখনো নেই-এমন `setting_show`/`setting_update`-এ চেক করে → মেনু+পেজ সবার কাছে hidden (A4.1, fix বাকি) |
 | Wishlist (admin viewer) | `/wishlist` | `/wishlist/admin` | `user_show` |
 | Loyalty | `/loyalty` | `/loyalty/history/admin` + adjust | `user_show`/`user_update` |
 | Wallet | `/wallet` | `/wallet/history/admin` + adjust | `user_show`/`user_update` |
@@ -559,3 +578,20 @@ npm run lint         # ESLint check
 | [`src/context/SettingProvider.jsx`](../FruitSnacksAdmin/src/context/SettingProvider.jsx) | Site setting — logo, favicon, title |
 | [`src/utils/baseURL.js`](../FruitSnacksAdmin/src/utils/baseURL.js) | API base URL |
 | [`tailwind.config.js`](../FruitSnacksAdmin/tailwind.config.js) | Color tokens, plugins |
+
+---
+
+## Known Issues / Bug Tickets (Deep Audit 2026-06-18)
+
+৪-agent deep-audit-এর সম্পূর্ণ findings: [`docs/_ai/ADMIN_DEEP_AUDIT_FINDINGS.md`](_ai/ADMIN_DEEP_AUDIT_FINDINGS.md)। কোড **ফিক্স করা হয়নি** (owner সিদ্ধান্ত: এখন শুধু doc reconcile) — bug গুলো ticket হিসেবে রাখা:
+
+| ID | Severity | সারমর্ম |
+|----|----------|---------|
+| A2.2/A2.3 | BLOCKER | order status forward-transition dropdown dead code (`OrderTable.jsx` unused) → UI দিয়ে status এগোনো যায় না; backend transition validation নেই। **owner decision লাগবে: dropdown ViewAllOrderInfo-তে wire করা vs courier-only রাখা।** |
+| A4.1 | BLOCKER(verify) | Warehouse FE guard নেই-এমন `setting_show`/`setting_update`-এ → মেনু+পেজ সবার কাছে hidden (backend route আগেই B1-তে ঠিক)। |
+| A4.2/A4.3 | HIGH | permissionData.js-এ Question/Offer/Campaign/Slider block commented-out → custom role-কে grant করা যায় না। |
+| A1.1 | HIGH | simple product "Save Draft" buying-price required-এ আটকায়। |
+| A2.1 | HIGH | `/pathao-order` পেজ `order_status=shipped` query করে (সব courier), `/order/pathao` নয়। |
+| A1.2,A2.4,A2.5,A2.6,A3.2,A3.3,A3.4,A3.5,A4.4,A4.5 | MEDIUM/SMELL | category file-branch · Fraud/Supplier পেজে RBAC guard নেই · abandoned-cart default shape · POS receipt drift · chat config dual-tab · live-chat-only position selector hidden · PageSeo title cap · floating delete-by-index · login `window.location.reload()`। |
+
+> ✅ **নেই (sweep clean):** s44-এর chat `_show`/`_enabled` field-name bug class আর নেই; RBAC drift (যেগুলো wired তারা সঠিক flag-এ); secret-handling; 9-status enum; internal_note leak-guard; snapshot fallback।
