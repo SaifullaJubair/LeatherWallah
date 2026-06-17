@@ -3,11 +3,20 @@
 **Started:** 2026-06-17 (session 46)
 **Owner directive this session:** "age admin koro" → do ADMIN first, FE after.
 
-## NEXT SESSION START HERE
-- ADMIN audit in progress. 4 parallel sub-agents launched (products/variations · orders/POS · settings/home-layout · marketing/RBAC).
-- Findings land in `docs/_ai/ADMIN_DEEP_AUDIT_FINDINGS.md`.
-- After agents return: triage BLOCKER/HIGH → fix real bugs on `dev` (edge-audit + /test discipline) → update `docs/admin.md` → docs to `main`.
-- THEN: FE audit (4 agents) → `docs/_ai/FRONTEND_DEEP_AUDIT_FINDINGS.md`.
+## STATUS: BOTH AUDITS DONE (doc-only). Code-bug tickets await owner triage.
+- ✅ ADMIN audit done → `docs/_ai/ADMIN_DEEP_AUDIT_FINDINGS.md` + admin.md reconciled + Known-Issues table. Committed main b8870a4.
+- ✅ FE audit done → `docs/_ai/FRONTEND_DEEP_AUDIT_FINDINGS.md` + frontend.md reconciled + Known-Issues table + MULTI_NICHE_PLAN custom_fields marked DONE.
+- Owner chose DOC-ONLY both passes — NO code fixed. Bugs are tickets.
+
+## NEXT SESSION START HERE — code-bug triage (if owner wants fixes)
+Top tickets to verify-then-fix on `dev` (app repos), highest-impact first:
+- **FE F1.1 (BLOCKER)** — cart doesn't attach flash/campaign → shown≠charged price + campaign lost. BE+FE (enrich findCartProductServices). edge-audit (cart/checkout/price).
+- **FE F4.1/F3.1 (BLOCKER)** — home ReviewsCarousel auto_featured hits 400 endpoint → never renders. Needs a public featured-reviews endpoint (BE) + field-name fix F4.2 (FE).
+- **Admin A2.2/A2.3 (BLOCKER)** — order status dropdown dead code → no reachable status-advance UI + no BE transition validation. OWNER DECISION: wire dropdown vs courier-only.
+- **Admin A4.1** — warehouse FE guard ghost-flag (verify post-B1, likely 1-line).
+- **Admin A4.2/A4.3** — uncomment permissionData blocks.
+- **FE F3.4 / F3.3 / F1.3 / Admin A1.1 / A2.1** — HIGH batch.
+Branch: app repos → `dev` only. Docs → main.
 
 ## Method (from PLAN.md — backend pass template)
 1. ✅ Inventory pass — Admin routes (Route.jsx, 39 routes) + page inventory mapped vs docs/admin.md (561 lines).
@@ -31,3 +40,8 @@
   Top: A2.2/A2.3 order-status dropdown is dead code (no reachable UI to advance status) = biggest finding.
   A4.1 warehouse FE guard stale (verify post-B1). A4.2/A4.3 permissionData commented blocks → marketing/question ungrantable to custom roles. A1.1 simple-draft blocked by required buying price. A2.1 /pathao-order broken.
   NEXT: owner triage → which to fix on dev. Then FE audit (4 agents).
+- 2026-06-18: ADMIN audit committed doc-only → main b8870a4. Now starting FE audit.
+  FE inventory: 40 App Router pages, RTK Query (src/redux/api/baseApi.js + feature slices auth/banner/campaign/cart),
+  price math src/utils/helper.js, theme src/lib/theme/{mergeTheme,mergeFloating,formatWeight,whatsappLink}.js.
+  4 FE agents launched (cart/checkout/order · PDP/product/variation · home/sections · auth/dashboard/SEO).
+  Findings → docs/_ai/FRONTEND_DEEP_AUDIT_FINDINGS.md.

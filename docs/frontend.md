@@ -285,11 +285,11 @@ export async function getCategory() {
 | `getRelatedProduct.js` | `/product/related_product` | PDP related section |
 | `getSingleSellerProduct.js` | `/product/...` | "Other from this seller" |
 | `getJustForProducts.js` | `/product/just_for_you_product` | Personalized list |
-| `getPopularProducts.js` | `/product/popular_product` | Home popular section |
+| `getPopularProducts.js` | `/product/top_selling` | Home popular/bestsellers (NOT `popular_product`) |
 | `getTrendingProducts.js` | `/product/trending_product` | Trending |
-| `getFlashSaleProducts.js` | (campaign filtered) | Home flash sale |
-| `getECommerceChoiceProducts.js` | `/product/ecommerce_choice_product` | Curated picks |
-| `getAllNewArrivalProduct.js` | `/product?sort=...` | New arrival |
+| `getFlashSaleProducts.js` | `/flash-sale/active` | Home flash sale (returns single object, not array) |
+| `getECommerceChoiceProducts.js` | `/product/top_selling` | Curated picks (`ecommerce_choice_product` route deprecated) |
+| `getAllNewArrivalProduct.js` | `/product/new_arrival` | New arrival |
 | `getPreOrderProducts.js` | `/product/...` | Pre-order |
 | `getAllCampaign.js`, `getCampaignProduct.js` | `/campaign`, `/campaign/:id` | Campaigns |
 | `getAllOffers.js`, `getOfferProducts.js` | `/offer`, `/offer/:id` | Offers |
@@ -313,24 +313,27 @@ RTK Query auto-handles loading state, caching, refetching, invalidation।
 ## Authentication Flow
 
 ```
-Sign-up:
-  /sign-up → POST /user → SMS OTP send
-  → /verify → POST /user/verifyOTP → user_verified: true
-  → set-password (optional) → POST /user/setNewPassword
+Sign-up (NO OTP — direct, auto-verified):
+  /sign-up → POST /user → backend sets user_verified:true immediately
+  → redirect /sign-in   (no OTP step on signup)
 
 Sign-in:
   /sign-in → POST /user/login (cookie set: fruit_snacks_token)
   → userLogin mutation → syncCartAfterLogin() called
   → redirect to home or previous page
+  → "no password set" (guest auto-created at checkout) → auto-redirect /forget-password?phone=
 
 Logged-in state:
   useUserInfoQuery() returns user data
   cart, wishlist, orders accessible
 
-Forget password:
+Forget / recover password (the ONLY OTP path):
   /forget-password → POST /user/forgetPassword → OTP via SMS
   → /change-password → POST /user/setNewPassword
+  OR /set-password = self-contained 5-step wizard (check_phone → send → POST /user/verifyOTP → setNewPassword)
 ```
+
+> ⚠️ **Signup is NOT OTP-gated** — backend `postUser` sets `user_verified:true` at create (`user.controllers.ts:113`). The standalone `/verify` page + `VerifyForm` are **orphaned dead code**: the `useVerifyMutation` even points at a non-existent route `/user/update_user_status` (real verify = `POST /user/verifyOTP`), and nothing writes the localStorage keys `/verify` reads. OTP exists only in password-recovery (F4.3/F4.4).
 
 ### Unverified Banner
 
@@ -346,23 +349,26 @@ Forget password:
 
 **Section registry** (`SECTION_COMPONENTS` — id `setting.services.ts`-এর `HOME_SECTION_DEFAULTS`-এর সাথে match করতে হয়):
 
-| Section id | Component | ধরন |
+| Section id | Component | ধরন · ব্যাকএন্ড |
 |-----------|-----------|------|
-| `hero` / `flash_sale` | (server-side in Home.jsx) | hero carousel / flash countdown |
-| `trending_products` | TrendingProduct | grid strip |
-| `new_arrivals` | LatestProducts | grid strip |
-| `category_wise_strip` | CategoryWiseProduct | per-category |
-| `bestsellers` | PopularProducts | grid strip |
-| `promo_banner` | PromotionalBanner | marketing |
-| `feature_service` | FeatureService | trust cards |
-| `ecommerce_choice` | ECommerceChoice | curated |
+| `hero` / `flash_sale` | (server-side in Home.jsx) | hero carousel / flash countdown (FlashSale বর্তমানে Home.jsx-এ commented out) |
+| `trending_products` | TrendingProduct | `/product/trending_product` |
+| `new_arrivals` | LatestProducts | `/product/new_arrival` |
+| `category_wise_strip` | CategoryWiseProduct | `/product/just_for_you_product` (explore_category_show দিয়ে group) |
+| `bestsellers` | PopularProducts | `/product/top_selling` |
+| `promo_banner` | PromotionalBanner | marketing (hardcoded leather copy = intentional leftover) |
+| `ecommerce_choice` | ECommerceChoice | `/product/top_selling` (dedicated route deprecated) |
 | `brand_story` | BrandStory | image+text+CTA (Track D) |
-| `reviews_carousel` | ReviewsCarousel | Swiper — auto_featured / manual_pick |
-| `site_faq` | SiteFaqSection | accordion (`/site-faq/active`) |
-| `newsletter` | NewsletterForm | email/sms/both subscribe |
-| **`hero_spotlight`** | **HeroSpotlight** | **boutique preset** |
-| **`product_features`** | **ProductFeatures** | **boutique preset** |
+| `reviews_carousel` | ReviewsCarousel | Swiper — auto_featured / manual_pick (`/review/by-ids`) ⚠️ buggy, নিচে দ্রষ্টব্য |
+| `site_faq` | SiteFaqSection | `/site-faq/active` |
+| `newsletter` | NewsletterForm | `/newsletter-subscriber/subscribe` (email/sms/both) |
+| **`hero_spotlight`** | **HeroSpotlight** | **boutique — `/product/trending_product`, products[0]** |
+| **`product_features`** | **ProductFeatures** | **boutique — trending feed** |
 | **`story_band`** | **StoryBand** | **boutique preset** |
+
+> ⚠️ **3টি default-ON section unwired (F3.4):** `HOME_SECTION_DEFAULTS`-এ `trust_strip`(order 1) / `feature_categories`(order 2) / `offers_block`(order 5) `enabled:true`, কিন্তু `SECTION_COMPONENTS`-এ এদের কোনো mapping নেই → silent null। fresh clone-এ home-এর উপরের ২ slot + offers block ফাঁকা থাকে। (disk-এ orphan component আছে: FeatureCategories/AdsSection/OnlyForYouProduct।) Fix = wire করা অথবা default `enabled:false` করা — trim নয়।
+> ⚠️ **`feature_service` registry-তে আছে কিন্তু defaults-এ নেই** — তাই কখনো render হয় না।
+> ⚠️ **ReviewsCarousel buggy (F3.1/F3.2):** default `auto_featured` mode `GET /review?...review_rating=5&has_photo=true` হিট করে যা 400 throw করে (param গুলো backend-এ নেই) → section কখনো render হয় না। আর field name ভুল (`review_rating` vs `review_ratting` double-t, `review_photo` vs `review_image`, `product_id` vs `review_product_id`) → manual_pick mode-ও 0-star/no-photo দেখায়। FE bug ticket।
 
 ### Boutique home preset (অল্প-product শপের জন্য)
 
@@ -373,9 +379,9 @@ Forget password:
 | Path | Component | Backend |
 |------|-----------|---------|
 | `/all-products` | `AllProduct.jsx` | `/product` (paginated) |
-| `/all-ecommerce-product` | `AllECommerceProducts.jsx` | `/product/ecommerce_choice_product` |
-| `/latest-product` | `LatestProducts.jsx` | `/product` (sort by date) |
-| `/top-product` | `TopProduct.jsx` | `/product/popular_product` |
+| `/all-ecommerce-product` | `AllECommerceProducts.jsx` | `/product/top_selling` (ecommerce_choice route deprecated) |
+| `/latest-product` | `LatestProducts.jsx` | `/product/new_arrival` |
+| `/top-product` | `TopProduct.jsx` | `/product/top_selling` |
 | `/new-arrival` | `NewArrivalProduct.jsx` | (new arrival logic) |
 | `/all-trending-products` | `ViewAllTrendingProducts.jsx` | `/product/trending_product` |
 | `/shop` | `Shop.jsx` | (combined filter view) |
@@ -383,7 +389,10 @@ Forget password:
 | `/all-brands` | `AllBrand.jsx` | `/brand` |
 | `/all-brands/brand-product/[id]` | (brand-filtered products) | `/product/brand_match_product` |
 
-> **Route consolidation (Sprint 3 Track E):** আলাদা legacy listing route-গুলো এখন এক `ProductListing` engine + `/shop?sort=...` routing-এ একত্রিত (latest/top/new-arrival "View More" → `/shop`)। পুরোনো 5টা listing route noIndex + 301 → `/shop`। `/shop` ও `/offer` এখন indexable (robots + pageSeo fix)।
+> **Route consolidation (Sprint 3 Track E):** আলাদা legacy listing route-গুলো এখন এক listing engine + `/shop?sort=...` routing-এ একত্রিত (latest/top/new-arrival "View More" → `/shop`)। পুরোনো 5টা listing route noIndex + 301 → `/shop`। `/shop` ও `/offer` এখন indexable (robots + pageSeo fix)।
+>
+> ⚠️ listing engine = **`CategoryViewSection.jsx`** (`/shop` + `/category` দুটোই এটাই রেন্ডার করে; `Shop.jsx` orphaned, কোথাও import হয় না)। আলাদা "ProductListing" component নেই।
+> ⚠️ **`/shop?sort=popular|rating|latest` সত্যিকারের catalog sort নয় (F3.3, "popular ≠ popular" bug)।** `/filter_product` aggregation-এ কোনো `$sort` stage নেই (natural order); CategoryViewSection শুধু **বর্তমান page-এর ~20 row** client-side re-sort করে। তাই "Popular"/"Top Rated"/price পুরো catalog-এর top নয়, যে row গুলো arbitrary page-এ পড়েছে শুধু সেগুলো reorder করে। FE+BE bug ticket।
 
 ### Product Detail Page (PDP)
 
@@ -399,16 +408,15 @@ Forget password:
 
 ### PDP Components
 
-| Section | File |
+> ⚠️ **লাইভ PDP `themedProduct/` tree থেকে রেন্ডার হয়, নিচের `singeProduct/` table থেকে নয়।** পুরোনো non-themed `src/components/frontend/singeProduct/**` (~20 component) এখন **orphaned dead code** — কোথাও import হয় না; page comment-এ দাবি করা fallback route `/products-original/[slug]` **নেই** (F2.2)। আরেকটা duplicate dead tree `src/components/theme/{ProductThemedSections,FloatingAssets,WhatsAppOrderButton,ThemeStyleInjector,sections}` (লাইভ শুধু `themedProduct/theme/` copy ব্যবহার করে; `src/components/theme/`-এ শুধু `AnnouncementBar.jsx` লাইভ — F2.1)। দুটো tree-ই delete-candidate।
+
+লাইভ PDP section (from `themedProduct/singeProduct/**` + `themedProduct/theme/sections/**`): Hero gallery + VariationPicker, Description + custom_fields spec-table (`DescriptionCard.jsx` — custom_fields **এখন রেন্ডার হয়**, পুরোনো gap closed), Video, Benefits/UseCases, Nutrition, Reviews, FAQ, Offer block। নিচের table টা পুরোনো dead path দেখায় (রেফারেন্স মাত্র):
+
+| Section (DEAD path) | File |
 |---------|------|
-| Photo gallery | `singeProduct/productDetails/ProductPhotoSelect.jsx` |
-| Description | `singeProduct/productDescription/ProductDescription.jsx` |
-| Right side (price, qty, add to cart) | `singeProduct/rightSideShoppingSection/RightSideShoppingSection.jsx` |
-| Highlights / specs | `singeProduct/productHighLightSection/ProductHighlightSection.jsx` |
-| Reviews + Q&A | `singeProduct/productReviewAccordion/`, `singeProduct/qnaAccordion/` |
-| Return Policy | `singeProduct/returnPolicyAccordion/ReturnPolicyAccordion.jsx` |
-| Related Products | `singeProduct/relatedProducts/RelatedProducts.jsx` |
-| Seller Recent Products | `singeProduct/sellerProduct/RecentProducts.jsx` |
+| Photo gallery | ~~`singeProduct/productDetails/ProductPhotoSelect.jsx`~~ |
+| Right side (price, qty) | ~~`singeProduct/rightSideShoppingSection/RightSideShoppingSection.jsx`~~ |
+| Reviews + Q&A | ~~`singeProduct/productReviewAccordion/`~~ (WriteProductReview.jsx = no submit handler, broken) |
 
 ### Cart & Checkout
 
@@ -427,13 +435,19 @@ Coupon apply: `POST /coupon/check_coupon` → validate → apply discount calc (
 
 [`(user-profile)/user-profile/page.jsx`](../FruitSnacksFrontend/src/app/(user-profile)/user-profile/page.jsx) — tab-based dashboard:
 
+প্রকৃত tab (`UserProfile.jsx:34-45`, `?tab=` deep-link + mobile bottom-nav + More sheet):
 - **Dashboard** — overview stats
-- **Profile Setting** — name, address, image update
 - **Purchase History** — past orders
-- **Review** — written reviews + to-be-reviewed (delivered orders পাঠানো হয়েছে কিন্তু রিভিউ নেই)
-- **Offer History** — অফার অর্ডার (এখন unified order; `order_type:"offer"`)
-- **Wishlist** — saved products
-- **Change Password**
+- **Wishlist** — saved products (variant image fallback `variation_images[0]||variation_image||main_image`)
+- **Addresses** — saved addresses
+- **Order Tracking**
+- **My Coupons**
+- **Loyalty Points**
+- **Wallet**
+- **Reviews** — written + to-be-reviewed
+- **Profile Setting** — name, address, image update
+
+> ⚠️ পুরোনো doc "Offer History" + in-dashboard "Change Password" tab দেখাত — দুটোই **নেই**। Addresses/Coupons/Loyalty/Wallet লাইভ tab গুলো আগে doc-এ ছিল না (D4.5)। logout `/authentication/logout`-এ যায় (storefront route `/user/logout`-ও আছে — F4.7)।
 
 ---
 
@@ -456,6 +470,10 @@ Product discount price
   ↓
 Product price (default)
 ```
+
+> ⚠️ **এই chain শুধু strip/PDP product object-এ পুরো কাজ করে — cart/checkout-এ নয় (F1.1 BLOCKER)।** `findCartProductServices` (`cart_product`) flash/campaign data attach করে না, তাই cart-এ উপরের ২ layer (flash, campaign) dead: **(1) flash product cart-এ regular price দেখায় কিন্তু backend flash price charge করে (shown ≠ charged); (2) campaign discount cart দিয়ে কখনো apply হয় না** (campaign_id সবসময় null → backend campaign branch fire করে না)। price authority backend (`order.recompute.ts`)। FE bug ticket।
+>
+> ⚠️ **আরও flash "fixed" semantic mismatch:** FE flash base = `variation_price` (regular), BE flash already-discounted `final_price`-এ apply করে; BE flash `"fixed"` = absolute target price, FE `calculatePrice("fixed")` subtract করে। PDP-তে দৃশ্যমান (৳480 shown vs ৳416 charged); cart-এ moot কারণ cart flash দেখায়ই না।
 
 ### Functions
 
@@ -627,10 +645,9 @@ Product object-এ `theme_id` populated থাকে — colors, floating_assets
 
 ### Chat Widgets (floating, external handoff)
 
-[`src/components/shared/ChatWidgetStacker.jsx`](../FruitSnacksFrontend/src/components/shared/ChatWidgetStacker.jsx) — ৩টা floating button, কাস্টমারকে **external chat**-এ পাঠায় (কোনো in-app messaging/chat DB নেই):
-- **WhatsApp** → `wa.me/<owner phone>` (পুরোনো `enable_whatsapp_chat`)
-- **Messenger** → `m.me/<chat_messenger_page_id>` (FB Page inbox; `chat_messenger_show` দিয়ে gated)
-- **Live chat** → Tawk.to/Crisp embed (`chat_livechat_embed_code`, `chat_livechat_show` দিয়ে gated)
+কাস্টমারকে **external chat**-এ পাঠায় (কোনো in-app messaging/chat DB নেই)। ⚠️ এটা **দুটো আলাদা component**, একটা "৩-button stacker" নয়:
+- **WhatsApp** → `wa.me/<owner phone>` — আলাদা [`FloatingWhatsApp.jsx`](../FruitSnacksFrontend/src/components/shared/) (`enable_whatsapp_chat`/`whatsapp_number`), `(frontend)/layout.js`-এ স্বাধীনভাবে mount।
+- **Messenger + Live chat** → [`ChatWidgetStacker.jsx`](../FruitSnacksFrontend/src/components/shared/ChatWidgetStacker.jsx) — Messenger `m.me/<chat_messenger_page_id>` (`chat_messenger_show`), Live chat Tawk.to/Crisp embed (`chat_livechat_embed_code`, `chat_livechat_show`)। Messenger enable না থাকলে এই component কিছুই render করে না।
 
 > ⚠️ **key gotcha:** React `dangerouslySetInnerHTML` injected `<script>` execute করে না। তাই live-chat embed parse করে runtime-এ আসল `document.createElement("script")` দিয়ে re-create করা হয়। field name অবশ্যই `chat_*_show` (পুরোনো `chat_*_enabled` ছিল bug)। position `chat_widgets_position` setting থেকে। সব message আমাদের সিস্টেমের বাইরে handle হয়।
 
@@ -689,7 +706,9 @@ Product object-এ `theme_id` populated থাকে — colors, floating_assets
 NEXT_PUBLIC_API_URL=       # Backend root, NO trailing /api/v1
 NEXT_PUBLIC_SITE_URL=      # Full site URL for SEO/canonical
 
-# Analytics IDs (.env, NOT NEXT_PUBLIC — server-side only)
+# Analytics IDs — DB-FIRST, env = fallback only (.env, NOT NEXT_PUBLIC; server-side)
+# Real resolution: settings.<x>_id || process.env.<X>_ID || null, gated by *_enabled DB toggles
+# (Admin → Settings → Analytics is the runtime source of truth; env is the seed/fallback)
 META_PIXEL_ID=
 GTM_ID=
 GA4_ID=
@@ -742,3 +761,25 @@ eslint: { ignoreDuringBuilds: true },
 | [`src/app/(frontend)/products/[slug]/page.js`](../FruitSnacksFrontend/src/app/(frontend)/products/[slug]/page.js) | PDP — slug redirect, JSON-LD, themed sections |
 | [`src/components/analyticsScripts/utils/useAnalytics.js`](../FruitSnacksFrontend/src/components/analyticsScripts/utils/useAnalytics.js) | Unified event tracking |
 | [`CLAUDE.FILEMAP.md`](../FruitSnacksFrontend/CLAUDE.FILEMAP.md) | প্রতিটি ফিচারের সব ফাইল |
+
+---
+
+## Known Issues / Bug Tickets (Deep Audit 2026-06-18)
+
+৪-agent deep-audit-এর সম্পূর্ণ findings: [`docs/_ai/FRONTEND_DEEP_AUDIT_FINDINGS.md`](_ai/FRONTEND_DEEP_AUDIT_FINDINGS.md)। কোড **ফিক্স করা হয়নি** (owner সিদ্ধান্ত: doc reconcile only) — bug গুলো ticket হিসেবে রাখা:
+
+| ID | Severity | সারমর্ম |
+|----|----------|---------|
+| **F1.1** | BLOCKER | cart flash/campaign price attach করে না → flash product cart-এ regular দেখায় কিন্তু backend flash charge করে (shown≠charged); campaign discount cart দিয়ে কখনো apply হয় না। **আসল টাকা/trust bug।** |
+| **F4.1/F3.1** | BLOCKER | home ReviewsCarousel default `auto_featured` mode 400-throwing endpoint হিট করে → review section কখনো render হয় না। |
+| **F4.2/F3.2** | HIGH | ReviewsCarousel ভুল field name (`review_ratting` double-t / `review_image` / `review_product_id`) → manual mode-ও 0-star/no-photo/"Customer"। |
+| **F3.3** | HIGH | `/shop?sort=popular\|rating` page-local client sort, পুরো catalog sort নয় ("popular ≠ popular")। |
+| **F3.4** | HIGH | ৩টি default-ON section (`trust_strip`/`feature_categories`/`offers_block`) component mapping নেই → fresh clone-এ home উপরের অংশ ফাঁকা। |
+| **F1.3** | HIGH | COD phone 2 format (guest E.164 `+8801…` vs logged-in `01…`) → courier/SMS/lookup risk। |
+| **F1.2** | HIGH | replaceCartItem qty additive merge (Math.max নয়, stock clamp নেই)। |
+| **F1.4,F1.5,F4.3,F4.4,F4.5** | MEDIUM | invoice subtotal double-discount · `৳` hardcode (success+invoice PDF) · dead OTP `/verify` flow (non-existent route) · Meta Pixel PageView double-fire। |
+| **F2.1,F2.2,F1.6,F4.6,F2.x SMELL** | SMELL | duplicate dead theme tree + orphaned non-themed PDP tree (+ stale `/products-original` claim) · dead `cartUtils.productPrice` · broken WriteProductReview · float zIndex unclamped · misspelled `@/data/cites`। |
+| **F2.15** | 🌱 multi-niche | hardcoded "food" section enum (FloatingAssets + callers)। |
+
+> ✅ **নেই / sweep clean:** `reviewer_name` লাইভ review path সঠিক (past bug ফেরেনি; শুধু ReviewsCarousel ভুল field-এ — F4.2); chat `_show`/`_enabled` bug class আর নেই + live-chat script-injection সঠিক; analytics IDs DB-driven + pixel gating + CAPI dedup; wishlist DB-sync union-merge; `credentials:"include"` সব authed fetch-এ; server price authority tamper-resistant; snapshot fallback।
+> 🟢 **GOOD NEWS:** custom_fields **এখন রেন্ডার হয়** (`DescriptionCard.jsx` spec-table) — পুরোনো "saved-but-not-rendered" multi-niche gap **closed**। (MULTI_NICHE_PLAN আপডেট করতে হবে।)

@@ -99,9 +99,10 @@ Sections self-hide when data is empty, but the list + order + labels are hardcod
 3. **Data-gate** — each section auto-hides if the product/category lacks its data
    (already the behavior; keep it).
 4. **New generic blocks to add:**
-   - **Spec-table block** — renders `product.custom_fields` (label/value). Currently SAVED
-     in admin but NEVER rendered on the storefront (§11 gap). One block serves
-     electronics specs, jewelry details, fashion material — any key-value, any niche.
+   - **Spec-table block** — renders `product.custom_fields` (label/value). ✅ **DONE** (FE `daf31c3`;
+     re-confirmed FE deep-audit 2026-06-18 F2.16 — `DescriptionCard.jsx:33-143` renders custom_fields
+     as a 2-column spec table, wired `ProductThemedSections.jsx:56-59`, gated into `hasContent`).
+     One block serves electronics specs, jewelry details, fashion material — any key-value, any niche.
    - **Customization-form block** — for cake/custom (text message, date, photo upload).
      Writes to the Phase-A slots `customization_note / customization_charge /
      customization_files[]`. (Build in Phase C.)
@@ -266,9 +267,10 @@ lifestyle-preset demo:
   `is_pre_order`, `subscription_*`, `is_wholesale` (future niches)
 
 **🔴 Gaps to build (in order):**
-1. **`custom_fields` PDP render** — saved in admin but shown NOWHERE on storefront. Build a
-   generic **spec-table block**. Smallest, highest-value win; boosts fashion/electronics/
-   jewelry/lifestyle at once. (~1–2h)
+1. ✅ **`custom_fields` PDP render — DONE** (FE `daf31c3`; re-confirmed FE deep-audit 2026-06-18 F2.16:
+   `DescriptionCard.jsx` 2-column spec table). Was the smallest, highest-value win; boosts
+   fashion/electronics/jewelry/lifestyle. **Remaining multi-niche debt = section-registry abstraction
+   + the hardcoded "food" section enum in FloatingAssets (F2.15), NOT custom_fields.**
 2. **PDP section registry + `pdp_section_array`** — extend the home pattern to PDP so
    section list/order/visibility is config-driven per niche.
 3. **Niche preset structure** — the Axis-1 bundle (sections + fields + filters per niche).
