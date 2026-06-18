@@ -172,3 +172,32 @@ After test pass, I:
 4. Wait for owner to run live tests; do not declare "done" until owner verifies
 
 This pairs with `/edge-audit` — audit catches bugs at the planning stage, `/test` catches them at the implementation stage. Together they shrink the rework cycles the owner has already paid for.
+
+## ⭐ AI Agent Suite & Workflow — when each runs
+
+Added 2026-06-17. Sub-agents live in `.claude/agents/`; they share notes in
+`.claude/work/agent-notes/` (their cross-session "memory"). They fire by **proactive
+delegation** (their `description` matches the task) — not a background daemon. The owner
+can always invoke any of them explicitly. There are **no hooks** (auto-tsc-on-edit was
+rejected as too slow for the 37-module backend — use `/verify-be` / `/test` on demand).
+
+**When each fires:**
+
+| Trigger | Run |
+|---------|-----|
+| Start of a fresh chat | `/resume` (owner) → read handoff memory + report status |
+| Chat getting heavy / before switching chats | `/handoff` (owner) → refresh `current-status-handoff` memory + cross-doc sync |
+| Want a roadmap/progress snapshot | `/phase-status` (owner) → status vs NEXT_PHASES / deep-audit / OWNER_TEST_STATUS |
+| **Before** coding a big feature (3+ files / schema / cross-app / route / auth / payment-cart) | `/edge-audit` → escalates to `plan-edge-auditor` if 3+ BLOCKERS or 2+ apps' schemas |
+| **After** writing/modifying code, before commit | `code-reviewer` (proactive) |
+| Touching auth / RBAC flags / order / payment / cart / courier / PII / S3 / secrets | `security-privacy-reviewer` (proactive) — and before deploys |
+| Big structural work — admin redesign, frontend 2.0, backend restructure, new module | `architecture-reviewer` (proactive) |
+| After a feature/bug fix (esp. price/order/cart/permission logic) | `test-writer` (proactive — build verification always; Vitest for critical pure logic) |
+| After new modules / schema / route changes | `doc-generator` (proactive — updates Bangla docs + `docs/_ai/` + cross-doc sync) |
+| **After** finishing a big feature, before "done" | `/test` → escalates to `feature-tester` if 3+ BLOCKERS or 3+ apps w/ schema |
+| Session start / before commit-deploy / returning after time away / want one summary | `orchestrator` (owner asks) → ranked briefing from all agents' notes |
+
+Same skip rule as the discipline sections: single-file fix · pure UI tweak · doc-only ·
+<~50 LOC → don't spin up the heavy agents. Money & access-control code always gets reviewed.
+17 global skills (payload, gsap, framer, frontend-design, ui-ux-pro-max, shadcn, find-skills,
+seo-audit, systematic-debugging, tanstack-*, next-* …) auto-invoke by task match.
