@@ -233,7 +233,7 @@ These are pre-next-phase reference bugs; triage + fix on `dev` when owner says g
 
 **🌱 multi-niche debt:** FE F2.15 hardcoded "food" section enum (FloatingAssets). FE F2.16 GOOD — custom_fields spec-table now renders (was an open gap; closed).
 
-**🔒 SECURITY (s47 security-privacy-reviewer, pre-existing — surfaced by A4.2/A4.3 RBAC unlock; fix before first real client). Details + file:line in `.claude/work/agent-notes/security-privacy-reviewer.md`:**
+**🔒 SECURITY (s47 security-privacy-reviewer, pre-existing — surfaced by A4.2/A4.3 RBAC unlock). ✅ ALL 3 FIXED on `dev` (BE `68b8095`/`9dabad9`/`c18c952`). Details + file:line in `.claude/work/agent-notes/security-privacy-reviewer.md`:**
 - **SHF-1 ✅ DONE (s47, BE `68b8095` on `dev`)** — `GET /campaign/dashboard/add_campaign_product` was public + leaked `product_buying_price`/`alert_qty`/`sku`/`barcode` (+ variation equivalents) to unauthenticated callers. Added `verifyToken("campaign_create")` (admin-only; storefront never calls it) + stripped cost/warehouse fields in `$project`. (`campaign.routes.ts`, `campaign.services.ts`)
-- **SHF-2 (should-fix)** — `DELETE /question` has NO `verifyToken` → anyone with a question id can hard-delete. Fix: `verifyToken("question_update")`. (`question.routes.ts:19`)
-- **SHF-3 (should-fix)** — `findAllDashboardCampaignServices .select("-__v")` leaks `campaign_publisher_id`/`campaign_updated_by` to `campaign_show` holders. Add to select exclusion. (`campaign.services.ts:207`)
+- **SHF-2 ✅ DONE (s47, BE `9dabad9` on `dev`)** — `DELETE /question` was unauthenticated → anyone with a question id could hard-delete. Now `verifyToken("question_update")`. POST stays public (storefront customers ask questions). (`question.routes.ts`)
+- **SHF-3 ✅ DONE (s47, BE `c18c952` on `dev`)** — `findAllDashboardCampaignServices .select("-__v")` leaked `campaign_publisher_id`/`campaign_updated_by`. Both now excluded. (`campaign.services.ts`)
