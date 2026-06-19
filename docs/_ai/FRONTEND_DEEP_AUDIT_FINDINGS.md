@@ -5,7 +5,7 @@ Page-by-page deep-read of the FruitSnacks **Frontend** (Next.js 14 App Router st
 Legend: ❌ DOC WRONG · ⚠️ DOC MISSING · 🐛 REAL CODE BUG/SMELL · 💰 price-flow · 🌱 multi-niche debt · ✅ confirmed.
 Severity: BLOCKER / HIGH / MEDIUM / SMELL.
 
-**FIX STATUS:** s47 (2026-06-19, browser-verified via Playwright) — **✅ F1.1 CAMPAIGN HALF FIXED on `dev`** (BE `5e97db7` findCartProductServices campaign enrich; FE `09fdb86` helper.js campaign base → regular product_price + cart staleTime 60s). Cart now shows campaign price + sends real campaign_id; was ৳450 shown vs ৳750 charged. **⏳ F1.1 FLASH HALF STILL OPEN** — flash "fixed"=absolute (resolver.ts:112) vs subtraction (helper.js:102) + percent base differs on variations → core-resolver change, separate ticket. **⏳ F4.1/F3.1 STILL OPEN** (reviews carousel 400 → needs public featured-reviews endpoint) + remaining HIGH/MEDIUM/SMELL.
+**FIX STATUS:** s47 (2026-06-19, browser-verified via Playwright) — **✅ F1.1 CAMPAIGN HALF FIXED on `dev`** (BE `5e97db7` findCartProductServices campaign enrich; FE `09fdb86` helper.js campaign base → regular product_price + cart staleTime 60s). Cart now shows campaign price + sends real campaign_id; was ৳450 shown vs ৳750 charged. **⏳ F1.1 FLASH HALF STILL OPEN** — flash "fixed"=absolute (resolver.ts:112) vs subtraction (helper.js:102) + percent base differs on variations → core-resolver change, separate ticket. **✅ F4.1/F3.1 + F4.2 FIXED on `dev`** (BE `4a1ce8a` new `GET /review/featured`; FE `424d961` carousel repoint + field-name fix `review_ratting`/`review_image`/`review_product_id`). **⏳ STILL OPEN:** F1.1 flash half + remaining HIGH (F3.3/F3.4/F1.2/F1.3)/MEDIUM/SMELL.
 
 ---
 
