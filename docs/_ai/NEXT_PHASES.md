@@ -232,3 +232,8 @@ These are pre-next-phase reference bugs; triage + fix on `dev` when owner says g
 **🟡 MEDIUM/SMELL:** FE F1.4/F1.5 (invoice double-discount, ৳ hardcode), F4.3/F4.4 (dead /verify OTP), F4.5 (pixel double-fire), F2.1/F2.2 (2 dead component trees), F1.6 (dead cartUtils.productPrice); Admin A1.2, A2.4/A4.5 (Fraud/Supplier no guard), A3.2/A3.3/A3.4/A3.5, A4.4 (login reload).
 
 **🌱 multi-niche debt:** FE F2.15 hardcoded "food" section enum (FloatingAssets). FE F2.16 GOOD — custom_fields spec-table now renders (was an open gap; closed).
+
+**🔒 SECURITY (s47 security-privacy-reviewer, pre-existing — surfaced by A4.2/A4.3 RBAC unlock; fix before first real client). Details + file:line in `.claude/work/agent-notes/security-privacy-reviewer.md`:**
+- **SHF-1 (should-fix, PII/cost leak)** — `GET /campaign/dashboard/add_campaign_product` has NO `verifyToken` and its `$project` only strips `__v` → leaks `product_buying_price` / `product_alert_quantity` / `product_sku` / `barcode` to UNAUTHENTICATED callers. Fix: `verifyToken("campaign_create")` + exclude sensitive fields. (`campaign.routes.ts:37`, `campaign.services.ts:316-328`)
+- **SHF-2 (should-fix)** — `DELETE /question` has NO `verifyToken` → anyone with a question id can hard-delete. Fix: `verifyToken("question_update")`. (`question.routes.ts:19`)
+- **SHF-3 (should-fix)** — `findAllDashboardCampaignServices .select("-__v")` leaks `campaign_publisher_id`/`campaign_updated_by` to `campaign_show` holders. Add to select exclusion. (`campaign.services.ts:207`)
