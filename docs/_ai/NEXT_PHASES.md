@@ -231,6 +231,13 @@ These are pre-next-phase reference bugs; triage + fix on `dev` when owner says g
 
 **🟡 MEDIUM/SMELL:** FE F1.4/F1.5 (invoice double-discount, ৳ hardcode), F4.3/F4.4 (dead /verify OTP), F4.5 (pixel double-fire), F2.1/F2.2 (2 dead component trees), F1.6 (dead cartUtils.productPrice); Admin A1.2, A2.4/A4.5 (Fraud/Supplier no guard), A3.2/A3.3/A3.4/A3.5, A4.4 (login reload).
 
+**🐛 ADMIN LIVE BUGS (owner-found on live panel 2026-06-20 — OPEN tickets, full detail + file:line in `.claude/work/admin-live-bugs-2026-06-20.md`):**
+- **AB-1 (HIGH)** — attribute eye/view modal (`ViewAttributeValue.jsx`) is color-shaped; non-color attrs (weight) show nothing. Needs a per-type generic renderer.
+- **AB-2 (HIGH)** — theme preview doesn't load on the LIVE site (`ThemePreviewPage` → FE `/theme-preview`). URL/route mismatch or missing data; reproduce on deployed site.
+- **AB-3 (MEDIUM)** — can't add floating image while CREATING a theme (only after, in edit) — `ThemeFloatingManager` gated to update mode (needs saved `_id`). Fix: buffer like product `pendingFloatUploads`.
+- **AB-4 (MEDIUM)** — can't add multiple floating images at once (single POST per asset). Fix: queue/batch (pairs with AB-3).
+- **AB-5 (LOW)** — "Custom Spec Rows" should be a Page-Content rich-text block (like the description), not just flat label/value rows. Needs owner scope decision.
+
 **🌱 multi-niche debt:** FE F2.15 hardcoded "food" section enum (FloatingAssets). FE F2.16 GOOD — custom_fields spec-table now renders (was an open gap; closed).
 
 **🔒 SECURITY (s47 security-privacy-reviewer, pre-existing — surfaced by A4.2/A4.3 RBAC unlock). ✅ ALL 3 FIXED on `dev` (BE `68b8095`/`9dabad9`/`c18c952`). Details + file:line in `.claude/work/agent-notes/security-privacy-reviewer.md`:**
