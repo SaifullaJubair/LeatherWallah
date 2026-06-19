@@ -5,7 +5,7 @@ Page-by-page deep-read of the FruitSnacks **Admin** SPA (full components + hooks
 Legend: ❌ DOC WRONG · ⚠️ DOC MISSING · 🐛 REAL CODE BUG/SMELL · ✅ confirmed.
 Severity: BLOCKER / HIGH / MEDIUM / SMELL.
 
-**FIX STATUS:** ⏳ all 4 agents complete, triage pending owner.
+**FIX STATUS:** s47 (2026-06-19, browser-verified via Playwright) — **✅ FIXED on `dev` (Admin `d3c6c88`):** A4.1 (warehouse ghost-flag guards → `site_setting_update`), A4.2/A4.3 (permissionData Question/Offer/Campaign/Slider uncommented), A2.1 (/pathao-order → /order/pathao), A1.1 (buying-price required dropped; quantity still required = deferred owner decision). **⏳ STILL OPEN:** A2.2/A2.3 (order-status dropdown dead code — OWNER DECISION: wire vs courier-only) + the MEDIUM/SMELL batch.
 
 ---
 
