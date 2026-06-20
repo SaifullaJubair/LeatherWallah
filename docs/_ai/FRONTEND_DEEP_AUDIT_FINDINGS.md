@@ -5,7 +5,15 @@ Page-by-page deep-read of the FruitSnacks **Frontend** (Next.js 14 App Router st
 Legend: ❌ DOC WRONG · ⚠️ DOC MISSING · 🐛 REAL CODE BUG/SMELL · 💰 price-flow · 🌱 multi-niche debt · ✅ confirmed.
 Severity: BLOCKER / HIGH / MEDIUM / SMELL.
 
-**FIX STATUS:** s47 (2026-06-19, browser-verified via Playwright) — **✅ F1.1 CAMPAIGN HALF FIXED on `dev`** (BE `5e97db7` findCartProductServices campaign enrich; FE `09fdb86` helper.js campaign base → regular product_price + cart staleTime 60s). Cart now shows campaign price + sends real campaign_id; was ৳450 shown vs ৳750 charged. **⏳ F1.1 FLASH HALF STILL OPEN** — flash "fixed"=absolute (resolver.ts:112) vs subtraction (helper.js:102) + percent base differs on variations → core-resolver change, separate ticket. **✅ F4.1/F3.1 + F4.2 FIXED on `dev`** (BE `4a1ce8a` new `GET /review/featured`; FE `424d961` carousel repoint + field-name fix `review_ratting`/`review_image`/`review_product_id`). **⏳ STILL OPEN:** F1.1 flash half + remaining HIGH (F3.3/F3.4/F1.2/F1.3)/MEDIUM/SMELL.
+**FIX STATUS (updated s52, 2026-06-20):** ALL BLOCKERs + ALL HIGH now CLOSED.
+- **F1.1** ✅ DONE — campaign half (s47, BE `5e97db7`/FE `09fdb86`) + flash half (s48, FE `e20a637`/`da735e9`: flash "fixed"=absolute, percent on post-discount base — matches BE resolver; **BE charge untouched, FE display fixed**). Deployed s51.
+- **F4.1/F3.1 + F4.2** ✅ DONE (s49, BE `4a1ce8a` `GET /review/featured` + FE `424d961`). **Live-confirmed s52 via Playwright** — home carousel renders real reviewer names + photos.
+- **F3.3** ✅ DONE (s52, BE `1af226a` + FE `2ec6802`) — catalog-wide `$sort` server-side + FE `&sort=` + queryKey refetch. Playwright + API verified.
+- **F1.2** ✅ DONE (s52, FE `2ec6802`) — cartSlice clampQty across addToCart + replaceCartItem. 7/7 reducer assertions.
+- **F1.3** ✅ DONE (s52, BE `1af226a` + FE `2ec6802`) — phone E.164 normalize on every order path + FE chokepoints. DB read-back + abandoned-cart recovery verified.
+- **F3.4** ✅ DONE (s49, BE `4578e9e`) — blank default-ON home sections shipped OFF.
+- **⏳ STILL OPEN (all MEDIUM/SMELL, none client-blocking):** F1.4 invoice double-discount, F1.5 ৳hardcode, F4.3/F4.4 dead OTP /verify, F4.5 pixel double-fire, F2.1/F2.2 dead component trees, F4.6 broken WriteProductReview, F2.15 hardcoded "food" section enum (multi-niche debt). **Most of these dissolve in the planned FE 2.0 rewrite — defer.**
+- s52 commits on `dev`, NOT yet deployed (dev ahead of main on BE+FE by 1 commit each).
 
 ---
 

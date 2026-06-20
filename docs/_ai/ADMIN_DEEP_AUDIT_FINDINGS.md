@@ -5,7 +5,12 @@ Page-by-page deep-read of the FruitSnacks **Admin** SPA (full components + hooks
 Legend: ❌ DOC WRONG · ⚠️ DOC MISSING · 🐛 REAL CODE BUG/SMELL · ✅ confirmed.
 Severity: BLOCKER / HIGH / MEDIUM / SMELL.
 
-**FIX STATUS:** s47 (2026-06-19, browser-verified via Playwright) — **✅ FIXED on `dev` (Admin `d3c6c88`):** A4.1 (warehouse ghost-flag guards → `site_setting_update`), A4.2/A4.3 (permissionData Question/Offer/Campaign/Slider uncommented), A2.1 (/pathao-order → /order/pathao), A1.1 (buying-price required dropped; quantity still required = deferred owner decision). **⏳ STILL OPEN:** A2.2/A2.3 (order-status dropdown dead code — OWNER DECISION: wire vs courier-only) + the MEDIUM/SMELL batch.
+**FIX STATUS (updated s52, 2026-06-20):** ALL BLOCKERs + ALL HIGH CLOSED + deployed s51.
+- **A4.1 / A4.2 / A4.3 / A2.1 / A1.1** ✅ DONE (s49, Admin `d3c6c88`/`c24a87b`) — warehouse guards, permissionData uncomment, /order/pathao, buying-price required dropped + stockless draft.
+- **A2.2/A2.3** ✅ DONE (s49, owner chose WIRE IT) — order-status `<select>` in `ViewAllOrderInfo` (Admin `4d1ca2a`/`4312533`) + BE transition guard (`794cd5c`).
+- **AB-1..AB-5** (owner-found live admin bugs) ✅ DONE (s50) + deployed s51.
+- **A2.4 Fraud / A4.5 Supplier RBAC** ✅ VERIFIED guarded (s52) — Fraud `/check` = `verifyToken("order_show")`, Supplier all routes flag-gated (M2 fixed the old empty-flag). No missing guard anywhere (`verifyToken("")` count = 0).
+- **⏳ STILL OPEN (MEDIUM/SMELL, none client-blocking):** A1.2 cat file-branch, A2.5 abandoned-cart default shape, A2.6 POS receipt drift, A3.x chat/PageSeo/floating cleanups, A4.4 login reload, console.logs. **Most dissolve in the planned Admin 2.0 rewrite — defer.**
 
 ---
 
