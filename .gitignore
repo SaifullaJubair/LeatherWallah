@@ -38,3 +38,6 @@ BuisnessPLan/
 # Temp scratch outside of work folder
 *.tmp
 .cache/
+
+# Playwright MCP run artifacts
+.playwright-mcp/

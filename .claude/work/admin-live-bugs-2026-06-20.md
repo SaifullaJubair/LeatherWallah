@@ -40,6 +40,12 @@ Investigated/located by Claude (read-only); fix in a future session. Branch: app
 ---
 
 ## Status
-All 5 are **OPEN tickets**, owner-found on the LIVE admin panel 2026-06-20. None fixed.
-AB-1/AB-2 are HIGH (broken admin views), AB-3/AB-4 MEDIUM (UX), AB-5 LOW (feature/scope decision).
-**AB-2 must be reproduced on the LIVE/deployed site** — local behaviour may differ.
+**ALL 5 FIXED in code on `dev` (session 50, 2026-06-20). BE tsc 0 / Admin Vite 0. Owner test + deploy pending.**
+
+- **AB-1 DONE** — `ViewAttributeValue.jsx` rewritten: per-type "Value" cell (color swatch / weight `weight_grams_value` g / code|slug fallback) + Slug column + Display Type & Tracks Weight badges + empty-state. Verified `GET /attribute` returns the needed fields (only `-__v` stripped).
+- **AB-2 DONE (code)** — new shared `src/utils/frontendUrl.js`: no more silent localhost fallback on a deployed admin → returns null + shows a "set VITE_FRONTEND_URL" hint instead. `ThemePreviewPage.jsx` + `ThemeForm.jsx` both use it (de-duplicated). ⚠️ **Owner deploy step (the real live fix): set `VITE_FRONTEND_URL=https://fruitsnacksbd.com` on the Admin container in Coolify + rebuild** (Vite inlines env at build time).
+- **AB-3 DONE** — `ThemeFloatingManager.jsx` now has a buffer mode (no themeId): floats queue client-side and `ThemeForm.onSubmit` uploads them right after create (mirrors product `pendingFloatUploads`). Create-mode no longer shows the "save first" placeholder.
+- **AB-4 DONE** — multi-file picker; each picked file becomes its own queue row (shared default meta, individually editable + removable); update-mode uploads the whole queue in a batch.
+- **AB-5 DONE** — Description (rich text) + Custom Spec block now ALSO live in the Page Content editor (new "Description" + "Custom Spec" tabs), reusing the basic-info `CustomFieldsBlock` + ReactQuill. Backend `PAGE_CONTENT_FIELDS` += `description`, `custom_fields` (with the same trim/filter normalize as full-create). Same DB fields as the product form → last save wins (owner's chosen behaviour).
+
+**Still to do (owner):** browser test on `dev`, then deploy; AB-2 needs the Coolify env var + Admin rebuild.

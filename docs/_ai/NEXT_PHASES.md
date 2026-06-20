@@ -19,7 +19,7 @@ ticked off as shipped, with the commit hash next to them.
 | 4 | Floating images rethink | ✅ DONE (section-anchored unified: theme-global + product override) |
 | 5 | Keep `/products-original` alive | 🟡 Verified existing, no regression watch yet |
 | 6 | Admin theme-create page friendlier | ⏭ Deferred to Admin 2.0 |
-| 7 | Theme preview page improve | ⏭ Deferred to Admin 2.0 |
+| 7 | Theme preview page improve | ✅ DONE (s51) — full PDP preview from a rich dummy product (hero + weight variation picker + all page-content sections) + optional real-product preview via `?slug=`. FE `theme-preview/page.js` (Phase 1+2), Admin product-picker dropdown. Deployed to main. |
 | 8 | Category/subcategory/attribute check | ✅ DONE (BE `129a749` + Admin `218a9b1`) |
 | 9 | Product CREATE wizard | ⏭ Deferred to Admin 2.0 |
 | 10 | Product UPDATE round-trip | ✅ DONE (BE `61a9631` — optional-FK clear fix) |
