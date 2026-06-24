@@ -589,7 +589,29 @@ full per-field i18n content (do during V2 FE string-extraction — seam #10 rese
 
 **Do at the V2 merge moment (not now):** design-token fields on settings/themes (fonts, card_aspect,
 grid_columns, corner_radius, motion_level) — additive, but depend on the skin registry being
-designed first (§3).
+designed first (§3). **Also the §17d Hardening + DX cluster below** (CSRF/CSP/API-envelope/Swagger).
+
+---
+
+## 17d. V2 Hardening + Developer-Experience cluster (do at the FE+Admin merge, NOT now)
+
+These are NOT cheap seams — they're real work that's correctly DEFERRED to the V2 / FE+Admin merge,
+because each either (a) touches all 3 apps and would break the live shop if done piecemeal now, or
+(b) lands almost free if done while V2 code is being written fresh. Grouped here so V2 planning sees
+the whole hardening+DX scope in one place (pairs with the permission Path C overhaul, same timing).
+
+| # | Item | What / why | Source | Timing rationale |
+|---|------|-----------|--------|------------------|
+| D1 | **CSRF protection** (🟠 P1, DEFERRED) | `sameSite:none` cookies (needed for the 3-subdomain share) leave every state-changing POST/PATCH/DELETE open to CSRF from a phishing page. Fix = double-submit cookie (BE issues JS-readable `csrf_token` on login/refresh; `verifyCsrf` middleware; Admin axios + FE RTK-Query attach `X-CSRF-Token` on mutations; webhooks/IPN exempt). Full plan + test surface already written. | [audit F004](audit/findings/F004-csrf-protection-deferred.md) | Touches BE+Admin+FE + every mutation needs re-test. FE+Admin merge rewrites the request layer anyway → attach the header once there. |
+| D2 | **Content-Security-Policy** (🟡 P2, DEFERRED) | helmet ships today with CSP OFF. CSP needs every external source mapped (S3/Meta/TikTok/GTM/GA4/Clarity/SSLCommerz/fonts); wrong CSP = white page in prod. Directive draft already written. | [audit F003b](audit/findings/F003b-csp-deferred.md) | Every page must be re-tested for `blocked by CSP`. V2 pages are new → map sources once, during V2 page build. |
+| D3 | **Finish the module-by-module security pass** | The Stage-1.5a 9-category audit did recon + quick-wins (F001/2/3/6 shipped, F007/8/9/11/12 fixed s39) but the per-module checklist (`adminRegLog`, `cart`, `order`, `payment`, …) is still mostly unchecked. F005 per-module `console.*`→pino migration rides along. | [BACKEND_SECURITY_AUDIT.md](audit/BACKEND_SECURITY_AUDIT.md) | Do as each module is touched/rewritten in V2 (avoids a separate full re-read pass). |
+| D4 | **Cron out-of-process** (🟢 P3, DEFERRED) | nightly cron runs in the web process (`index.ts`) — cron throw can crash web, web crash kills cron. Fine for clone-per-client; flagged for the SaaS/landing-tenancy direction. | audit F010 | Only matters at multi-tenant scale (§12); revisit with landing tenancy. |
+| D5 | **Standardized rich API response envelope** | Today's `sendResponse` is thin: `{statusCode,success,message,data,totalData}` and the error shape differs (`{success,message,errorMessages}` — no statusCode). Copy a response and you can't tell which endpoint/when/which page. Proposed unified envelope (success AND error same shape): `{success, statusCode, message, data, meta:{page,limit,total,totalPages,hasNext}, error:{code,message,details}, path, method, requestId, timestamp}`. Adds machine-readable `error.code` (client stops string-matching messages), `requestId` (trace a call across logs — SaaS-critical), and one `meta` for all pagination. | owner ask (this session) + observed in `sendResponse.ts` / `global.error.handler.ts` | **Breaking change for the whole FE+Admin** (every `.data`/`.totalData` read). Only safe when FE+Admin are rewritten at merge — adopt the new shape once, everywhere. |
+| D6 | **OpenAPI / Swagger API docs** | No API doc exists today → every endpoint is discovered by reading code. For a resold / multi-tenant SaaS this reads as low-grade. Serve Swagger UI at `/api/docs`. Approach: **schema-first for new V2 modules** (Zod/JSON-schema → auto-generate OpenAPI), NOT a hand-written retrofit of the ~40 existing routes (heavy, low value since V2 rewrites them). The D5 envelope becomes the documented response shape. | owner ask (this session) | Lands ~free if new V2 modules are written schema-first; pairs with D5. |
+
+**Sequencing inside V2:** D5 (envelope) is the foundation — D6 (Swagger) documents it, and D1 (CSRF
+header) rides the same FE request-layer rewrite. D2/D3 are page-by-page / module-by-module as V2
+surfaces are rebuilt. None of this blocks the permission Path C work; they share the merge window.
 
 ---
 
@@ -621,7 +643,9 @@ pdp_section_array + skin registry + dynamic-import + design tokens (Step 3) · O
 layer (Step 3) · bootstrap --preset + demo packs (Step 4) · extra skins (Step 5) · landing
 multi-tenant (Step 6) · grid_columns/aspect/font/corner/motion tokens (Step 3) · floating section
 enum derived from registry (Step 3 debt) · **i18n (UI extract during V2; content multi-lang
-optional/premium) · admin in-app notification module (V2, channel-extensible)** — §17b.
+optional/premium) · admin in-app notification module (V2, channel-extensible)** — §17b ·
+**V2 Hardening + DX cluster (CSRF · CSP · finish per-module security pass · cron out-of-process ·
+standardized API envelope · OpenAPI/Swagger) — §17d.**
 
 **✅ Already a foundation for V2 features:** currency is DB-driven + admin-configurable
 (`currency.js`, settings `currency_code/symbol/name`) → language follows the same pattern.
