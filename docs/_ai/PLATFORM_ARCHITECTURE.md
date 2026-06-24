@@ -433,6 +433,19 @@ size-guide would've been a wrong fixed-column design without concrete research f
 Client tracking now = a **spreadsheet** (Client | Niche | Skin | Domain | Deploy | Features | Plan
 | Payment) + `bootstrap --preset`. No panel until SaaS.
 
+> **Cross-project link to AgencyPlatform (sibling repo `c:\Coding\Perosnal\AgencyPlatform`).**
+> The agency's marketing site (a separate Next.js + Payload app) has a ⭐ "Demos" section that
+> showcases stores built by THIS engine. The link is **loose by design — no code/DB/API coupling**:
+> AgencyPlatform's `Demos` collection just stores `{ liveUrl, screenshots[], previewVideo,
+> embedAllowed }` per demo. So the only thing the engine side must provide is:
+> 1. a running demo shop at a stable URL (from `bootstrap --preset=<niche>` demo sites, Step 4), and
+> 2. **if AgencyPlatform wants a live iframe preview**, the engine's demo deploys must send a
+>    `Content-Security-Policy: frame-ancestors <agency-domain>` header so the agency site can embed
+>    them (AgencyPlatform falls back to screenshot/video if embedding is blocked — its plan handles that).
+> Keep it loose: NO shared DB, NO shared API, NO imports between the two repos. Coupling = risk; a
+> URL + a CSP header is the entire integration. (AgencyPlatform's own `docs/plan/PLAN.md` owns the
+> Demos-section detail; this note just records the engine-side obligation.)
+
 > Note: the OWNER feature-flag layer (sub-doc) is NOT path #3 — it's a per-clone privileged role,
 > not a cross-client panel. Each OWNER login reaches only its own client's DB → secure.
 
