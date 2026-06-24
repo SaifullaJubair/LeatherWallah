@@ -1,5 +1,13 @@
 # Multi-Niche Commerce Platform — Master Plan
 
+> 🆕 **SUPERSEDED/EXTENDED (2026-06-24):** the full agreed architecture now lives in
+> **[PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md)** (master) + sub-docs
+> [OWNER_FEATURE_FLAG.md](OWNER_FEATURE_FLAG.md) + [PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md).
+> This doc's Axis 1/2, niche mapping, build order, and floating-debt notes are still valid and
+> referenced by the master. The master ADDS: Axis 3 (density), OWNER feature-flag layer, plan_tier,
+> landing-page tier (multi-tenant SaaS), hosting economics, FE+Admin merge, repo/release strategy
+> (engine = `ecommerce-core`), permission overhaul. Read the master first.
+
 **Created:** 2026-06-13
 **Status:** VISION / BLUEPRINT — not started. First-client (food) delivery comes first.
 **Owner goal:** Sell customized-looking shops to clients across niches (fashion, food,

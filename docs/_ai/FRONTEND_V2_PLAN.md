@@ -1,5 +1,11 @@
 # Frontend (Storefront) V2 — Plan (deferred: after backend, alongside/after Admin V2)
 
+> 🆕 **2026-06-24 — read [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md) FIRST.** Major V2
+> decisions are now there and SUPERSEDE parts of this doc: **FE + Admin MERGE into one Next app**
+> (this doc assumes FE stays separate — outdated), design-token system, skin registry + `next/dynamic`,
+> `pdp_section_array`, i18n, staging workflow. This doc's component/UX detail is still useful, but the
+> storefront-as-a-separate-app assumption is replaced by the merged-app model. Master wins on conflict.
+
 **Captured:** 2026-05-25 (session 3). **Status:** PLANNING ONLY — not started. Pick up after backend roadmap is solid (and likely after/with Admin V2). Detail into a scratch PLAN when work begins.
 
 > Owner's vision: rebuild the storefront to resale-grade — redesign + feature completeness + performance + i18n + security, all themeable. Sibling to `ADMIN_PANEL_V2_PLAN.md`.

@@ -1,5 +1,15 @@
 # Project Strategy — V1 (ship) → V2 (rebuild) two-stage plan
 
+> 🆕 **2026-06-24 — the V2/platform vision is now consolidated in
+> [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md)** (master) + sub-docs
+> [OWNER_FEATURE_FLAG.md](OWNER_FEATURE_FLAG.md) + [PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md).
+> That master is the **authoritative source** for: engine (`ecommerce-core`) vs client clones,
+> the 3 axes (niche/skin/density), OWNER feature-flag layer, plan_tier, landing multi-tenant SaaS,
+> **FE+Admin merge in V2**, repo/staging strategy, permission overhaul, i18n + notifications.
+> This doc + FRONTEND_V2_PLAN + ADMIN_PANEL_V2_PLAN + SAAS_FUTURE_PLAN are EARLIER, narrower
+> captures — still useful for detail, but where they conflict with the master, **the master wins.**
+> Read PLATFORM_ARCHITECTURE first.
+
 **Captured:** 2026-05-25 (session 3, owner's "final kotha"). The big-picture sequence that all the other `_ai` plans hang under. Read this to understand WHY/WHEN each plan runs.
 
 ---

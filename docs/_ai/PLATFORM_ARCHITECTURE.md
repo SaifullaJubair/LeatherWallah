@@ -1,0 +1,620 @@
+# Platform Architecture — Master Plan (ecommerce-core)
+
+**Created:** 2026-06-24
+**Status:** VISION / BLUEPRINT — agreed in a long owner+Claude design session. Not started.
+**Supersedes / absorbs:** [MULTI_NICHE_PLAN.md](MULTI_NICHE_PLAN.md) (Axis 1/2 + build order — still valid, this doc extends it with density, OWNER layer, landing tier, hosting, repo strategy).
+**Sub-docs (deep, security-critical, separately edge-audited):**
+- [OWNER_FEATURE_FLAG.md](OWNER_FEATURE_FLAG.md) — the OWNER role + feature-flag layer + plan_tier (Sections C, D, T).
+- [PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md) — permission registry single-source rewrite (Section M).
+
+> **What this is.** The owner sells *customised-looking* shops to many clients (food, fashion,
+> shoes, electronics, cosmetics, customize, single-product landing pages…) from **ONE engine**.
+> Client never knows it's a shared engine. This doc is the agreed architecture to get there
+> without fork-hell, premature abstraction, or config-hell. Every point below came from a real
+> design discussion — nothing is padding. Where a point needs its own deep treatment it has a
+> sub-doc; where it needs an edge-audit before coding, that's flagged inline.
+
+> ### 📚 Doc map — read in THIS order (avoid confusion with older plans)
+> **THIS doc is the authoritative V2/platform plan (2026-06-24).** Older `_ai` plans are earlier,
+> narrower captures — useful for detail, but **where they conflict, THIS master wins.** They now
+> carry a banner pointing here.
+> ```
+> 1. PLATFORM_ARCHITECTURE.md   ← YOU ARE HERE. The platform vision. Read first.
+> 2. OWNER_FEATURE_FLAG.md      ← deep: OWNER role + feature-flag + plan_tier (edge-audited)
+> 3. PERMISSION_OVERHAUL.md     ← deep: permission registry rewrite (edge-audited)
+>
+> Still-valid DETAIL references (not conflicting, just narrower):
+>    MULTI_NICHE_PLAN.md          — Axis 1/2 origin, niche→block map, floating-debt
+>    HOME_DESIGN_BRIEF / _V2.md   — concrete home design variants (proof skins are real)
+>    SETTINGS_ARCH_DEBT.md        — settings 206-field split (client-config home)
+>
+> SUPERSEDED on big decisions (banner-flagged; read master for the current call):
+>    PROJECT_STRATEGY_V1_V2.md    — older V1→V2 sequence
+>    FRONTEND_V2_PLAN.md          — assumed FE separate; master says FE+Admin MERGE
+>    ADMIN_PANEL_V2_PLAN.md       — assumed standalone Vite SPA; master says merge into Next
+>    SAAS_FUTURE_PLAN.md          — master says landing tier = FIRST SaaS
+>
+> Unrelated (current bug-fix / audit work, NOT this plan): CLONE_NOW_FIXES, NEXT_PHASES,
+>    *_DEEP_AUDIT_FINDINGS, BACKEND_AUDIT, MASTER_BACKEND_ROADMAP, CLIENT_SPRINT*, PRICE_FLOW.
+> ```
+
+---
+
+## 0. The engine vs the client (read this first)
+
+The single most important mental model — everything else hangs off it:
+
+```
+ecommerce-core  = THE ENGINE (this repo, after rename). All development lives here:
+                  V2, multi-niche, skins, tokens, OWNER layer, permission rewrite.
+                  NO client is "live" on the engine itself.
+
+per-client      = a CLONE of the engine at a stable release, with its own deploy + DB +
+                  branding + config. food client, fashion client, etc. are clones.
+                  A clone is FROZEN at a release; it pulls engine updates in a controlled way.
+```
+
+- ❌ **Never** fork the engine per client (N-way bug patching — the cardinal sin).
+- ✅ **One** engine repo; each client = a clone at a release tag.
+- 🔑 The engine is **branding-free**; a clone gets the client's brand at deploy time.
+
+> ⚠️ **Today's reality:** this repo is named `FruitSnacks` (a client name) and the food client is
+> **LIVE** on it. So engine and client are currently fused. Section U covers the one-time,
+> careful split (rename → engine; food deploy frozen on a tag).
+
+---
+
+## 1. The three orthogonal axes (the core trick)
+
+A shop's identity = three INDEPENDENT switches. Mixing them up is the #1 mistake.
+
+```
+AXIS 1 — NICHE (logic)      → WHAT sections/fields/filters/features exist
+   food | fashion | electronics | cosmetics | lifestyle | landing | generic
+   = { pdp_section_array, active_fields, filters, home_section_array, enabled_features, demo }
+
+AXIS 2 — DESIGN SKIN (look) → HOW it looks: full layout/hero/card/section arrangement
+   fashion-1 (minimal), fashion-2 (editorial), fashion-3 (bold-dark) …
+   = a LAYOUT pack: which section components, what hero, what card style, motion
+
+AXIS 3 — DENSITY (scale)    → HOW MANY products → drives layout family
+   500 products → marketplace (filter + grid)
+   5–20         → boutique (curated gallery, big cards, story)
+   1            → landing page (single page, no shop journey)  ← extreme end
+```
+
+**Golden rule (Shopify-enforced):** switching the DESIGN SKIN must NOT change business LOGIC.
+A client picks "Fashion logic + fashion-2 look + boutique density" — three independent choices.
+
+**Why the split pays off:** 3 fashion looks = 1 logic preset + 3 skins, NOT 3× the feature code.
+A logic fix propagates to all looks of that niche.
+
+> **Axis 3 was missing from MULTI_NICHE_PLAN** — the owner identified it. Density is not "fewer
+> products" cosmetically; it changes the *route structure* (a landing page has no /shop at all).
+
+### Design "skin" has TWO levels (important nuance)
+
+```
+Level 1 — Theme settings (✅ EXISTS: themes collection)
+   colors, fonts*, button, floating  → same layout, different paint
+   = "orange food" vs "green food"
+
+Level 2 — Layout skin / design pack (🟡 PARTIAL: boutique home preset exists)
+   whole different hero, card, section arrangement, animation
+   = fashion-1 vs fashion-2 vs fashion-3
+   = HOME_DESIGN_BRIEF V1 vs V2 is the proof this is real
+```
+
+What the owner means by "একই niche-এর কয়েকটা design" = **Level 2 (layout skin)**, which the
+current `themes` collection (color/font only) does NOT do. The boutique home preset
+(`SectionRenderer.jsx` + `home/boutique/*`) is the first Level-2 brick, but only on home — not PDP.
+
+---
+
+## 2. Customization model — preset, not config-hell
+
+```
+client  → picks a SKIN PRESET (a pre-tuned bundle of all tokens)   ← default path
+OWNER/advanced → fine-tunes individual design tokens on top         ← override path
+```
+
+- ❌ **Config-hell:** don't give the client 30 raw toggles (font, aspect, radius, density,
+  motion…). They'll pick an ugly combination and blame you.
+- ✅ **Preset = a sane combination.** "Editorial Fashion" = {portrait card, serif font, soft
+  corner, rich motion}. Client picks one, gets a coherent look.
+- ✅ **Override is OWNER/advanced only**, not the default surface.
+
+Agreed split of WHO controls WHAT:
+- **colors / font** → client may self-serve (low risk, they want it).
+- **layout skin (boutique↔marketplace)** → OWNER-locked (big decision; paid-upgrade lever;
+  protects your design).
+- **individual section toggles** → client may, but not the skin's core sections.
+
+---
+
+## 3. Design tokens — everything DB-driven (preset sets them; OWNER can override)
+
+The whole presentation layer = a token set, applied as CSS variables (like `--brand-primary`
+already is). One DB change → whole shop changes. This is the "design tokens" pattern (Shopify
+Theme Settings / Tailwind theme / Figma tokens).
+
+| Token | Status | Notes / trap |
+|-------|--------|--------------|
+| colors | ✅ exists | themes collection |
+| home_section_array | ✅ exists | toggle + drag reorder (the registry pattern to copy) |
+| button_style | 🟡 partial | wired partially |
+| **fonts** (heading/body/bangla) | 🔴 add | **Next/font is build-time → NOT arbitrary fonts; a curated whitelist dropdown.** HOME_DESIGN_BRIEF already lists pairs (Fraunces/Tenor Sans). |
+| **card_aspect** (1:1 / 3:4 / 4:5 / 9:16) | 🔴 add | electronics=1:1+contain, fashion=3:4+cover |
+| **image_fit** (cover/contain) | 🔴 add | jewelry/electronics need contain (no crop) |
+| **grid_columns** (2–6) | 🔴 add | currently hardcoded `lg:grid-cols-4/5/6` scattered |
+| **corner_radius** (sharp/soft/round) | 🔴 add | HOME_DESIGN_BRIEF: never 0px sharp, never rounded-full on cards |
+| **density** (compact/comfortable/spacious) | 🔴 add | gap/padding rhythm |
+| **motion_level** (none/subtle/rich) | 🔴 add | + respect `prefers-reduced-motion` |
+| **pdp_section_array** | 🔴 add | THE main missing piece — PDP is hardcoded food today |
+
+### ⚠️ Tailwind / Next traps (must remember — burned us mentally already)
+
+```
+TRAP 1 — Tailwind dynamic class does NOT work:
+   `grid-cols-${n}`, `aspect-[${r}]` → Tailwind purges unseen classes at build → CSS missing.
+   FIX: explicit class MAP or safelist. e.g.
+      const GRID = { 3:"lg:grid-cols-3", 4:"lg:grid-cols-4", 5:"lg:grid-cols-5", 6:"lg:grid-cols-6" }
+      const ASPECT = { "1:1":"aspect-square", "3:4":"aspect-[3/4]", "4:5":"aspect-[4/5]", "9:16":"aspect-[9/16]" }
+   The full literal strings MUST appear in source for Tailwind to keep them.
+
+TRAP 2 — Next/font is build-time:
+   Can't load an arbitrary Google font at runtime. Curate ~10–15 fonts, expose as a dropdown.
+```
+
+---
+
+## 4. Performance — dynamic import is MANDATORY at scale (owner-flagged)
+
+Today `SectionRenderer.jsx` STATIC-imports ~14 section components — fine now. But:
+
+```
+Future: food 5 skins + fashion 3 + shoes 4 + electronics 3 = ~15 skins × ~8–10 components
+   = 120–150 components ALL in the bundle
+   = a boutique client's browser downloads marketplace + fashion + electronics code it never runs
+   = huge dead code = slow first load
+```
+
+**Fix — `next/dynamic` (lazy load):**
+```js
+const HeroSpotlight = dynamic(() => import("./heroSpotlight/HeroSpotlight"));
+```
+Next splits each skin/section into its own chunk; a client downloads ONLY its enabled skin's
+chunk. This is how Shopify keeps 100+ themes fast — each shop loads only its theme.
+
+- **Not "do it now"** — it's "do it when building the skin-registry (Step 3)". The registry
+  ("DB says which skin → load that chunk") naturally demands dynamic import. Bundle it into
+  that work; don't do it twice.
+- 🔑 **Hard rule:** > 3 skins ⇒ static imports are forbidden; registry must use `next/dynamic`.
+
+---
+
+## 5. PDP section registry — extend the home pattern (the main build)
+
+Today `ProductThemedSections.jsx` renders a FIXED food order (Video → Benefits/UseCases →
+SizeGuide → Nutrition → … FAQ → Offer). Sections self-hide on empty data (good), but the
+list/order/labels are hardcoded food.
+
+**Target — copy the home `home_section_array` pattern to PDP:**
+1. **Section registry** — `name → component` map (nutrition, spec-table, size-guide, benefits,
+   gallery, customization-form, faq, reviews, video, related…). Several already exist.
+2. **`pdp_section_array`** per niche preset — which sections, what order.
+3. **Data-gate** — each section auto-hides if the product lacks its data (keep current behavior).
+
+So a fashion PDP shows size-chart + spec; a food PDP shows nutrition — same code, the niche
+preset's array + the product's data decide.
+
+> ⚠️ **Floating-images debt to absorb here:** the section-anchored floating system anchors to a
+> **hardcoded food section enum** (theme.model + product.model + 2 admin dropdowns +
+> FloatingAssets.jsx). When `pdp_section_array` becomes source of truth, that enum must be
+> **derived from the active niche's section registry**. Grep `MULTI-NICHE-DEBT` for the 5 sites.
+> (Detail in MULTI_NICHE_PLAN §4.)
+
+---
+
+## 6. Niche → block mapping (which blocks each niche turns on)
+
+| Block / field | food | fashion | electronics | cosmetics | lifestyle | landing |
+|---------------|:----:|:-------:|:-----------:|:---------:|:---------:|:-------:|
+| nutrition | ✅ | ❌ | ❌ | ❌ | ❌ | 🟡 |
+| ingredients | ✅ | ❌ | ❌ | ✅ | ❌ | 🟡 |
+| benefits / use-cases | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ |
+| size-guide (table) ✅DONE | ❌ | ✅ | ❌ | ❌ | 🟡 | 🟡 |
+| size-chart (image) ✅exists | ❌ | ✅ | ❌ | ❌ | 🟡 | 🟡 |
+| spec-table (custom_fields) ✅DONE | 🟡 | ✅ | ✅ | 🟡 | ✅ | 🟡 |
+| warranty | ❌ | ❌ | ✅ | ❌ | 🟡 | 🟡 |
+| variation swatch (size/color) | ❌ | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| weight-based price | 🟡 | ❌ | ❌ | ❌ | ❌ | ❌ |
+| expiry date | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| customization-form | ❌ | ❌ | ❌ | ❌ | ❌ | 🟡 (cake/custom) |
+
+Filters mirror this: fashion = size/color/brand/price; food = weight/organic/price; electronics
+= brand/spec/price.
+
+**Engine readiness (variation+cart+checkout+courier+COD shared by ALL):** food ~95%, fashion
+~95% (size-guide ✅ just shipped, spec ✅), electronics/cosmetics/lifestyle ~90%, cake/customize
+~60%, grocery-kg ~50%, course ~30%, booking ~10%. **Sell first:** food, fashion, electronics,
+cosmetics, lifestyle, landing. **Defer:** cake, grocery-kg, course, booking.
+
+---
+
+## 7. Preset / token route scope (where presets apply)
+
+```
+DESIGN TOKENS (colors/fonts/aspect/corner)  → EVERY route (checkout in brand color too)
+LAYOUT / SECTION PRESET (which blocks)      → presentation routes ONLY:
+      home ✅ + PDP 🔴 + shop/listing 🔴
+```
+
+- **shop/listing is skin-bound too** (owner caught this): few-product → curated gallery OR
+  **hidden route** (Apple-style: home IS the showcase, no /shop); many-product → filter+grid.
+  Filter auto-hides below a product threshold (and few-product filter facets are near-empty
+  anyway — functionally useless).
+- **checkout / auth / policy / profile** = token-only, NEVER a layout preset.
+- **Profit priority:** home + PDP first (90% of "your UI is too generic" impact).
+
+Route inventory (FE): presentation-heavy = `/`, `/products/[slug]`, `/shop`, `/category`,
+`/all-products`, strips; functional = `/checkout`, `/cart`, `/wishlist`, `/orders`,
+`/user-profile`, auth; static = policy pages.
+
+---
+
+## 8. Custom-design clients — skin-ify, don't fork
+
+A client brings a Figma / reference that's not in your skin library.
+
+```
+❌ separate clone to "handle it custom"  → fork hell again
+✅ make it a NEW SKIN PRESET, assign to that client, keep it in the library (reusable)
+```
+
+Two types:
+```
+TYPE 1 — existing sections + a new token combination
+   → just a new skin preset (easy, the common case)
+TYPE 2 — genuinely new section/interaction (3D viewer, unique animation)
+   → build a new section component → add to registry → use in the skin
+   → still library code, NOT a fork; just more work
+```
+
+🔑 Every custom job **grows your library** (next client of that vibe = instant assign), instead
+of forking. Needs the skin-registry (Step 3) to plug cleanly.
+
+---
+
+## 9. Preset library governance (ownership + filtering)
+
+When you have 25 presets (8 generic, 17 client-specific), you must not show client A's
+exclusive design to a new client.
+
+```
+preset metadata:
+   origin:      "generic" | "client_specific"
+   built_for:   null | client id/name
+   exclusive:   true | false      ← can another client get it?
+   reusable:    true | false      ← can it later move into the generic pool?
+   tags[], created_date
+```
+
+- New client preset-picker shows only `origin=generic` (+ `reusable`).
+- Filter "which presets are client-specific / built for client X".
+- **Exclusivity is monetisable** (exclusive design = higher price; later flip `reusable=true`).
+- 🔑 **Tracking lives agency-side** (repo skin-manifest + the client spreadsheet, §13), NOT in any
+  client's DB — a clone only knows its OWN assigned skin, not the whole library.
+
+---
+
+## 10. OWNER preset-selection UX (don't assign blind)
+
+The OWNER must SEE before assigning (owner-flagged: "নাম দেখে assign করব না"):
+```
+Level 1 — preset CARD: thumbnail + tags + a ✓/✗ feature checklist + "8 sections · 3:4 card · serif"
+Level 2 — DETAILS modal: full section/token/feature breakdown (auto-generated from preset config — FREE)
+Level 3 — LIVE PREVIEW (optional, later): render the skin on demo data without touching the live shop
+```
+
+- Start with **static thumbnail + auto feature-list** (Shopify-style, cheap). Live preview later.
+- The feature/section/token list is **free** — the preset already declares what it contains.
+- Image options: (A) static thumbnail (recommended start), (B) live preview on demo data,
+  (C) live preview on the client's real product (draft mode, heaviest).
+
+---
+
+## 11. Landing-page tier (single-product, ad-funnel) — a distinct TIER
+
+A separate market the plan almost missed (owner caught it): ৳5–7k single-product landing pages
+for ad-buyers / beginners / dropshippers (huge in BD: FB ad → landing → COD).
+
+```
+Structure: one scroll page (hero → benefits → reviews → urgency → inline order). NO shop journey,
+           NO /shop, /category, /filter, /cart-as-a-page.
+```
+
+- It's Axis-3's extreme end, but **structurally different** (one page = the product), so treat it
+  as its own preset family / shop type.
+- **How to serve it:** same engine + a "landing preset" with ~90% of modules feature-flagged OFF
+  (no shop/category/filter/wishlist/campaign). Fork-free, and **upsell-ready** (turn features back
+  on → full shop → bigger price, same deploy).
+- **Hosting:** a full clone per ৳5–7k landing is economically wrong → landing = **multi-tenant
+  SaaS** (decision locked, §12). Landing is also **static-able** (no live cart/stock), so it can
+  even run on cheap static hosting — another reason it's a distinct tier.
+- 🔑 **Landing is likely your FIRST SaaS candidate** (volume grows fast: ~10–20/month vs 2–5
+  full shops), cost-driven.
+
+---
+
+## 12. Hosting economics & deploy targets (decisions locked)
+
+VPS today: 4-core / 8GB / 75GB NVMe / 250GB S3 @ ~$10–12. Runs FruitSnacks + Artisan (+1 slot).
+A Next.js instance idles at ~400–600MB → realistically ~8–10 Next instances on 8GB.
+
+```
+DECISION — full shop  → CLONE-per-client (VPS, own DB). ৳30–50k client, profitable.
+DECISION — landing    → MULTI-TENANT SaaS (one Next app + one Mongo, domain → shop_id).
+                        ~$0.10/client at scale. (Locked by owner.)
+shared  — BE          → one Express BE can serve both (must be shop_id-aware for tenant mode).
+```
+
+Three deploy targets fall out:
+```
+Target 1 FULL SHOP    : merged Next app (FE+Admin) + BE + own Mongo per clone  → VPS
+Target 2 LANDING      : one merged Next app serving all landings (shop_id) + BE + shared Mongo
+Target 3 BE (shared)  : the same Express BE, shop_id-aware
+```
+
+So the **same merged codebase runs in two modes** (clone mode = full shop; tenant mode =
+landing). One engine, different deploy config — the final form of "এক engine সব".
+
+> Landing multi-tenant = a **rehearsal** for full-shop SaaS later (same `shop_id` pattern, but
+> landing is simple so it's safe to do tenancy here first). Tenant concerns to design: domain→shop
+> mapping (wildcard + DB), strict `shop_id` scoping on every query, data isolation between shops.
+
+---
+
+## 13. App consolidation (V2: FE + Admin merge — decision locked)
+
+```
+DECISION — BE stays SEPARATE (Express; multiple FEs share one BE).
+DECISION — FE + Admin MERGE into one Next app in V2:
+   /(storefront)  → customer
+   /admin/*       → admin panel
+```
+
+Why now: V2 is a redesign anyway → the right moment to merge. Wins: 1 fewer deploy, shared
+code/types/tokens/components, same-domain auth cookie.
+
+⚠️ Cost/risk: Admin is a Vite SPA (React Router 6 + TanStack + plain fetch) → porting to Next
+App Router is a **big** task. Strict bundle-split required so Admin's heavy deps (Recharts,
+Quill) don't bloat the storefront bundle (Next route-group code-split if structured right). Time
+this with the multi-niche skin work — it's a large V2 scope.
+
+---
+
+## 14. Build order (profit-first, anti-premature-abstraction)
+
+Research rule: **don't abstract until 2 niches are concrete.** Build food + fashion as concrete
+shops first, THEN extract the registry.
+
+```
+✅ Step 1   — spec-table PDP (custom_fields render) — DONE
+✅ (today)  — dynamic size-guide (niche-agnostic grid + paste) — DONE
+🔧 Step 1.5 — PERMISSION OVERHAUL (foundation) — see PERMISSION_OVERHAUL.md
+              (do before the OWNER layer; everything sits on it)
+🎯 Step 2   — FASHION concrete: fashion preset + ONE fashion skin + 2–3 demo products.
+              Don't generalize yet. Sells to "your UI is too generic" clients now.
+📐 Step 3   — EXTRACT (food+fashion concrete in hand):
+              pdp_section_array + skin registry (+ next/dynamic §4) + design tokens §3
+              + OWNER feature-flag layer (OWNER_FEATURE_FLAG.md)
+📦 Step 4   — bootstrap --preset=<niche> + per-niche demo packs + agency demo sites
+🔁 Step 5   — extra skins per niche (fashion-2/3, food-5…) — cheap, logic reused
+🛬 Step 6   — landing tier as multi-tenant SaaS (§11–12)
+🏢 Later    — full-shop SaaS migration (100+ clients); preset/config layer becomes tenant config
+```
+
+🔑 Rule: fashion must be concrete BEFORE the registry abstraction (we saw it this session —
+size-guide would've been a wrong fixed-column design without concrete research first).
+
+---
+
+## 15. Clone strategy verdict (the 3 paths)
+
+```
+❌ #1 per-niche/per-client repos   → fork hell. N-way bug patching. NEVER.
+✅ #2 clone + DB-config + bootstrap → NOW. One engine, difference is DB config not code.
+🟡 #3 central cross-client panel    → NO now (security: one panel holding every client's DB
+                                       creds). It's multi-tenant SaaS — only at 100+ clients.
+                                       The §6 config layer BECOMES tenant config then (cheap migration).
+```
+
+Client tracking now = a **spreadsheet** (Client | Niche | Skin | Domain | Deploy | Features | Plan
+| Payment) + `bootstrap --preset`. No panel until SaaS.
+
+> Note: the OWNER feature-flag layer (sub-doc) is NOT path #3 — it's a per-clone privileged role,
+> not a cross-client panel. Each OWNER login reaches only its own client's DB → secure.
+
+---
+
+## 16. Repo & release strategy (engine vs clients; food is LIVE)
+
+```
+ecommerce-core (this repo, renamed)  = canonical ENGINE. All dev/V2/multi-niche here.
+   main/stable branch → live-safe; bug-fix only
+   v2 branch          → big rework (FE+Admin merge, multi-niche); breaking changes OK
+each client            = clone of engine @ a stable release tag (own deploy+DB+brand, frozen)
+```
+
+**One-time engine split (careful — food is LIVE on this repo + Coolify):**
+```
+1. GitHub rename FruitSnacks → ecommerce-core (GitHub keeps a redirect; Coolify usually survives —
+   verify with a small redeploy after).
+2. Tag the live food deploy commit (e.g. `food-v1-live`) — rollback safety + "food is on this release".
+3. Confirm live food shop unaffected (test redeploy).
+4. This repo is now the engine. main = food-stable-live (hotfix only); v2 = engine development.
+5. food client is split into its own clone LATER, when the engine has moved far ahead.
+```
+
+**Staging → production workflow (owner's instinct = standard):**
+```
+- v2 branch deploys to a STAGING subdomain (dev.ecommerce-core / new.<x>) + a TEST DB (fake data).
+- Live-like test there (Playwright + hand + real mobile/browser).
+- "Replace real domain with the tested engine" = git merge v2→main + Coolify production redeploy
+  (NOT a file copy / not a new repo). Rollback = git tag.
+- A live production bug = hotfix on main → deploy (staging untouched), then merge the fix into v2.
+- Staging = a separate lightweight deploy (keep production VPS isolated; Vercel-free / tiny VPS).
+```
+
+🔑 "clone + rename" the owner imagined = **branch + staging deploy + config**, NOT a new repo.
+A new repo copy would reintroduce fork-hell. Engine separation is a ONE-TIME rename, not per-client.
+
+---
+
+## 17. Pointers to the deep sub-docs
+
+These are deeper, security-critical, and separately edge-audited:
+
+- **[OWNER_FEATURE_FLAG.md](OWNER_FEATURE_FLAG.md)** — Sections C, D, T:
+  - C: OWNER role (per-clone privileged, client-invisible), unique creds, client can't see/create it.
+  - D: a feature toggle is a **full chain** — section + menu + route(404) + API(403) + sitemap +
+    data-hide + admin (menu / PageSEO entry / dashboard widget). Link-hide alone leaves the route
+    exposed (SEO-index / bookmark / guess).
+  - T: `plan_tier` (basic/standard/premium) = a feature-flag bundle; toggle-off/downgrade = data
+    HIDE (not delete) so it returns.
+- **[PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md)** — Section M:
+  - Current drift: 21 (role.model schema) vs 98 (admin permissionData) vs 83 (route strings) — no
+    single source of truth, hand-synced across 4 places.
+  - Keep: per-route guard + fresh-DB check (good). Add: a code-defined **permission registry**
+    (single source → role.model + UI + guards auto-derived). Industry standard (Laravel/Django/
+    AWS IAM), NOT ERP-style "create modules in the DB" (over-engineering for custom-coded pages).
+  - 5 unguarded routes to audit; super-admin bypass; feature-flag ≠ permission (two layers, flag
+    checked first); migration must not break existing roles.
+
+---
+
+## 17b. Language (i18n) + Admin Notification — V2 features
+
+Two V2 additions agreed this session. Both follow the existing **DB-driven client-config** pattern
+(like `currency_code/symbol/name`, which is ALREADY admin-configurable in settings — `currency.js`
+helper reads it, BDT fallback). So `client_config` grows: `{ niche, skin, plan_tier, currency,
+default_language, enabled_languages }`.
+
+### Language — full i18n (UI + content), for INTERNATIONAL clients (owner decision)
+
+Owner wants international reach (currency is already multi-config, so language follows). Three tiers:
+```
+Tier 1 — UI text (button/label/menu)
+   → next-intl + bn.json / en.json / ar.json …  (ENGINE-level, all clients)
+   → setting: default_language + enabled_languages (mirrors currencyOf pattern)
+Tier 2 — Product/content data (what admin writes)
+   → multi-language fields (e.g. { bn:"…", en:"…" } or a translations sub-doc)
+   → admin writes per language; customer sees their language
+   → OPTIONAL / premium: single-lang BD client writes only bn (en empty → bn fallback, back-compat)
+Tier 3 — which languages the shop supports
+   → enabled_languages:["bn"] or ["bn","en"]; customer language switcher when >1
+```
+- 🔑 **Extract during V2 (not retrofit).** Today every string is hardcoded Bangla; FE is being
+  rewritten in V2 → write `t("key")` from the start. Retrofitting later = thousands of manual extracts.
+- ⚠️ RTL (Arabic) needs layout mirroring — defer until an Arabic client exists.
+- tier mapping: basic BD client = default bn single-language (no i18n overhead); international/premium =
+  multi-language toggle + multi-lang content.
+
+### Notification — admin in-app NOW, customer DEFERRED (owner decision)
+
+```
+NOW (V2): Admin in-app notification
+   events: new order · low stock · new review · new question · (courier status)
+   BE: a new notification module (event → notification doc, shop_id-scoped)
+   Admin: bell icon + dropdown + unread count + mark-read
+   → CORE feature (almost every client wants it) — not OWNER-flagged, like cart/checkout
+DEFERRED: customer notification (web push / SMS) — marketing, premium tier later
+```
+- 🔑 **Design channel-extensible NOW** so customer channels drop in later without rework:
+  `notification { type, channel:"in_app", target_role, payload, read, shop_id }`. The `channel` field
+  is the future seam (push/sms/email).
+- ⚠️ **poll first** (admin bell refetch ~30s) — simple; websocket/SSE real-time only if needed later.
+- ⚠️ notification spam (100 orders = 100 notifications) → consider group/digest.
+- ⚠️ `shop_id`-scoped from day one (clone-per-client trivial now, but landing multi-tenant needs it).
+- Existing SMS/email (BulkSMS, abandoned-cart) can later be unified under this module's channels.
+
+---
+
+## 17c. Structural seams to add NOW (cheap field, painful to retrofit)
+
+From the `architecture-reviewer` foresight audit (2026-06-24, read all 37 models). The owner asked:
+"what, if added later, forces painful STRUCTURAL change (esp. DB schema churn)? Seam it now."
+
+**Principle:** these are SEAMS (nullable/additive fields, or a 2-line enum change), NOT full
+implementations. The field costs nothing today; the migration from "no field" → "field + index"
+later is non-linear (every existing document needs backfilling, every query retouched). Add the
+seam before/during the first V2 sprint.
+
+| # | Seam | Why now (risk if deferred) | Cost | Verdict |
+|---|------|----------------------------|------|---------|
+| 1 | **`shop_id`** (nullable ObjectId) on **all 37 collections**; compound index `{shop_id,…}` on the **5 core** only (orders, products, users, carts, settings) | ⭐ THE big one. Landing multi-tenant SaaS (§12) needs one DB many shops. Without shop_id from the start, going multi-tenant = migrate every doc in 37 collections + retouch every query. Clone mode: field null, a shim injects the implicit shop. | 37 additive fields, index on 5 | **SEAM-NOW** |
+| 2 | **`enabled_features`** (Mixed, default `{}`) + **`plan_tier`** (enum basic/standard/premium, default basic) on settings | Foundation for OWNER feature-flag layer. ⚠️ ALSO: settings PATCH handler must guard these as OWNER-write-only (client super-admin can PATCH settings today → would bypass the paywall). | 2 fields | **SEAM-NOW** |
+| 3 | **`pdp_section_array`** on settings (SAME shape as `home_section_array`: `[{_id:false,id:String,enabled:Boolean,order:Number}]`, default undefined; niche default injected at read-time) | PDP registry foundation. Audit confirms home_section_array pattern is cleanly copyable — no structural mismatch. | 1 field | **SEAM-NOW** |
+| 4 | **Floating `section` enum → plain `String`** in theme.model (floatingAssetSchema) AND product.model (floating_overrides.extras) | Food-hardcoded enum `[hero,order,benefits,use_cases,nutrition,reviews,faq,any]` will REJECT fashion sections (size_guide, lookbook…) via Mongoose validation = hard blocker. MULTI-NICHE-DEBT comment already there. Validation moves to app layer (registry). | 2-line change, 2 files | **SEAM-NOW** |
+| 5 | **Notification module** — build with FULL shape at creation: `{shop_id, type, channel(in_app/push/sms/email default in_app), target_role(admin/owner/customer), target_id, payload, read, read_at}` + index `{shop_id,target_id,read,createdAt:-1}` | It's a NEW module — build it right ONCE. A quick in_app-only stub needs a doc migration + query split when customer push/SMS is added. `channel` default in_app = only in_app used at first. | New module, built right | **DO-FULL-NOW** |
+| 6 | **`variation_name_snapshot`** (String, nullable) on orderProduct | Today only `product_name_snapshot` + `variation_sku_snapshot` (code, not display name). Variation rename/delete → order history shows only an ObjectId. Wire at checkout (already reads the variation). | 1 field + 1 write-line | **SEAM-NOW** |
+| 7 | **`is_owner`** (Boolean, default false) on admin model | OWNER hiding (§C5): without a first-class marker, the OWNER account is VISIBLE in the client's admin user list (paywall leak) or relies on a fragile role-name check. bootstrap sets it; admin-list controller filters `is_owner:true`. | 1 field | **SEAM-NOW** |
+| 8 | **`category_slug_history`** (`[String]`) on category | product has `product_slug_history` (301-redirect on rename); category has none → category rename = SEO 404 on indexed URLs. Mirror the product pattern. | 1 field | **SEAM-NOW** |
+| 9 | **`status_changed_at`** (Date) on the analytics-relevant models (product, category, user, review) | soft-delete `status:active/in-active` has no timestamp → can't answer "when deactivated?" / no TTL for GDPR-style cleanup. Owner asked to include it. | 1 field on ~4 models | **SEAM-NOW** (owner-requested) |
+| 10 | **`translations`** (Mixed, default undefined) on product (+ category) — ONE open field, NOT per-field structs | i18n content seam. ⚠️ Per-field translation structs across product_name/description/short_description/badge_text/video_title/og_*/benefits/use_cases/faqs/size_guide = heavy + risks locking the wrong pattern. A SINGLE `translations: Mixed` is the cheap seam: 1 field, 0 migration, shape stays open (decide bn/en sub-doc vs separate collection later). Primary `product_name:String` stays the default-language value (back-compat); `translations` holds other-language overrides. Owner: "if not too much, keep it" — this is the not-too-much version. | 1 Mixed field on 2 models | **SEAM-NOW (light)** — full i18n still a V2 task (§17b), this just reserves the shape |
+
+> **Permission schema (#7 from audit) is NOT a seam — it's a LIVE BUG.** See
+> [PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md): role.model has 21 Boolean fields but the Admin UI
+> PATCHes 98; Mongoose `strict:true` (default) **silently drops** the ~77 undefined fields on every
+> role-edit save → permissions reset to false. **Verify on the LIVE food super-admin** before any
+> role is edited. Fixed properly by the Step 1.5 registry.
+
+**Deferred (premature now — audit agreed):** money integer-cents (BDT has no sub-unit; large churn
+for no benefit) · settings monolith split (only when multi-tenant needs per-row shop scoping) ·
+full per-field i18n content (do during V2 FE string-extraction — seam #10 reserves the shape).
+
+**Do at the V2 merge moment (not now):** design-token fields on settings/themes (fonts, card_aspect,
+grid_columns, corner_radius, motion_level) — additive, but depend on the skin registry being
+designed first (§3).
+
+---
+
+## 18. Anti-patterns — do NOT (research + this session)
+
+- ❌ Per-niche/per-client repos (fork hell).
+- ❌ Multi-tenant full-shop SaaS now (2–3× cost; only at 100+). Landing tenancy is the exception.
+- ❌ Premature abstraction (build food+fashion concrete before the registry).
+- ❌ Config-hell (ship skin presets, not 30 raw toggles).
+- ❌ Everything-for-everyone PDP with `switch(niche)` — use registry+data, independent opt-in modules.
+- ❌ Tailwind dynamic class names; arbitrary runtime fonts (§3 traps).
+- ❌ Static-importing all skins at scale (§4 — use next/dynamic).
+- ❌ Link-hide a feature without gating its route + API (§17 / OWNER_FEATURE_FLAG.md).
+- ❌ ERP-style DB-created modules for custom-coded pages (§17 / PERMISSION_OVERHAUL.md).
+- ✅ Genuinely unique client need → ship as a per-client module/skin, never destabilising others.
+
+---
+
+## 19. Status snapshot (what exists vs gaps)
+
+**✅ Built (reuse):** variation engine + swatch · size_chart image + ChartModal · size-guide grid
+(today) · custom_fields spec render · per-product theming (color/font/floating) · themes collection
+· home_section_array drag-reorder + SectionRenderer registry · boutique home preset (Level-2 brick)
+· bootstrap script · per-route RBAC guard + fresh check · Phase-A order slots (customization/digital/
+preorder/subscription/wholesale).
+
+**🔴 Gaps (in build order):** permission registry (Step 1.5) · fashion concrete + 1 skin (Step 2) ·
+pdp_section_array + skin registry + dynamic-import + design tokens (Step 3) · OWNER feature-flag
+layer (Step 3) · bootstrap --preset + demo packs (Step 4) · extra skins (Step 5) · landing
+multi-tenant (Step 6) · grid_columns/aspect/font/corner/motion tokens (Step 3) · floating section
+enum derived from registry (Step 3 debt) · **i18n (UI extract during V2; content multi-lang
+optional/premium) · admin in-app notification module (V2, channel-extensible)** — §17b.
+
+**✅ Already a foundation for V2 features:** currency is DB-driven + admin-configurable
+(`currency.js`, settings `currency_code/symbol/name`) → language follows the same pattern.
+
+---
+
+## NEXT
+Owner reviews. Then Step 1.5 (permission overhaul — foundation) → Step 2 (fashion concrete).
+No abstraction before fashion is concrete.

@@ -1,5 +1,13 @@
 # Admin Panel V2 — Plan (deferred: after backend phases, or when owner says)
 
+> 🆕 **2026-06-24 — read [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md) FIRST.** Major V2
+> decision SUPERSEDES this doc's framing: **Admin MERGES into the storefront's Next app**
+> (`/admin/*` route group; Admin is no longer a standalone Vite SPA — that's a big port, see master
+> §13). Also new: OWNER feature-flag layer (Feature Management page is OWNER-only —
+> [OWNER_FEATURE_FLAG.md](OWNER_FEATURE_FLAG.md)), permission registry rewrite
+> ([PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md)), admin in-app notifications, i18n. This doc's
+> page/UX detail still helps, but the standalone-SPA assumption is replaced. Master wins on conflict.
+
 **Captured:** 2026-05-25 (session 3). **Status:** PLANNING ONLY — not started. Pick up AFTER the MASTER_BACKEND_ROADMAP backend phases are done, OR whenever the owner says. Details to be expanded into a scratch-folder PLAN when work begins.
 
 > Owner's vision: "amra ja shundor backend kortici shei vabe admin panel ta korte chai" — rebuild the admin UI to resale-grade, driven by a reference admin the owner already has (built from shadcn's theme-generator). The current admin works but is not polished/themeable enough to sell.

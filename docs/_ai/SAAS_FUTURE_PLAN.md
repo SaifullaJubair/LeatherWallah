@@ -1,5 +1,12 @@
 # SaaS Future Plan — Multi-Tenant E-Commerce Platform (ZatiqEasy-inspired)
 
+> 🆕 **2026-06-24 — read [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md) FIRST.** The SaaS path
+> is now sharpened there: **landing-page tier becomes the FIRST multi-tenant SaaS** (cost-driven,
+> high volume — master §11–12), full-shop SaaS stays deferred to 100+ clients. The OWNER feature-flag
+> layer ([OWNER_FEATURE_FLAG.md](OWNER_FEATURE_FLAG.md)) + client-config (niche/skin/plan_tier/
+> language/currency) is the layer that BECOMES tenant config at migration. This doc's multi-tenant
+> mechanics are still the reference for that phase; the master decides WHEN/WHICH tier goes first.
+
 **Date:** 2026-05-25
 **Goal:** The long-term plan to turn this codebase into a **multi-tenant SaaS** (like ZatiqEasy / Shopify) where one deployment serves many shops, each on its own domain, with central feature/bug updates. This is the FUTURE direction; today we ship **clone-per-client** (see [CLONE_NOW_FIXES.md](CLONE_NOW_FIXES.md) + [[architecture-clone-now-saas-ready]]).
 
