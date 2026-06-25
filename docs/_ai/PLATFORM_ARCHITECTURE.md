@@ -652,6 +652,65 @@ standardized API envelope · OpenAPI/Swagger) — §17d.**
 
 ---
 
+## 20. Operational / SaaS-readiness (the non-feature gaps — what makes it "serious" not "hobby")
+
+The plan §0–§19 is strong on FEATURES + architecture but thin on OPERATIONS. These four are not
+code-features — they're the operational backbone that separates a hobby project from a platform you
+can sell to many paying clients. The owner flagged the north star: "multi-tenant এ গেলে যেন low-grade
+না লাগে." That feel lives mostly here. Each below: what, why it can't be skipped, and WHEN.
+
+### 20a. Clone update / engine-propagation strategy 🔴 (the biggest miss — load-bearing for the whole "no fork-hell" claim)
+§0/§16 say "a clone is frozen at a release and pulls engine updates in a controlled way" — but the
+**mechanism is undefined.** The entire anti-fork-hell promise rests on this. Concretely needed:
+- **Code update:** clone = engine @ a release tag. Update = `git pull` the engine's newer tag into the
+  clone + redeploy. Define: which branch a clone tracks, how a client-specific tweak (a custom skin)
+  survives an engine pull (it shouldn't live in clone code — it's a DB-config/skin-preset in the
+  library, §8/§9, so a pull is clean). **Rule to lock: a clone must hold ZERO client-specific CODE —
+  only config/DB differences — or every update reintroduces fork-hell.**
+- **Schema/data migration:** when the engine adds/changes a field, each clone's existing DB needs the
+  migration. Today there's `bootstrap` (fresh DB) but **no incremental migration runner**. Need a
+  versioned, idempotent, ordered migration system (`schema_version` doc + `migrations/NNNN-*.ts` run
+  on deploy) — the same machinery the permission Path C live-migration (§ PLAN_PATH_C §6) will pioneer.
+  → **Build the migration runner as part of Path C** (it needs it anyway); generalize it after.
+- **When:** the runner — with Path C. The clone-update playbook — write before the SECOND client goes
+  live (one client = no propagation problem yet; two = the problem is real).
+
+### 20b. Backup / disaster recovery 🔴 (completely absent — non-negotiable for paying clients)
+A paying client's shop data lost = business over. The plan never mentions it. Needs:
+- **Automated Mongo backups** per clone (mongodump on a cron → off-VPS storage, e.g. the same S3/Contabo
+  bucket family, separate prefix; daily + retention). For multi-tenant landing → per-`shop_id` export path.
+- **Tested restore** (an untested backup is not a backup) + a documented restore runbook.
+- **S3 asset durability** — already on Contabo S3 (durable), but confirm versioning/lifecycle on the bucket.
+- **When:** automated backup = **before the SECOND paying client** (food is already live with real
+  orders → arguably set up the food backup NOW, it's a cron + a script, low effort, high protection).
+
+### 20c. Monitoring / observability / alerting 🟠
+pino structured logging exists (§ audit F005) but there's no "a clone is DOWN and nobody knows":
+- **Uptime/health** — a `/health` endpoint per BE + an external uptime monitor (UptimeRobot-class, free
+  tier) pinging each clone's domain; alert (email/Telegram) on down.
+- **Error alerting** — Sentry-class capture (or pino → a log drain) so a 500 spike surfaces without
+  reading logs. Per-clone tag so you know WHICH shop.
+- **When:** lightweight uptime monitor = cheap, add as clone count grows (3+). Error alerting = with the
+  per-module security pass (§17d D3) / V2, since logging is already pino.
+
+### 20d. Per-clone usage metering 🟠 (the data layer SaaS billing needs)
+`plan_tier` (basic/standard/premium, §17c seam #2) exists as a FIELD but nothing MEASURES or ENFORCES
+it. Landing multi-tenant (§11–12) is a volume business → billing needs usage:
+- **Meter per shop:** orders/month, products, storage (S3 bytes), traffic — the dimensions a tier caps.
+- **Enforce tier:** a soft limit check (warn) → hard (block) tied to `plan_tier`. For clone mode this is
+  light (one client = one tier); it becomes essential in tenant mode.
+- **When:** NOT now (no SaaS billing yet). Design the metering shape WITH the landing multi-tenant work
+  (§12, Step 6) — `shop_id` is already the seam it hangs off. Flag now so Step 6 doesn't forget it.
+
+> **Timing summary:** 20a-migration-runner + 20b-food-backup are the only NEAR-term items (Path C
+> brings the runner; food backup is a cheap cron worth doing for the live shop). 20a-playbook +
+> 20b-automation gate the SECOND client. 20c scales with clone count. 20d is a Step-6 (landing SaaS)
+> design concern. None blocks Step 1.5 / Step 2 — but 20a/20b must be solved before scaling client count.
+
+---
+
 ## NEXT
 Owner reviews. Then Step 1.5 (permission overhaul — foundation) → Step 2 (fashion concrete).
 No abstraction before fashion is concrete.
+Operational backbone (§20): migration runner rides Path C; food backup is a cheap near-term win;
+20a-playbook + 20b-automation must land before the SECOND client scales.
