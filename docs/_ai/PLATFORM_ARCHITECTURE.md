@@ -392,6 +392,24 @@ App Router is a **big** task. Strict bundle-split required so Admin's heavy deps
 Quill) don't bloat the storefront bundle (Next route-group code-split if structured right). Time
 this with the multi-niche skin work — it's a large V2 scope.
 
+### 13b. The shared UI/contract library — the actual PAYOFF of the merge (lock it) 🔴
+
+§13 says the merge gives "shared code/types/tokens/components" — but that only happens if the shared
+layer is BUILT ONCE and both surfaces consume it. Without an explicit contract, the rewrite produces
+two parallel shadcn setups that drift — the exact thing the merge was meant to kill. Lock:
+```
+shared UI primitives  → ONE Button/Input/Select/Dialog/Table/Form/Card (shadcn + token CSS-vars),
+                        consumed by /(storefront) AND /admin. Zero duplicated primitives.
+shared design tokens  → ONE token source (§3) drives both apps' colors/font/radius/density.
+shared types          → API DTOs generated from the D5 envelope / D6 OpenAPI (§17d) → BE shapes once,
+                        both FE surfaces import the same types (e.g. ProductCardDTO — FE-A4).
+shared lib            → cn(), formatters, the typed track() (FE-A10), the data-fetch helpers (FE-A5).
+```
+So: storefront ProductCard, admin product-table cell, and any form ALL come from one primitive set +
+one token set + one type set. The merge's value IS this library; a rewrite that skips it wasted the merge.
+> Bundle guardrail (FE-B7): enforce the storefront-vs-admin route-group bundle budget as a CI check
+> (§21.9 `next build` + size budget), so admin's Recharts/Quill can never leak into the storefront chunk.
+
 ---
 
 ## 14. Build order (profit-first, anti-premature-abstraction)
@@ -417,6 +435,21 @@ shops first, THEN extract the registry.
 
 🔑 Rule: fashion must be concrete BEFORE the registry abstraction (we saw it this session —
 size-guide would've been a wrong fixed-column design without concrete research first).
+
+### 14b. Skill → phase map (which installed skill drives which V2 work — owner asked)
+
+The harness has skills for exactly this craft work; the plan should say WHEN to use each so the rewrite
+uses the right tool, not ad-hoc:
+
+| V2 phase / area | Skill(s) |
+|-----------------|----------|
+| FE/Admin foundation — shadcn + tokens setup | `shadcn` · `ui-ux-pro-max` |
+| Rendering & data doctrine (FE-A5) | `next-best-practices` · `next-cache-components` · `vercel-react-best-practices` · `tanstack-query` |
+| Redesign sweep + animation | `frontend-design` · `design-taste-frontend` · `ui-ux-pro-max` · `framer-motion-animator` / `gsap-*` |
+| Technical SEO (FE-A1 / §17b i18n-SEO) | `seo-audit` (+ schema / ai-seo refs) |
+| Admin tables / forms | `tanstack-table` · `tanstack-query` · `shadcn` |
+| Verify / QA each phase | `playwright-cli` + Playwright MCP |
+| Permission Path C / backend | (no UI skill — code + edge-audit + security-privacy-reviewer) |
 
 ---
 
@@ -533,6 +566,20 @@ Tier 3 — which languages the shop supports
 - ⚠️ RTL (Arabic) needs layout mirroring — defer until an Arabic client exists.
 - tier mapping: basic BD client = default bn single-language (no i18n overhead); international/premium =
   multi-language toggle + multi-lang content.
+
+#### i18n-SEO seam (FE-A2 — lock with the i18n routing, not after) 🟠
+The moment a shop runs >1 language, SEO must speak it or international clients lose ranking — the same
+"don't regress SEO on the rewrite" risk as [FRONTEND_V2_PLAN](FRONTEND_V2_PLAN.md) FE-A1, but for locales.
+Lock these together with next-intl routing in FV2.0:
+- **Subdirectory locale routing** (`/en/...`, `/bn/...`) — one origin, clean per-locale URLs (not
+  cookie-only switching, which is invisible to crawlers).
+- **`hreflang` alternates** in `generateMetadata` for every localized route — include **every enabled
+  locale + a self-reference + `x-default`** (the usual miss is x-default / self).
+- **Per-locale `canonical`** (each locale canonicals to itself, not to the bn original).
+- **`sitemap.ts` emits one entry per locale** with the `alternates.languages` map.
+- Only emit alternates for `enabled_languages` of that shop (single-lang BD client → no hreflang noise).
+> Pairs with FE-A1 (JSON-LD/sitemap/robots must-not-regress) and §14b skill row "Technical SEO" →
+> run **seo-audit** against each enabled locale before FV2 is declared done.
 
 ### Notification — admin in-app NOW, customer DEFERRED (owner decision)
 

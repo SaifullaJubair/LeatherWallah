@@ -60,5 +60,71 @@ Three things stacked: (1) a visual redesign of most pages, (2) a feature-complet
 - PDP variation selector + filter sidebar (Phase A FE) already landed — V2 polishes/redesigns on top.
 - Checkout depends on backend Phase C (payment) being far enough along.
 
+## ⭐ Craft-quality additions (independent FE audit, 2026-06-25 — must-lock for the rewrite)
+
+A fresh-context FE/Admin craft audit (verified against current code) found that the rewrite's biggest
+risk is **silently regressing things the current app already does well** (esp. SEO), plus a few craft
+concerns the plan posed as questions instead of doctrine. Lock these before FV2.1/FV2.2.
+
+### FE-A1. Technical SEO — MUST re-implement, not regress 🔴 (the #1 rewrite risk)
+The current app ALREADY ships: `sitemap.js`, `robots.js`, Organization JSON-LD (layout), Product JSON-LD
+w/ offers+aggregateRating (PDP), per-page `generateMetadata` from the DB `/page-seo/:key` endpoint, and
+slug-history 301. The plan today only says "good Lighthouse/CWV" → **a clean rewrite with no SEO spec
+will lose all of it** → a resold shop that de-indexes on rebuild = exactly "low-grade." Re-spec, in App
+Router terms:
+- `generateMetadata` per route + canonical + `metadataBase`; title/description from the DB page-SEO endpoint.
+- JSON-LD: **Product · BreadcrumbList · Organization · WebSite (SearchAction)** (+ aggregateRating where present).
+- `sitemap.ts` (products + categories + static) + `robots.ts`.
+- **301 from slug-history** — product `product_slug_history` AND the new `category_slug_history` seam (§17c #8).
+- OOS / discontinued products → `noindex` or 410, NOT a soft-404.
+> Skill: run **seo-audit** on the rebuilt storefront before declaring FV2 done.
+
+### FE-A4. ONE ProductCard + ProductStrip + a canonical ProductCardDTO 🔴
+The most-reused unit (card → home/shop/category/search/related; strips popular/trending/flash) has no
+single-component + single-DTO contract today (the "popular ≠ popular" strip bug proves the shapes drift).
+Lock: **one `<ProductCard variant/density/aspect>`** (driven by tokens §3 — niche differs by token, not by
+component) + **one `<ProductStrip>`** + a **canonical `ProductCardDTO` that EVERY list endpoint returns**
+(BE shapes it once). Cards never re-map per surface. (Pairs with master §13b shared types + D5 envelope.)
+
+### FE-A5. App-Router data-fetching DOCTRINE (lock the rules, don't re-litigate per route) 🔴
+FV2.1 says "decide SSR/SSG/ISR + Redux-vs-Query" — turn that intent into locked rules:
+- **RSC by default**; `"use client"` only at interaction leaves (kills the 163-client-component problem at the root).
+- **Tag-based revalidation:** storefront pages cache with `revalidate`/`cacheTag`; admin mutations call
+  `revalidateTag`/`revalidatePath` on publish → edits go live without `no-store` everywhere (current PDP
+  is `no-store` = a perf hole).
+- **Request dedupe** via React `cache()` (fixes the known PDP double-fetch).
+- **One state-library per data-type:** TanStack/RTK Query = server data; Redux = cart/UI only. NEVER both
+  for the same data (the app ships both libs today — this rule prevents the mess).
+> Skills: **next-best-practices**, **next-cache-components**, **vercel-react-best-practices**, **tanstack-query**.
+
+### FE-A6. Accessibility baseline 🔴 (zero mention today; part of "not low-grade")
+Radix/shadcn give keyboard+ARIA free, but the CUSTOM surfaces break a11y: cart drawer (focus-trap +
+restore + Esc + scroll-lock), variation swatches, mega-menu, dropzone, any pointer-only DnD (add a
+**keyboard DnD fallback** — pointer-only is inaccessible), `aria-live` for cart/stock/toast, RHF+Zod
+errors wired to inputs (`aria-describedby`), visible focus rings that survive the token system, WCAG-AA
+contrast enforced by the token palettes.
+
+### FE-A7. Loading / skeleton / error / empty-state contract 🟠 (perceived perf)
+Real perf ≠ feels-fast. Spec: route-level `loading.tsx`/`error.tsx`/`not-found.tsx` per group; a shared
+`<Skeleton>` matching each card/table; optimistic UI for add-to-cart/wishlist; image LQIP/blur placeholders.
+A storefront with content-pop/white-flash reads low-grade regardless of Lighthouse.
+
+### FE-A10. Analytics — a SPEC, not just "verify it fires" 🟠
+Add to item 12: **consent gating** (i18n ⇒ international ⇒ GDPR ⇒ no pixel before consent — ties §21.5),
+**GTM as the single source** (don't hardcode GA4+Pixel+TikTok+Clarity separately — current drift), one
+typed `track(event)` contract reused across surfaces, and preserve **server/browser eventID dedup** through
+the rewrite.
+
+### Polish (FE)
+- **B1 Image strategy** — `next/image` everywhere w/ explicit `sizes`, AVIF/WebP, `priority` on LCP/hero,
+  blur placeholders, env-driven remote-host allowlist; tie aspect/fit to tokens §3.
+- **B2 Font + i18n + tokens** — `next/font` is build-time → the curated whitelist (§3) is the bridge from a
+  token font-choice to a build-time font set; spec `font-display:swap` + Bangla subset.
+- **B5 Cart-drawer edge spec** — focus-trap/restore, scroll-lock, optimistic line edits, stock-clamp echo
+  (F1.2 shipped — keep), empty state, mini-cart ↔ full-cart parity.
+
+> See ADMIN_PANEL_V2_PLAN for the admin-side craft additions (server-side TanStack Table, a11y, empty
+> states) and PLATFORM_ARCHITECTURE §13b (shared UI/contract lib), §17b i18n-SEO, §14 skill→phase map.
+
 ## When starting
 Make `.claude/work/frontend-v2/` with a detailed PLAN, get owner approval, go foundation-first ([[feature-work-scratch-folder]]). The rendering/data audit (FV2.1) should likely come early since it shapes everything else.

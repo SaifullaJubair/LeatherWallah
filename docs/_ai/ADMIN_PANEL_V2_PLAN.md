@@ -44,5 +44,41 @@ This is essentially a **UI-layer rebuild** of the admin: introduce shadcn + a th
 - Independent of the backend roadmap (different app) — but do it AFTER backend is solid so the forms/tables target stable APIs and don't get rebuilt.
 - The frontend (storefront) theme system already uses CSS-variable theming ([[default-site-theme]], ThemeStyleInjector) — V2 admin can mirror that approach so the two apps feel consistent.
 
+## ⭐ Craft-quality additions (independent FE/Admin audit, 2026-06-25)
+
+### AD-A8. TanStack Table — make it server-side + persistent + a11y (not just a feature list) 🟠
+The feature list (column-filter / column-DnD / row-DnD-serial / multi-search) is right, but at
+multi-niche/multi-tenant scale these MUST be **server-side**: pagination + sort + filter on the BE
+(ties to PLATFORM_ARCHITECTURE §21.1 — `$regex` won't scale, and the D5 response `meta` carries
+page/total). Also add, currently unspecced:
+- **Persisted table state** in URL/localStorage (filters/sort survive refresh + are shareable).
+- **Column visibility + density toggle.**
+- **Sticky header + row virtualization** for long lists (>100 rows).
+- **Bulk row-select + bulk actions** (owner asked: product multiselect) + **CSV export.**
+- **Keyboard-accessible DnD** (pointer-only reorder is inaccessible).
+> Skills: **tanstack-table**, **tanstack-query**, **shadcn**.
+
+### AD-A6. Accessibility baseline (same as storefront) 🔴
+Focus management on every Dialog/Drawer/Sheet, keyboard DnD fallback, `aria-live` for toasts/saves,
+RHF+Zod errors wired to inputs, visible focus surviving the theme tokens, WCAG-AA contrast from the
+palette dropdown.
+
+### AD-B3. Forms beyond "RHF + Zod"
+Share the **Zod schema BE↔FE** (D5/D6 schema-first makes it free), autosave/dirty-guard + unsaved-changes
+prompt on the long product form, async uniqueness validation (slug/SKU), one consistent inline-error component.
+
+### AD-B6. Empty / skeleton / error states for admin too
+Tables, dashboard widgets, list pages — pleasant authoring includes good empty + loading + error states,
+not just the happy path.
+
+### AD-B4. One toast/notification contract
+A single toast system (not ToastContainer + ad-hoc), tied to the §17b admin in-app notification bell;
+`aria-live`; dedupe/stacking.
+
+> See FRONTEND_V2_PLAN for the storefront craft additions (SEO must-not-regress, ProductCard DTO,
+> data doctrine), and PLATFORM_ARCHITECTURE §13b (shared write-once UI lib both apps consume) + §14
+> (skill→phase map). The shared UI library is the whole point of the FE+Admin merge — admin tables/forms
+> and storefront cards/forms come from ONE primitive set.
+
 ## When starting
 Make `.claude/work/admin-panel-v2/` with a detailed PLAN, get owner approval, then go foundation-first ([[feature-work-scratch-folder]] workflow). Owner will likely share the reference admin / its screenshots then.
