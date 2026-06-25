@@ -1,7 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
-    "defaultMode": "acceptEdits",
     "allow": [
       "Read",
       "Read(*)",
@@ -52,7 +51,8 @@
       "Bash(tail:*)",
       "Bash(curl:*)",
       "Bash(rg:*)",
-      "Bash(tsc:*)"
+      "Bash(tsc:*)",
+      "Bash(cat >> *)"
     ],
     "deny": [
       "Bash(rm -rf:*)",
@@ -68,6 +68,7 @@
       "Bash(git restore --source:*)"
     ],
     "ask": [],
+    "defaultMode": "acceptEdits",
     "additionalDirectories": [
       "c:\\Coding\\Perosnal\\FruitSnacks",
       "c:\\Coding\\Perosnal\\FruitSnacks\\.claude",
@@ -80,7 +81,8 @@
       "c:\\Coding\\Perosnal\\FruitSnacks\\docs\\_ai\\audit\\findings",
       "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksBackend",
       "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksAdmin",
-      "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksFrontend"
+      "c:\\Coding\\Perosnal\\FruitSnacks\\FruitSnacksFrontend",
+      "c:\\Coding\\Perosnal\\FruitSnacks\\.claude\\work\\agent-notes"
     ]
   }
 }
