@@ -709,8 +709,47 @@ it. Landing multi-tenant (§11–12) is a volume business → billing needs usag
 
 ---
 
+## 21. Independent audit findings (fresh-context `architecture-reviewer`, 2026-06-25)
+
+A fresh-context agent audited the whole corpus (this master + OWNER_FEATURE_FLAG + PLAN_PATH_C +
+MULTI_NICHE + security audit + backend.md) and VERIFIED each finding against actual code. It did NOT
+re-flag anything already in §17c/§17d/§20. New findings below — 10 genuine gaps + 5 polish.
+
+> ⚡ **Four of these apply to TODAY'S LIVE food shop, not just the future plan** (21.1 search,
+> 21.2 SMS, 21.3 invoice race, 21.4 admin lockout) — each a small additive fix (1–30 lines, no
+> migration). Treat them as Phase-0-class: fix in a near-term hardening pass, don't wait for V2.
+
+### Genuine gaps
+
+| # | Finding | Sev | When | Approach |
+|---|---------|-----|------|----------|
+| 21.1 | **Product search doesn't scale** — all search uses `$regex /i` = full collection scan; fine at 500, slow at 2k, times out at 10k. No text-search strategy in the plan. | HIGH | **now** (1-line index) / revisit Atlas-Search at Step 6 | Add Mongo `$text` index on `product_name`+`product_description` now; multi-tenant Step 6 may need Atlas Search / dedicated search. |
+| 21.2 | **Order SMS is synchronous** — `await sendSMS()` inline in order placement; BulkSMS 300–2000ms → customer "place order" hangs / provider timeout → 500 at the worst UX moment. | HIGH | **now** (1-line/site) | Fire-and-forget: `Promise.resolve().then(()=>sendXxx()).catch(logger.error)`. No full queue needed yet. |
+| 21.3 | **Invoice ID race condition** — `while(!unique)` app-level loop, no DB unique index → concurrent orders (flash-sale/SaaS burst) can mint duplicate invoice_id. | HIGH | before Step 6 (do index now) | Unique index on `invoice_id` + catch Mongo 11000 + retry once. |
+| 21.4 | **No admin login account-lockout** — OTP has a 5-try cap but admin PASSWORD login has only IP rate-limit (bypassable via IP rotation) → slow brute-force viable on the live shop. | HIGH | **now / Phase-0-class** | Add `login_failed_attempts` + `login_locked_until` to admin model; lock 15min after 10 fails; reset on success. ~30 lines, additive, no migration. |
+| 21.5 | **No GDPR / data-deletion design** — no tenant-offboard data purge, no customer PII delete/anonymise, no data export. Blocks regulated/enterprise/international sales. | HIGH (SaaS) / MED (now) | design at Step 6 | `DELETE /user/me` (anonymise PII, keep invoices) + tenant-offboard runbook; `shop_id` makes tenant-scope trivial. |
+| 21.6 | **No clone onboarding/offboarding runbook** — §16 describes the WHAT, not the HOW a (non-owner) employee spins up / tears down a client. | MED | before 2nd client | One-page `CLONE_DEPLOY_RUNBOOK.md`: tag → clone+bootstrap → OWNER creds → env swap → deploy → smoke → offboard. Docs, not code. |
+| 21.7 | **Dependency/supply-chain untracked** — no `npm audit` anywhere; `bkash-payment-gateway`, `geoip-lite` (stale DB), `sslcommerz` carry risk at SaaS scale. | MED | before next client + ongoing | `npm audit --audit-level=high` in deploy checklist + CI (§21.9); periodic geoip-lite refresh. |
+| 21.8 | **Path C migration has no "verification failed" branch** — §6 says dry-run+assert resolved-set equals old flags, but is silent on what to do if a live role is partially-broken (the silent-drop bug) and the assertion fails. | MED | before Path C Phase 4 cutover | Add remediation: on diff, DON'T abort — write the UNION (grant what either path granted), flag role for human review. Preserves access vs silent revoke. **→ fold into PLAN_PATH_C §6.** |
+| 21.9 | **No CI** — no `.github/workflows`; only manual `tsc`. At 3+ clones tracking the engine, a tsc-passing change that breaks admin UI is caught only after a client breaks. | MED | V2 (before multiple clones) | GitHub Actions: job1 `tsc --noEmit` (BE), job2 `next build` (FE) on every `v2` push. Free, catches the type/controller-drift class. |
+| 21.10 | **Feature-flag FE-route gate has no locked helper shape** — OWNER_FEATURE_FLAG §D4 says "shared helper not 10 checks" but doesn't define it for Next App Router (`notFound()` can't sit in middleware like a Router guard). → drift risk. | MED | Step 3 (OWNER layer) | Lock `requireFeatureOrNotFound(flag)` (Next page) + `assertFeatureEnabled(flag,res)` (Express) signatures in the flag registry before coding Step 3. **→ fold into OWNER_FEATURE_FLAG.** |
+
+### Good-to-have polish
+- **P1 Tenant data-isolation TEST** (NICE, before Step 6) — a Vitest/Playwright that creates 2 tenants, confirms neither reads the other's data. Isolation must be verified, not claimed.
+- **P2 Preset-preview concurrency guard** (NICE, Step 4) — live-preview must use a read-only demo copy, never write the live settings doc (2 OWNERs previewing = race).
+- **P3 Metering dimensions undefined** (NICE, Step 6) — pick the 2 billable now (orders/month + product count); defer S3-bytes/traffic (needs edge proxy) until a client hits the cap.
+- **P4 `withdrow_payment_method` misspelling** (NICE) — the V2 FE+Admin clean-rewrite is the window to rename (via the §20a migration runner); else it carries forward.
+- **P5 `bkash-payment-gateway` dead dependency** (NICE) — in package.json but NOT wired in the gateway registry (only cod/manual_mfs/sslcommerz/bank_transfer). Wire it or remove it before next handoff (bundle + supply-chain surface for no benefit).
+
+> **Cross-doc actions:** 21.8 → add a "failed-assertion remediation" subsection to PLAN_PATH_C §6;
+> 21.10 → lock the two helper signatures in OWNER_FEATURE_FLAG §D4. (Not done yet — flagged here.)
+
+---
+
 ## NEXT
 Owner reviews. Then Step 1.5 (permission overhaul — foundation) → Step 2 (fashion concrete).
 No abstraction before fashion is concrete.
 Operational backbone (§20): migration runner rides Path C; food backup is a cheap near-term win;
 20a-playbook + 20b-automation must land before the SECOND client scales.
+Audit (§21): a near-term HARDENING pass should fix the 4 live-shop items (21.1 search index ·
+21.2 async SMS · 21.3 invoice unique-index · 21.4 admin lockout) — all small, additive, no migration.
