@@ -8,6 +8,15 @@
 > ([PERMISSION_OVERHAUL.md](PERMISSION_OVERHAUL.md)), admin in-app notifications, i18n. This doc's
 > page/UX detail still helps, but the standalone-SPA assumption is replaced. Master wins on conflict.
 
+> 🆕 **2026-06-26 (session 56) — EXECUTION locked + feature inventory done.** Read master
+> [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md) **§22** (repo/folder/branch: 2-repo not monorepo,
+> Admin = `(admin)/admin/*` route group inside `ecommerce-core-web`, 4-branch model, TanStack Query +
+> `useMutation`, all `"use client"`, bundle-split so Recharts/Quill never hit storefront). The **definitive
+> admin feature spec to rebuild from** is now [V2_ADMIN_FEATURE_CHECKLIST.md](V2_ADMIN_FEATURE_CHECKLIST.md)
+> — every route/page/tab + ~30 smart-UX niceties + reference file paths, independently re-verified by
+> sub-agents. Use that checklist as the build bible; this doc = the craft/UX intent layer (AD-A8 TanStack
+> server-side table, AD-B3 forms beyond RHF+Zod, AD-A6 a11y, toast/empty/skeleton contracts).
+
 **Captured:** 2026-05-25 (session 3). **Status:** PLANNING ONLY — not started. Pick up AFTER the MASTER_BACKEND_ROADMAP backend phases are done, OR whenever the owner says. Details to be expanded into a scratch-folder PLAN when work begins.
 
 > Owner's vision: "amra ja shundor backend kortici shei vabe admin panel ta korte chai" — rebuild the admin UI to resale-grade, driven by a reference admin the owner already has (built from shadcn's theme-generator). The current admin works but is not polished/themeable enough to sell.

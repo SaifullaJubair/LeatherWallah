@@ -6,6 +6,14 @@
 > `pdp_section_array`, i18n, staging workflow. This doc's component/UX detail is still useful, but the
 > storefront-as-a-separate-app assumption is replaced by the merged-app model. Master wins on conflict.
 
+> 🆕 **2026-06-26 (session 56) — EXECUTION locked + feature inventory done.** Read master
+> [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md) **§22** (repo/folder/branch: 2-repo not monorepo,
+> `ecommerce-core/ecommerce-core-web`, 4-branch model, RSC-first + drop RTK Query). The **definitive
+> storefront feature spec to rebuild from** is now [V2_FRONTEND_FEATURE_CHECKLIST.md](V2_FRONTEND_FEATURE_CHECKLIST.md)
+> — every route + home registry + themed-PDP + price/cart layers + SEO/analytics maps, all with reference
+> file paths, independently re-verified by sub-agents. Use that checklist as the build bible; this doc = the
+> craft/UX intent layer (FE-A1 SEO no-regress, FE-A4 one ProductCard, FE-A5 data doctrine, FE-A10 analytics).
+
 **Captured:** 2026-05-25 (session 3). **Status:** PLANNING ONLY — not started. Pick up after backend roadmap is solid (and likely after/with Admin V2). Detail into a scratch PLAN when work begins.
 
 > Owner's vision: rebuild the storefront to resale-grade — redesign + feature completeness + performance + i18n + security, all themeable. Sibling to `ADMIN_PANEL_V2_PLAN.md`.

@@ -793,6 +793,88 @@ re-flag anything already in §17c/§17d/§20. New findings below — 10 genuine 
 
 ---
 
+## 22. V2 Execution Plan — repo/folder/branch layout LOCKED (session 56, 2026-06-25/26)
+
+Owner + Claude locked the concrete "how do we actually start the V2 rebuild" decisions, after an
+`architecture-reviewer` foundation pass (verified vs real code) + 8 verification sub-agents that audited
+the full live feature surface. This section is the execution spine; the deep detail lives in
+[[v2-branch-and-staging-model]] (memory) + the two checklist docs below.
+
+### 22a. Repo structure — 2-repo, NOT a monorepo tool
+- **Decision:** the FE+Admin merge becomes **ONE new Next.js App Router app repo** (storefront `(storefront)/`
+  + admin `(admin)/admin/*`), and the Express **backend stays its own separate repo** (unchanged structure).
+  Two repos total. **No turborepo / no pnpm workspace.**
+- **Why (deciding reason):** clone-per-client economics — every client clone would have to carry a turbo build
+  pipeline. The shared-types drift fix does NOT need turborepo: BE is the type source → OpenAPI → `packages/types`
+  consumed by the FE; the BE never imports `packages/types`, so a plain `packages/` **folder inside the Next repo**
+  solves it. (⚠️ Where §13/§13b earlier implied "monorepo": read it as "shared `packages/{ui,types,lib}` as plain
+  folders inside the one Next repo," not a turborepo/workspace tool.)
+- **Folder layout (local):**
+  ```
+  c:\Coding\Perosnal\
+  ├── FruitSnacks\               ← V1 (live BE runs here + FE/Admin = REFERENCE only, not copied)
+  └── ecommerce-core\            ← new parent container (itself NOT a repo)
+      ├── ecommerce-core-web\        ← BUILD NOW: merged Next app. GitHub repo = ecommerce-core-web
+      └── backend\                   ← FUTURE (the FruitSnacks BE moves here at Step 3/4, not now)
+  ```
+  The new V2 app **calls the EXISTING FruitSnacks backend** (one BE, two frontends). No new backend now.
+  Backend rename/engine-ification is deferred to Step 3/4 (food is live; renaming now = cosmetic + risky).
+
+### 22b. Branch + staging model (the 4-branch model)
+| Branch | Coolify deploy? | For |
+|--------|-----------------|-----|
+| `main` | ✅ production | LIVE V1 hotfixes now + the FINAL `staging→main` V2 cutover |
+| `dev` | ❌ | V1 bug-fix local work (unchanged) |
+| `v2-dev` | ❌ | V2 rebuild day-to-day commits (no deploy) |
+| `staging` | ✅ staging (`staging.fruitsnacksbd.com` — separate Coolify app, watches only `staging`) | V2 live-like test |
+- Flow: commit to `v2-dev` → merge `v2-dev→staging` to test → at completion `staging→main` (V2 becomes prod).
+- **Coolify = 4 apps:** staging-Next (`staging`→staging.fruitsnacksbd.com + /admin), staging-BE (`staging`→
+  api-staging…), prod-Next (`main`), prod-BE (`main`). Staging DB = a **separate** mongo `test-ecommerce-core`
+  (never the live food DB — V2 schema changes must not touch real orders/products).
+- Drift mitigation: periodically pull `main→v2-dev` so V1 hotfixes ride along; keeps the final cutover small.
+
+### 22c. State / data doctrine (from the architecture-reviewer pass)
+- **Storefront:** RSC-first; **drop RTK Query entirely**; keep Redux ONLY for the cart slice + UI state;
+  tag-revalidation + `React.cache()` request-dedup (fixes today's PDP double-fetch). The current app is already
+  ~90% this shape (most data is native `fetch` in `lib/get*.js`, not RTK Query).
+- **Admin:** TanStack Query + add `useMutation` (today's mutations are plain `fetch`); no Redux; all `"use client"`.
+- **Bundle split:** route-group `layout.tsx` each → admin's Recharts/Quill/TanStack-Table never ship to storefront;
+  enforce with a CI bundle-budget (§21.9 / FE-B7). `middleware.ts` = admin-cookie vs customer-cookie split.
+
+### 22d. Build approach — scratch rewrite, old apps = reference
+- **Full parity** (nothing dropped), built as **vertical slices** (each slice = storefront UI + admin UI + data +
+  SEO, finished + staging-tested before the next). Order: settings/theme/auth → category/attribute/product CRUD →
+  PDP (variation/price/SEO) → shop/home/sections → cart/checkout/COD → order(9-status/courier)+customer dashboard →
+  peripheral (review/FAQ/chat/wishlist/offer/boutique) → permission Path C + OWNER layer last.
+- **Reference, not copy:** old FruitSnacks FE/Admin = (a) feature checklist + (b) proven business-logic source
+  (price/phone/BOGO/variation math) — but NOT one line copy-pasted; rewritten in new patterns/design. Matches the
+  §17 anti-pattern: **no multi-niche/skin abstraction until FruitSnacks is concrete first** (extraction = Step 3).
+
+### 22e. V2 feature inventories (the rebuild bible) — DONE
+Before scaffolding, the full live feature surface was captured + independently re-verified (8 sub-agents) so the
+scratch rewrite loses nothing (owner's explicit worry: small smart-UX niceties):
+- **[V2_ADMIN_FEATURE_CHECKLIST.md](V2_ADMIN_FEATURE_CHECKLIST.md)** — every admin route/page/tab + reference
+  file paths + ~30 smart-UX niceties (paste-table→label/value, JSON-paste review seeder, size-guide paste-grid,
+  @dnd-kit reorders, IconPicker, palette presets + live theme-iframe, draft autosave, FAQ placeholder auto-fill,
+  QR tools, POS auto-fill…) + packages/ui candidate list + V2-improve list.
+- **[V2_FRONTEND_FEATURE_CHECKLIST.md](V2_FRONTEND_FEATURE_CHECKLIST.md)** — every storefront route + full home
+  section registry + themed-PDP section-by-section + price resolver + cart layers + dual-storage cart + SEO surface
+  map + analytics surface map + redux/RTK→backend-route map. Keystone port targets: `SingleProduct.jsx` (~1194 LOC),
+  `VariationPicker.jsx`, `HeroGallery.jsx`, `applyCartLayers.js`, `helper.js`, cart slice+middleware+sync.
+- **Two real gaps the verification surfaced (V2 action items):** (1) themed PDP never renders `<RecentProducts/>`
+  (file exists, unmounted) — wire it; (2) `AbandonedCartCapture.jsx` is built but never instantiated — decide wire
+  vs drop (BE/Admin abandoned-cart side IS live). Both docs also flag orphaned dead code to NOT port.
+- Move both checklist docs into `ecommerce-core-web` once that repo exists.
+
+### 22f. Sequence
+1. ✅ architecture-reviewer foundation pass — DONE. ✅ Feature inventories + 8-agent re-verify — DONE.
+2. NEXT: scaffold `ecommerce-core/ecommerce-core-web` (Layer 0: route groups, middleware, `packages/{ui,types,lib}`,
+   shadcn + design tokens, RSC fetch helper + admin TanStack setup, new GitHub repo) → wire Coolify staging app +
+   `staging.`/`api-staging.` subdomains + `test-ecommerce-core` mongo + staging env.
+3. THEN vertical feature slices on `v2-dev` per 22d.
+
+---
+
 ## NEXT
 Owner reviews. Then Step 1.5 (permission overhaul — foundation) → Step 2 (fashion concrete).
 No abstraction before fashion is concrete.

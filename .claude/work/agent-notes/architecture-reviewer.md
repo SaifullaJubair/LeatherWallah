@@ -204,3 +204,65 @@ on admin model added as seam (architecture-reviewer P7, 2026-06-24).
 builds the Mongoose SchemaDefinition from it programmatically. role.model.ts calls this function
 instead of hand-writing 96 Boolean fields. When a dev adds a module to the registry, the schema,
 the permData equivalent, and the valid guard strings all update automatically.
+
+
+---
+
+## 2026-06-25 -- V2 Foundation / Design Pass
+
+**Context:** Firm recommendations on A (monorepo vs 2-repo), B (merged app routing/auth/bundle),
+C (state doctrine), D (migration sequence + top-5 risks), E (Coolify staging) before infra is wired.
+
+### Code verified
+
+- Root package.json = plain concurrently shell, NOT pnpm/turborepo workspace. No shared packages layer today.
+- Frontend: Next 16 App Router. RTK Query + TanStack Query both wired (confirmed two-library drift). use-client = 191 files. Cart = Redux slice. PDP = no-store. SectionRenderer.jsx = static imports of 14+ sections (no next/dynamic).
+- Admin: React 18 + Vite SPA. TanStack Query only (correct). Mutations = plain fetch (no useMutation). permissionData.js = hand-maintained JS array.
+- Backend sendResponse: {statusCode, success, message, data, totalData?}. Error shape differs (no statusCode). Cookie: sameSite:none/secure:true/httpOnly:true -- needed for 3-subdomain share -- the exact reason CSRF (D1) is open.
+- No shared type layer between FE and Admin. productPrice in FE helper.js re-implements BE price resolver. normalizeBdPhone in FE only, not Admin. Drift is real and measured.
+
+### A -- Recommendation: 2-repo, NOT turborepo
+
+SINGLE Next.js app repo for merged FE+Admin with packages/ folders inside it. BE stays its own repo.
+
+Why NOT turborepo: (1) packages/types inside the merged Next app is sufficient for the drift fix -- both (storefront) and (admin) route groups import from it. Turborepo adds build-tool complexity without proportional gain at this scale. (2) Clone-per-client is simpler with two plain repos than a pnpm workspace + build pipeline per client. (3) Coolify deploys per-repo/per-branch: merged Next = 1 Coolify container; BE = 1 Coolify container. 2 apps per env, 4 total across staging+prod. Clean.
+
+Why NOT one mega-monorepo: BE is the type source-of-truth. FE/Admin types are generated FROM BE (D6 OpenAPI) or maintained as a packages/types copy. BE does not need to import from packages/types -- the flow is BE-interface -> OpenAPI -> generated TS in packages/types. This works without making BE part of the same workspace.
+
+### B -- Route-group split, auth, bundle
+
+(storefront)/ and (admin)/ as Next.js route groups. Each has its own layout.tsx. middleware.ts handles auth split: storefront = customer cookie; admin = admin cookie + redirect to /admin/sign-in. Start with /admin/* on the same domain (no cookie-domain config). Subdomain possible later (cookie is already sameSite:none so cross-subdomain sharing works). Bundle split is automatic: Recharts/Quill stay inside (admin) only. Add next-build bundle-size CI check (section 21.9) to enforce no admin chunk bleeds into storefront.
+
+### C -- State/data-fetching doctrine
+
+Storefront: RSC-first. use-client only at interaction leaves. Redux kept for cart + UI state only. RTK Query DROPPED in V2 (clean break, not migration). RSC fetch + server actions + React cache() replace it.
+
+Admin: TanStack Query kept (already canonical; confirmed in code). Mutations refactored from plain fetch to useMutation in V2. No Redux in admin. Admin is heavy-client -- use-client is correct; route group isolates the bundle.
+
+Both surfaces consume packages/ui (shadcn + token CSS vars) and packages/types (DTOs). No lib duplication.
+
+### D -- Migration sequence + top-5 risks
+
+Sequence:
+1. New repo: scaffold merged Next app (storefront)/ + (admin)/ + packages/{ui,types,lib}. Wire Coolify staging.
+2. Extract packages/types FIRST (highest drift leverage). Copy BE interfaces as TS types. Mechanical, not a rewrite.
+3. Build packages/ui foundation: shadcn + token CSS vars + cn(). Consumed by both surfaces.
+4. Port admin pages into (admin)/admin/* one-by-one. V1 SPA stays live in parallel. No cutover until feature parity.
+5. Build storefront RSC: home + PDP + shop/listing. Port SectionRenderer WITH next/dynamic in this step (not after).
+6. Cutover: staging -> production. V1 admin SPA decommissioned.
+
+Top-5 risks:
+R1 (COOKIE/CSRF): sameSite:none is needed as long as API is a different subdomain. The merge window is the opportunity to fix CSRF D1 properly. Do NOT flip sameSite:lax without a full cookie+CSRF audit at merge time.
+R2 (RSC BREAKS ANALYTICS/CART): Pages converted to RSC lose cart/analytics hooks. Mitigation: RSC page wraps use-client leaf. Page = RSC; interactive element = use-client leaf imported inside it.
+R3 (TYPES DRIFT DURING PORT): Old admin pages use plain-fetch; new pages use packages/types. Mitigation: lint rule from day 1 -- no inline type definitions; import from packages/types only.
+R4 (SECTIONRENDERER STATIC-IMPORT BLOAT): The V2 port is the only cheap window to add next/dynamic. Lock it as a step-5 requirement. If skipped, it becomes a retrofit when skin count grows.
+R5 (PARALLEL V1+V2 WRITES TO SAME DB): During cutover window both admin versions write to the same BE/DB. Mitigation: never change BE API contract during cutover; only add fields. D5 (new response envelope) must NOT land until BOTH FE+Admin are on V2.
+
+### E -- Coolify staging layout
+
+4 Coolify apps, 2 repos:
+- App 1 (staging Next): merged Next repo, staging branch -> staging.fruitsnacksbd.com (storefront) + /admin (admin). ENV: NEXT_PUBLIC_API_URL=https://api-staging.fruitsnacksbd.com, sandbox analytics, NODE_ENV=production.
+- App 2 (staging BE): BE repo, staging branch -> api-staging.fruitsnacksbd.com. ENV: separate staging Mongo URI.
+- App 3 (prod Next): merged Next repo, main branch -> fruitsnacksbd.com (V1 until V2 cutover).
+- App 4 (prod BE): BE repo, main branch -> api.fruitsnacksbd.com.
+Staging DB: separate Mongo instance (never the live food shop DB). Seed with npm run seed:demo.
