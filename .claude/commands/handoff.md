@@ -19,5 +19,10 @@ getting long/heavy, before switching.
    `.claude/work/OWNER_TEST_STATUS.md` rows. Don't leave a feature "done" in one place and
    "pending" in another.
 4. Leave settled decisions intact unless something genuinely changed.
+5. **Update the repo-tracked memory mirror** `.claude/MEMORY_MIRROR.md` — refresh its "Current handoff
+   pointer" (new session # + one-line TL;DR), and add a line if a NEW project-critical memory or work-style
+   rule was created this session. This mirror is what makes the handoff survive a `git pull` on another PC
+   (the global auto-memory folder is outside the repo). Don't move the global `memory/` folder — just keep
+   the mirror current.
 
 Confirm what you updated and summarize it. Keep the handoff TRUE — the next chat trusts it first.

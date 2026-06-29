@@ -10,6 +10,24 @@
 
 ---
 
+> ⭐ **DATA LAYER + FOLDER STRUCTURE = the authoritative coding guide is now a separate doc:**
+> [`DATA_LAYER_AND_STRUCTURE.md`](./DATA_LAYER_AND_STRUCTURE.md) (session 57). It locks: admin =
+> client TanStack Query (not RSC), hybrid CRUD factory (`makeCrudHooks` ~1 line + escape hatch for
+> complex resources), optimistic add/update/delete, 30s/60s caching, server-side TanStack tables,
+> shop_id seam, the per-feature 7-file mold, and exactly what was taken/rejected from bridge +
+> common-admin. **Read it before writing any feature.** The folder skeleton in §3 below is the macro
+> view; that doc is the data-layer detail.
+>
+> ⚠️ **API CONTRACT FOUNDATION (that doc's §9) must land at scaffold, not later** — it's the
+> "BE-response-change-breaks-FE+Admin" trap, avoided by adopting target shapes NOW + updating BE to match:
+> (9.1) §17d D5 response envelope `{success,statusCode,data,meta,error{code},path,requestId,timestamp}`
+> — **BE `sendResponse.ts`/`global.error.handler.ts` update required**, done as BE V2 foundation
+> before/with slice 1; (9.2) canonical `ProductCardDTO` + one `<ProductCard>`/`<ProductStrip>` (declare DTO
+> in `packages/types` now); (9.3) CSRF `X-CSRF-Token` seam in `apiClient`; (9.4) shared Zod BE↔FE
+> (schema-first → D6 Swagger free); (9.5) permission registry = nav `perm` ↔ BE guard ONE source
+> (+ fix the 2 live unauthed routes, PERMISSION_OVERHAUL Phase 0); (9.6) admin-mutation→`revalidateTag`
+> seam for storefront; (9.7) SEO foundation (storefront slice, #1 rewrite risk).
+
 ## 0. Locked decisions feeding this plan
 - **TypeScript** + **Next.js (latest, App Router)**, 2-repo (this = the web app; BE stays FruitSnacks).
 - Local folder + GitHub repo `ecommerce-core-web` at `c:\Coding\Perosnal\ecommerce-core\ecommerce-core-web`.
@@ -35,6 +53,14 @@
   admin pastes tweakcn JSON in a textarea → parser → DB → runtime inject (dynamic, no deploy). Same oklch
   token shape both places → ONE shared token parser in `packages/lib`.
 - Admin theme dynamic = NOT now (only worth it at Step-6 white-label SaaS; static dropdown is the base anyway).
+- ⭐ **Token strategy (LOCKED, session 57): ONE token system = shadcn CSS variables (`--primary`, `--background`,
+  `--ring`, …) for ALL three tiers.** A color theme is just a class block overriding those vars, e.g.
+  `:root.theme-green { --primary: <oklch>; … }`; day/night is `.dark { … }`. `<html>` carries BOTH a color
+  class AND `.dark` → shadcn components obey automatically, no per-component styling. From the reference admin
+  take ONLY the *idea* (which colors: green/blue/rose/amber/…, the swatch dropdown UX) — **NOT** its separate
+  Vite/Tailwind-v4 `styles/themes/*.css` class system. Re-implement as shadcn `--*` overrides so Tier-1 (static
+  admin chrome) and Tier-2/3 (dynamic tweakcn-paste) share the EXACT same oklch `--*` shape → the one shared
+  token parser works everywhere, zero split. (`components.json` must have `cssVariables: true`.)
 
 ---
 
@@ -84,6 +110,25 @@ Adopt this exact, proven pattern (keeps our two apps consistent + matches master
 - **i18n is in from day 0** (locale routing + messages), so strings aren't hardcoded — matches master "extract
   i18n DURING v2, not retrofit". Per-clone `enabled_languages` decides if the switcher shows (bn-only client →
   no switcher, bn messages only).
+
+#### ⭐ i18n EXECUTION POLICY (LOCKED, session 57) — "wrap day-0, translate later"
+Owner decision: full en+bn infra now; **build in EN only**; translate to BN later once the whole site is
+feature-complete + tested + stable (so strings don't churn and waste translation work).
+- **Every UI string is wrapped in `t("key")` from day-0** — buttons, titles, table headers, form labels,
+  toasts, validation, empty/error states, tooltips. **NEVER hardcode raw text and retrofit `t()` later**
+  (that's the exact retrofit the master rule forbids; 40 routes × ~50 strings = unsearchable mess).
+- **`en.json` gets the value as we build.** `bn.json` keys are left empty / filled later — next-intl
+  falls back to `en`, so missing BN just shows English. No code is touched when BN is added — it's pure
+  DATA fill (`bn.json` values), done in one pass at the end. Claude can bulk-generate `bn.json` from the
+  finished `en.json` then owner reviews e-commerce terms (SKU/Variation/COD stay English where clearer).
+- **Sidebar nav labels = en+bn NOW** (small fixed ~40-item `adminNav` list — cheap, and it's the visible
+  "language works" proof). Everything else (page bodies/buttons/forms/lists) = EN value now, BN at the end.
+- **Message namespacing = per-feature** (mirrors the feature-folder mold): `catalog.brand.add`,
+  `orders.status.pending`, etc. Keeps `en.json`/`bn.json` from becoming one unmanageable flat blob.
+- **Admin bilingual vs single-language is deferred, NOT cancelled** — infra carries both; if a client
+  needs a Bangla admin it's a one-pass `bn.json` fill, no rebuild. (Storefront en/bn matters for SEO;
+  admin BN is a sellable-later feature, not a delivery blocker.) e-commerce extras (currency/number/date
+  locale formatting) still added on top of the AgencyPlatform marketing-only i18n.
 
 ### Admin left-sidebar — IDEA from `c:\Coding\Revinr\bridge-to-bangladesh-web-app-dev` (Next App Router admin)
 Its `(admin)/admin` layout + `AdminLeftSidebar` is a mature pattern — take the IDEAS (re-implement in our
@@ -216,6 +261,18 @@ Note: `packages/` lives inside the app (plain folders, path-aliased) per the 2-r
 **Phase 0e — housekeeping**
 14. New `CLAUDE.md` (V2 patterns, reference pointer, doctrine). Move the 2 checklist docs into this repo's
     `docs/`. `.gitignore`, ESLint/TS strict, README.
+14b. **`.claude/` setup (LOCKED session 57):** structure + `settings.json` from the AgencyPlatform pattern
+    (`bypassPermissions`, allow-list). The 8 agents + commands = **reuse FruitSnacks' versions** (they
+    already know the Express/Mongoose BE this app talks to + the §9 contract — **do NOT strip Express/Mongo;
+    the app is cross-app and we also update BE**) + ADD V2 web-stack knowledge (Next/TanStack/shadcn/TS,
+    DATA_LAYER §0-9). Trim only genuinely-irrelevant V1 bits (old Vite/RTK Admin refs, dead V1 modules).
+    Drop `verify-be` (BE is a separate repo → its `.claude/` later); `fs-dev` → `dev` (`npm run dev`).
+    Empty `work/agent-notes/`. CLAUDE.md (root, step 14) stays the project guide outside `.claude/`.
+14c. **Docs location (LOCKED session 57):** NOT a monorepo (master §22 stands). Container folder
+    `ecommerce-core/` is a plain local organizer (NOT a git repo) — never put docs directly in it. For now
+    keep V2 scaffold docs in `ecommerce-core-web/docs/` (only one app exists). When BE arrives + real
+    cross-app docs are needed, create a separate `ecommerce-core-docs` repo (the "docs repo" from
+    [[git-infra-and-branch-rules]]) and move container/contract docs there. Don't create it prematurely.
 
 **Exit criteria (Layer 0 done):** localhost shows an empty admin shell with working sidebar, color-theme
 dropdown + day/night, skeleton/empty/error primitives, the packages kit + useDataTable in place, repo on
