@@ -268,6 +268,24 @@ Note: `packages/` lives inside the app (plain folders, path-aliased) per the 2-r
     DATA_LAYER §0-9). Trim only genuinely-irrelevant V1 bits (old Vite/RTK Admin refs, dead V1 modules).
     Drop `verify-be` (BE is a separate repo → its `.claude/` later); `fs-dev` → `dev` (`npm run dev`).
     Empty `work/agent-notes/`. CLAUDE.md (root, step 14) stays the project guide outside `.claude/`.
+14b-i. **Doc auto-update via AGENT (LOCKED session 57) — agent-driven, NOT a script, NOT a hook:** wire the
+    `/handoff` command so it runs the **`doc-generator` agent**, which itself CHECKS what changed this session
+    (new/changed feature · module · route · folder structure) and updates ONLY the affected docs — project
+    documentation, **FILEMAP / folder-structure map**, feature docs, README. If nothing relevant changed, it
+    does nothing. The agent uses its judgement (it reads the code/diff) — no deterministic `gen:docs` script,
+    no edit-time hook (owner rejected hooks as too slow — [[claude-folder-setup]]). This is V2-only
+    (`ecommerce-core-web`); don't retrofit the old FruitSnacks docs (it's being rewritten). So `/handoff` in
+    the V2 repo = refresh handoff memory + mirror (14b) + run doc-generator to sync docs, in one trigger.
+
+    **CRITICAL line the agent must respect — DESCRIPTIVE docs only, never DECISION docs:**
+    - ✅ Agent UPDATES (descriptive = "what the code currently is", goes stale when code changes):
+      `CLAUDE.filemap.md` (folder/file tree) · folder-structure map · admin+FE **feature docs** (which
+      features exist + what each does) · route/API map · README (its structure/stack section).
+    - ❌ Agent NEVER touches (prescriptive = human decisions/intent): `CLAUDE.md` (patterns/doctrine) ·
+      `.claude/work/v2-scaffold/PLAN.md` + `DATA_LAYER_AND_STRUCTURE.md` · any architecture/decision doc ·
+      README's project-vision/intro paragraph. These are owner/Claude-authored intent — auto-editing them
+      would destroy locked decisions (e.g. it might "correct" a §9 future-contract because the code isn't
+      written yet). The agent regenerates descriptions of reality, not statements of intent.
 14c. **Docs location (LOCKED session 57):** NOT a monorepo (master §22 stands). Container folder
     `ecommerce-core/` is a plain local organizer (NOT a git repo) — never put docs directly in it. For now
     keep V2 scaffold docs in `ecommerce-core-web/docs/` (only one app exists). When BE arrives + real

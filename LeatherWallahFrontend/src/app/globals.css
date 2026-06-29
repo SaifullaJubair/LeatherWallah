@@ -1,0 +1,410 @@
+/* Theme fonts — the per-product theme can pick any of these (see
+   ThemeStyleInjector --brand-font). Loaded here so the chosen font actually
+   renders on the themed PDP and the admin theme preview. */
+@import url("https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Baloo+Da+2:wght@400;500;600;700&family=Mina:wght@400;700&family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Site-wide corner roundness for the themed product page. The theme's single
+   radius setting (--card-radius, set by ThemeStyleInjector) drives every big
+   card/image so buttons, cards, images and tiles share one corner language.
+   Scoped to themed surfaces only ([data-themed-pdp]) so the rest of the site
+   is untouched. Uses .rounded-2xl as the hook since all themed cards use it. */
+[data-themed-pdp] .rounded-2xl {
+  border-radius: var(--card-radius, 1rem);
+}
+
+/* Two-font system: all themed headings use the heading font; everything else
+   inherits the body font from the wrapper (style="fontFamily:var(--brand-font)").
+   :where() keeps specificity 0 so component classes can still override. */
+[data-themed-pdp] :where(h1, h2, h3, h4) {
+  font-family: var(--brand-font-heading, var(--brand-font));
+}
+
+@layer base {
+  /* ─────────────────────────────────────────────────────────────────────
+     Default site theme — adapted from TweakCN "green" theme (v4 export →
+     v3 compatible). Values are oklch() direct (no HSL wrapper). Modern
+     browsers (Chrome 111+, Safari 15.4+, Firefox 113+) — Bangladesh
+     audience ~95%+ covered. Tailwind v3-stable, v4 migration deferred.
+
+     Used by:
+      • UI components that read `var(--primary)` etc.
+      • Themed PDP fallback chain (when product has no theme_id)
+      • Day/night toggle (`<html class="dark">` switches the .dark block)
+
+     The original tailwind palette in tailwind.config.js (primary-500,
+     secondary, accent, complementary, orange, gray scale ...) is UNTOUCHED —
+     existing pages render exactly as before.
+     ───────────────────────────────────────────────────────────────────── */
+  :root {
+    --background: oklch(0.9711 0.0074 80.7211);
+    --foreground: oklch(0.3000 0.0358 30.2042);
+    --card: oklch(0.9711 0.0074 80.7211);
+    --card-foreground: oklch(0.3000 0.0358 30.2042);
+    --popover: oklch(0.9711 0.0074 80.7211);
+    --popover-foreground: oklch(0.3000 0.0358 30.2042);
+    --primary: oklch(0.42 0.15 145);         /* ≈ #1B5E20 — deep brand green */
+    --primary-foreground: oklch(1.0000 0 0);
+    --secondary: oklch(0.9571 0.0210 147.6360);
+    --secondary-foreground: oklch(0.4254 0.1159 144.3078);
+    --muted: oklch(0.9370 0.0142 74.4218);
+    --muted-foreground: oklch(0.4495 0.0486 39.2110);
+    --accent: oklch(0.8952 0.0504 146.0366);
+    --accent-foreground: oklch(0.4254 0.1159 144.3078);
+    --destructive: oklch(0.5386 0.1937 26.7249);
+    --destructive-foreground: oklch(1.0000 0 0);
+    --border: oklch(0.8805 0.0208 74.6428);
+    --input: oklch(0.8805 0.0208 74.6428);
+    --ring: oklch(0.5234 0.1347 144.1672);
+    --chart-1: oklch(0.6731 0.1624 144.2083);
+    --chart-2: oklch(0.5752 0.1446 144.1813);
+    --chart-3: oklch(0.5234 0.1347 144.1672);
+    --chart-4: oklch(0.4254 0.1159 144.3078);
+    --chart-5: oklch(0.2157 0.0453 145.7256);
+    --sidebar: oklch(0.9370 0.0142 74.4218);
+    --sidebar-foreground: oklch(0.3000 0.0358 30.2042);
+    --sidebar-primary: oklch(0.5234 0.1347 144.1672);
+    --sidebar-primary-foreground: oklch(1.0000 0 0);
+    --sidebar-accent: oklch(0.8952 0.0504 146.0366);
+    --sidebar-accent-foreground: oklch(0.4254 0.1159 144.3078);
+    --sidebar-border: oklch(0.8805 0.0208 74.6428);
+    --sidebar-ring: oklch(0.5234 0.1347 144.1672);
+    /* Fonts: shadcn components opt into `--font-sans`. We DO NOT apply this
+       to <body> — Bangla content keeps its own font (Hind Siliguri etc.). */
+    --font-sans: Montserrat, system-ui, sans-serif;
+    --font-serif: Merriweather, Georgia, serif;
+    --font-mono: "Source Code Pro", ui-monospace, monospace;
+    --radius: 0.5rem;
+    /* Shadow scale (TweakCN) */
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+  .dark {
+    --background: oklch(0.2683 0.0279 150.7681);
+    --foreground: oklch(0.9423 0.0097 72.6595);
+    --card: oklch(0.3327 0.0271 146.9867);
+    --card-foreground: oklch(0.9423 0.0097 72.6595);
+    --popover: oklch(0.3327 0.0271 146.9867);
+    --popover-foreground: oklch(0.9423 0.0097 72.6595);
+    --primary: oklch(0.6731 0.1624 144.2083);
+    --primary-foreground: oklch(0.2157 0.0453 145.7256);
+    --secondary: oklch(0.3942 0.0265 142.9926);
+    --secondary-foreground: oklch(0.8970 0.0166 142.5518);
+    --muted: oklch(0.2926 0.0212 147.7496);
+    --muted-foreground: oklch(0.8579 0.0174 76.0955);
+    --accent: oklch(0.5752 0.1446 144.1813);
+    --accent-foreground: oklch(0.9423 0.0097 72.6595);
+    --destructive: oklch(0.5386 0.1937 26.7249);
+    --destructive-foreground: oklch(0.9423 0.0097 72.6595);
+    --border: oklch(0.3942 0.0265 142.9926);
+    --input: oklch(0.3942 0.0265 142.9926);
+    --ring: oklch(0.6731 0.1624 144.2083);
+    --chart-1: oklch(0.7660 0.1179 145.2950);
+    --chart-2: oklch(0.7185 0.1417 144.8887);
+    --chart-3: oklch(0.6731 0.1624 144.2083);
+    --chart-4: oklch(0.6291 0.1543 144.2031);
+    --chart-5: oklch(0.5752 0.1446 144.1813);
+    --sidebar: oklch(0.2683 0.0279 150.7681);
+    --sidebar-foreground: oklch(0.9423 0.0097 72.6595);
+    --sidebar-primary: oklch(0.6731 0.1624 144.2083);
+    --sidebar-primary-foreground: oklch(0.2157 0.0453 145.7256);
+    --sidebar-accent: oklch(0.5752 0.1446 144.1813);
+    --sidebar-accent-foreground: oklch(0.9423 0.0097 72.6595);
+    --sidebar-border: oklch(0.3942 0.0265 142.9926);
+    --sidebar-ring: oklch(0.6731 0.1624 144.2083);
+  }
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply scroll-smooth;
+  }
+  h1 {
+    @apply font-semibold text-gray-800 lg:text-4xl sm:text-3xl text-2xl;
+  }
+  h2 {
+    @apply font-semibold text-gray-800 lg:text-3xl sm:text-2xl text-xl;
+  }
+  h3 {
+    @apply font-semibold text-gray-800 lg:text-2xl sm:text-xl text-lg;
+  }
+  h4 {
+    @apply font-semibold text-gray-800 lg:text-xl sm:text-lg text-base;
+  }
+  h5 {
+    @apply font-semibold text-gray-800 lg:text-lg sm:text-base text-sm;
+  }
+  h6 {
+    @apply font-semibold text-gray-800 lg:text-base sm:text-sm text-xs;
+  }
+  input {
+    @apply outline-primary-500;
+  }
+
+  .custom-phone-input input {
+    outline: none !important;
+  }
+}
+
+/* Hide scrollbar for all elements */
+* {
+  scrollbar-width: none; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+/* .track {
+  background-color: #e0f4f0; 
+  height: 10px;
+  border-radius: 5px;
+  margin: 0 2.5px;
+  position: relative;
+  overflow: hidden;
+} */
+
+/* Styles for the filled part of the track */
+/* .track-filled {
+  background-color: #a40d65; 
+  height: 100%;
+  border-radius: 5px 0 0 5px;
+  position: absolute;
+  top: 0;
+  left: 0;
+} */
+
+/* Styles for the track of the slider */
+/* Track styles */
+.track {
+  background-color: #ced0d0; /* Light version of primary color for contrast */
+  height: 8px;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.track-1 {
+  background-color: #3c4144; /* Unfilled part (optional) */
+}
+
+/* Thumb styles */
+.thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #0b1215; /* Primary color */
+  border: 3px solid #ffffff; /* White border for contrast */
+  cursor: grab;
+  outline-color: #6d7173;
+  margin-top: -8px; /* Center thumb on track */
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Hover and focus effects */
+.thumb:hover,
+.thumb:focus {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px #6d7173;
+}
+
+/* Active (click-drag) effects */
+.thumb:active {
+  cursor: grabbing;
+  transform: scale(1.2);
+  box-shadow: 0 6px 16px #6d7173;
+}
+
+/* Apply to specific elements with the class .no-scrollbar */
+/* Firefox */
+/* .no-scrollbar {
+  scrollbar-width: none;
+} */
+
+/* Chrome, Safari, and Opera */
+/* .no-scrollbar::-webkit-scrollbar {
+  display: none; 
+} */
+
+/* Custom Styles for the Swiper Pagination Dots */
+.swiper-pagination-bullet {
+  background-color: #e5e7eb; /* Tailwind's 'gray-200' */
+  opacity: 1;
+  width: 8px;
+  height: 8px;
+  margin: 0 4px; /* Adjust spacing between dots */
+}
+
+.swiper-pagination-bullet-active {
+  background-color: #ef4444; /* Tailwind's 'red-500' */
+}
+
+/* Custom Navigation Buttons */
+.swiper-button-next,
+.swiper-button-prev {
+  color: #ef4444; /* Tailwind's 'red-500' */
+  transition: transform 0.2s;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  transform: scale(1.1); /* Slight zoom on hover */
+}
+
+/* Adjustments for the Swiper Container */
+.swiper-container {
+  overflow: hidden;
+  padding: 20px 0; /* Space around the Swiper */
+}
+
+/* Hide spinner buttons in WebKit browsers (Chrome, Safari, Edge) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spinner buttons in Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* globals.css এ add করো */
+
+/* Scrollbar hide for nav second bar */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Dynamic Product Page System — floating asset animations
+   ─────────────────────────────────────────────────────────────────── */
+@keyframes brand-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes brand-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+@keyframes brand-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-16px); }
+}
+@keyframes brand-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.brand-anim-float-slow   { animation: brand-float 5s ease-in-out infinite; }
+.brand-anim-float-normal { animation: brand-float 3s ease-in-out infinite; }
+.brand-anim-float-fast   { animation: brand-float 1.5s ease-in-out infinite; }
+
+.brand-anim-sway-slow    { animation: brand-sway 5s ease-in-out infinite; }
+.brand-anim-sway-normal  { animation: brand-sway 3s ease-in-out infinite; }
+.brand-anim-sway-fast    { animation: brand-sway 1.5s ease-in-out infinite; }
+
+.brand-anim-bounce-slow   { animation: brand-bounce 5s ease-in-out infinite; }
+.brand-anim-bounce-normal { animation: brand-bounce 2.5s ease-in-out infinite; }
+.brand-anim-bounce-fast   { animation: brand-bounce 1.2s ease-in-out infinite; }
+
+.brand-anim-spin-slow    { animation: brand-spin 12s linear infinite; }
+.brand-anim-spin-normal  { animation: brand-spin 6s linear infinite; }
+.brand-anim-spin-fast    { animation: brand-spin 3s linear infinite; }
+
+/* Accessibility: floating accent images are decorative — kill their motion
+   when the user asks for reduced motion. (Matches every brand-anim-* class
+   above via the shared prefix.) */
+@media (prefers-reduced-motion: reduce) {
+  [class*="brand-anim-"] {
+    animation: none !important;
+  }
+}
+
+/* Themed button base — used by Order Now / WhatsApp / etc. on product page */
+.brand-btn {
+  background: var(--brand-primary, #10B981);
+  color: var(--button-text, #FFFFFF);
+  border-radius: var(--button-radius, 8px);
+  transition: filter 0.15s ease;
+}
+.brand-btn:hover { filter: brightness(0.93); }
+
+.brand-btn-outline {
+  background: transparent;
+  color: var(--brand-primary-dark, #047857);
+  border: 2px solid var(--brand-primary, #10B981);
+  border-radius: var(--button-radius, 8px);
+}
+
+/* ── Announcement bar marquee (server-component safe; styled-jsx not allowed there) ── */
+.announcement-marquee {
+  width: max-content;
+  animation: announcement-scroll 22s linear infinite;
+}
+.announcement-marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes announcement-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .announcement-marquee {
+    animation: none;
+    justify-content: center;
+  }
+}
+
+/* Themed Swiper pagination (reviews carousel) */
+.themed-product-page .swiper-pagination-bullet-active,
+.swiper-pagination-bullet-active {
+  background: var(--brand-primary) !important;
+}
+
+/* Equal-height review carousel cards */
+.themed-product-page .swiper-slide,
+.swiper-slide.\!h-auto {
+  height: auto;
+}
+.swiper-wrapper {
+  align-items: stretch;
+}
+
+/* Themed delivery form inputs — brand-coloured border + ring on focus */
+.themed-input {
+  border-color: #e5e7eb;
+  font-family: var(--brand-font);
+}
+.themed-input:focus {
+  border-color: var(--brand-primary, #C04137);
+  box-shadow: 0 0 0 3px var(--brand-primary-light, rgba(192,65,55,0.18));
+}
+.themed-phone.custom-phone-input:focus-within {
+  border-color: var(--brand-primary, #C04137) !important;
+  box-shadow: 0 0 0 3px var(--brand-primary-light, rgba(192,65,55,0.18));
+}
+.themed-phone .PhoneInputInput {
+  outline: none;
+  font-family: var(--brand-font);
+}

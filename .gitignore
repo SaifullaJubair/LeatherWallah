@@ -1,13 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# Ecommerce-Workspace .gitignore
-# This repo tracks ONLY: docs/, .claude/, root CLAUDE.md, audit plans
-# Sub-app folders have their own repos — exclude them entirely.
+# Leather Wallah — monorepo .gitignore
+# Tracks all 3 apps (Admin / Backend / Frontend) + docs/.claude.
+# Each app deploys separately in Coolify via its own base directory.
 # ─────────────────────────────────────────────────────────────
-
-# Sub-app code (separate repos, do NOT track from here)
-FruitSnacksBackend/
-FruitSnacksAdmin/
-FruitSnacksFrontend/
 
 # Node + builds
 node_modules/

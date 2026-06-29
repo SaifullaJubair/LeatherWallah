@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .form-input {
+    @apply w-full rounded-md border border-gray-200 shadow-sm text-sm px-3 py-2 focus:ring-2 focus:ring-blueColor-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500;
+  }
+}
+
+/* 
+  const customStyles = {
+    control: (provided) => ({
+      ...provided,
+      borderColor: "#CBD5E0", // Lighter border color
+      boxShadow: "none", // Remove the default shadow
+      "&:hover": {
+        borderColor: "#A0AEC0", // Slightly darker on hover
+      },
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected ? "#4A5568" : "#fff", // Background color of selected option
+      color: state.isSelected ? "#fff" : "#2D3748", // Text color for selected option
+      "&:hover": {
+        backgroundColor: "#E2E8F0", // Light hover background
+        color: "#2D3748", // Dark text on hover
+      },
+    }),
+    menu: (provided) => ({
+      ...provided,
+      zIndex: 9999, // Ensures it appears above other elements
+    }),
+  }; */
+/* thead.sticky {
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  background-color: #fff9ee; 
+} */
+/* Make sure to target react-select internal classes with higher specificity */
+.short-select .react-select__control {
+  min-height: 30px !important; /* Adjust the height */
+  height: 30px !important;
+  padding: 0 !important; /* Reduce padding */
+}
+
+.short-select .react-select__value-container {
+  padding: 0 8px !important; /* Reduce internal padding */
+}
+
+.short-select .react-select__single-value {
+  font-size: 14px !important; /* Adjust font size to match height */
+}
+
+.short-select .react-select__input {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.short-select .react-select__dropdown-indicator {
+  padding: 4px !important;
+}
+
+.short-select .react-select__indicator-separator {
+  display: none !important; /* Hide separator */
+}
+.custom-input input {
+  outline: none !important;
+}
+
+/* POS receipt print — hide everything except the receipt */
+@media print {
+  body > * { display: none !important; }
+  .receipt-print { display: block !important; }
+}
