@@ -10,7 +10,7 @@
  * `qr_short_code`.
  *
  * Usage:
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   NODE_ENV=development npx ts-node-dev --transpile-only src/scripts/regen-codes.ts
  *
  * The script connects to MONGO_URI from .env and exits when done.

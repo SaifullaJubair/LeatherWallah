@@ -10,7 +10,7 @@
  * points etc. because that's a business decision.
  *
  * Usage (one-off):
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   npx ts-node-dev --transpile-only src/scripts/normalize-user-phones.ts
  *
  * The script connects via MONGO_URI from `.env` and exits with a summary.

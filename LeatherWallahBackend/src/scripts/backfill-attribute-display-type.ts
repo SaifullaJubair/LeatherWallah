@@ -22,7 +22,7 @@
  *   on a fully migrated DB is a no-op.
  *
  * Usage:
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   NODE_ENV=development npx ts-node-dev --transpile-only src/scripts/backfill-attribute-display-type.ts
  */
 

@@ -204,8 +204,8 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     og_description:
       "Timeless full-grain leather Oxford shoes. Goodyear-welted, cushioned insole, durable sole. Premium quality, cash on delivery across Bangladesh.",
     main_image: {
-      slug: "oxford-main",
-      url: "https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=900&q=80",
+      slug: "oxford-main-v2",
+      url: "https://images.unsplash.com/photo-1449505278894-297fdb3edbc1?w=900&q=80",
     },
     other_images: [
       {
@@ -348,20 +348,20 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     price: 3200,
     quantity: 60,
     unit: "Pair",
-    short_description: "Clean white leather sneakers with a cushioned footbed — everyday comfort.",
+    short_description: "Premium leather sneakers with a cushioned footbed — everyday comfort.",
     description:
       "Premium leather sneakers in a clean minimalist silhouette. Cushioned memory-foam footbed and a flexible rubber outsole make them perfect for all-day everyday wear.",
     badge_text: "Everyday Comfort",
     short_features: ["Genuine Leather", "Memory-Foam Footbed", "Flexible Outsole"],
     og_title: "Minimalist Leather Sneakers — Everyday Comfort | Leather Wallah",
     og_description:
-      "Clean white leather sneakers with a memory-foam footbed and flexible rubber outsole. Premium everyday comfort.",
+      "Premium leather sneakers with a memory-foam footbed and flexible rubber outsole. All-day everyday comfort.",
     main_image: {
-      slug: "sneaker-main",
-      url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900&q=80",
+      slug: "sneaker-main-v2",
+      url: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=900&q=80",
     },
     other_images: [
-      { slug: "sneaker-2", url: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=900&q=80" },
+      { slug: "sneaker-2-v2", url: "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=900&q=80" },
     ],
     benefits: ["All-day cushioning", "Breathable leather", "Versatile minimalist look", "Durable outsole"],
     use_cases: [{ text: "Everyday casual" }, { text: "Walking & travel" }, { text: "Weekend outings" }],
@@ -399,8 +399,8 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     og_description:
       "Handcrafted suede Chelsea boots with elastic side gussets and a stacked heel. Easy pull-on fit, year-round staple.",
     main_image: {
-      slug: "chelsea-main",
-      url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=900&q=80",
+      slug: "chelsea-main-v2",
+      url: "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=900&q=80",
     },
     other_images: [
       { slug: "chelsea-2", url: "https://images.unsplash.com/photo-1605733513597-a8f8341084e6?w=900&q=80" },

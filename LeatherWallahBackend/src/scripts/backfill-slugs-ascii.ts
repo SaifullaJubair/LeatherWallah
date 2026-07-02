@@ -26,7 +26,7 @@
  * The original ObjectId is preserved.
  *
  * Usage:
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   NODE_ENV=development npx ts-node-dev --transpile-only src/scripts/backfill-slugs-ascii.ts
  */
 

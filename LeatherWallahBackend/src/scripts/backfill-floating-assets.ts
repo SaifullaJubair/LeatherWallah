@@ -33,7 +33,7 @@
  *     re-converted (guards against double-import on re-run).
  *
  * Usage:
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   node node_modules/ts-node-dev/lib/bin.js --transpile-only src/scripts/backfill-floating-assets.ts
  */
 

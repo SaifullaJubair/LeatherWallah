@@ -41,3 +41,7 @@ BuisnessPLan/
 # Claude session scratch — Playwright test runs, results, screenshots
 # (only this subfolder; the rest of .claude/work/ stays tracked)
 .claude/work/playwright-tests/
+
+# Debug/QA screenshots (local only)
+*.jpeg
+LeatherWallahFrontend/public/img-check.html

@@ -29,9 +29,9 @@ const DEFAULT_PAGES: IPageSeo[] = [
   {
     page_key: "home",
     path: "",
-    title: "Premium Genuine Leather Wallets, Ladies Bags & Belts in Bangladesh",
+    title: "Premium Genuine Leather Footwear in Bangladesh | Leather Wallah",
     description:
-      "বাংলাদেশে ১০০% খাঁটি চামড়ার মানিব্যাগ, স্টাইলিশ লেডিস ব্যাগ ও মজবুত বেল্টের বিশাল কালেকশন। প্রিমিয়াম কোয়ালিটি ও ফাস্ট ক্যাশ অন ডেলিভারি সুবিধা।",
+      "Shop handcrafted genuine leather shoes, loafers, sneakers, boots and accessories in Bangladesh. Premium quality with fast cash on delivery nationwide.",
     noIndex: false,
   },
   // Main product-listing page (the storefront's /shop). buildPageMeta("shop")
@@ -50,46 +50,46 @@ const DEFAULT_PAGES: IPageSeo[] = [
   {
     page_key: "allProducts",
     path: "all-products",
-    title: "All Products | Shop All Genuine Leather Products",
+    title: "All Products | Shop All Genuine Leather Footwear",
     description:
-      "আমাদের সব এক্সক্লুসিভ লেদার কালেকশন। প্রিমিয়াম মানিব্যাগ, ফ্যাশনেবল লেডিস ব্যাগ ও টেকসই লেদার বেল্ট কিনুন সেরা দামে।",
+      "Explore our full leather collection — premium shoes, loafers, sneakers, boots and accessories at the best prices.",
     noIndex: true,
   },
   {
     page_key: "allTrending",
     path: "all-trending-products",
-    title: "Trending Products | Best Selling Wallets & Bags",
+    title: "Trending Products | Best Selling Leather Footwear",
     description:
-      "বর্তমানে সবচেয়ে জনপ্রিয় ও ট্রেন্ডিং লেদার প্রোডাক্টগুলো দেখে নিন।",
+      "Discover our most popular and trending leather footwear right now.",
     noIndex: true,
   },
   {
     page_key: "newArrival",
     path: "new-arrival",
-    title: "New Arrival Leather Collection | Latest Wallets & Belts",
+    title: "New Arrival Leather Collection | Latest Shoes & Boots",
     description:
-      "আমাদের স্টকে আসা একদম নতুন ডিজাইনের লেদার মানিব্যাগ, লেডিস ব্যাগ এবং বেল্ট।",
+      "Just-landed leather footwear — the newest designs in shoes, loafers, sneakers and boots.",
     noIndex: true,
   },
   {
     page_key: "topProduct",
     path: "top-product",
-    title: "Top Rated Leather Products | Premium Quality Selection",
-    description: "সবচেয়ে বেশি বিক্রিত এবং টপ রেটেড লেদার আইটেম।",
+    title: "Top Rated Leather Footwear | Premium Quality Selection",
+    description: "Our best-selling and top-rated leather footwear.",
     noIndex: true,
   },
   {
     page_key: "latestProduct",
     path: "latest-product",
     title: "Latest Leather Goods | Just Launched Collection",
-    description: "নতুন এবং এক্সক্লুসিভ সব লেদার এক্সেসরিজ।",
+    description: "New and exclusive leather footwear and accessories.",
     noIndex: true,
   },
   {
     page_key: "aboutUs",
     path: "about-us",
-    title: "About Our Brand | Trusted Leather Goods Shop in BD",
-    description: "বাংলাদেশে খাঁটি চামড়ার পণ্য সরবরাহে আমরা একটি বিশ্বস্ত নাম।",
+    title: "About Our Brand | Trusted Leather Footwear Shop in BD",
+    description: "A trusted name for genuine leather footwear in Bangladesh.",
     noIndex: false,
   },
   {

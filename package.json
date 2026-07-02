@@ -1,14 +1,14 @@
 {
-  "name": "fruitsnacks-monorepo",
+  "name": "leather-wallah-monorepo",
   "private": true,
   "version": "1.0.0",
-  "description": "FruitSnacks 3-app monorepo — backend + admin + frontend",
+  "description": "Leather Wallah 3-app monorepo — backend + admin + frontend",
   "scripts": {
     "dev": "concurrently --names \"BE,AD,FE\" --prefix-colors \"cyan,yellow,green\" \"npm:dev:be\" \"npm:dev:ad\" \"npm:dev:fe\"",
-    "dev:be": "cross-env NODE_ENV=development npm --prefix FruitSnacksBackend run dev",
-    "dev:ad": "cross-env NODE_ENV=development npm --prefix FruitSnacksAdmin run dev",
-    "dev:fe": "cross-env NODE_ENV=development npm --prefix FruitSnacksFrontend run dev",
-    "install:all": "npm install && npm --prefix FruitSnacksBackend install && npm --prefix FruitSnacksAdmin install && npm --prefix FruitSnacksFrontend install"
+    "dev:be": "cross-env NODE_ENV=development npm --prefix LeatherWallahBackend run dev",
+    "dev:ad": "cross-env NODE_ENV=development npm --prefix LeatherWallahAdmin run dev",
+    "dev:fe": "cross-env NODE_ENV=development npm --prefix LeatherWallahFrontend run dev",
+    "install:all": "npm install && npm --prefix LeatherWallahBackend install && npm --prefix LeatherWallahAdmin install && npm --prefix LeatherWallahFrontend install"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

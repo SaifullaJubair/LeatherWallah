@@ -31,7 +31,7 @@
  *   set real values for a client and change the password after first login.
  *
  * Usage:
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   npm run bootstrap                 # fresh-DB setup
  *   npm run bootstrap -- --sync-superadmin   # refresh super-admin flags only
  */

@@ -13,7 +13,7 @@
  * non-zero).
  *
  * Usage (one-off, on deploy):
- *   cd FruitSnacksBackend
+ *   cd LeatherWallahBackend
  *   npx ts-node-dev --transpile-only src/scripts/zero-product-qty-when-variation.ts
  */
 
