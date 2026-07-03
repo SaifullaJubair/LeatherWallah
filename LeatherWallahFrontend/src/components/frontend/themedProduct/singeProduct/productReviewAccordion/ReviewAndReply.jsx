@@ -12,7 +12,7 @@ const ReviewAndReply = ({ singleProduct, reviewsData }) => {
       {reviewsData?.data?.map((review) => {
         // Seeded reviews have no review_user_id — fall back to reviewer_name.
         const displayName =
-          review?.review_user_id?.user_name || review?.reviewer_name || "ক্রেতা";
+          review?.review_user_id?.user_name || review?.reviewer_name || "Customer";
         return (
         <div className="mb-6" key={review?._id}>
           <div className="flex items-start space-x-4">

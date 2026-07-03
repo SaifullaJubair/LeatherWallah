@@ -59,9 +59,9 @@ export default function VideoSection({ product, theme }) {
               {product?.video_title || (
                 <>
                   <span style={{ color: "var(--brand-primary)" }}>
-                    {product?.product_name || "পণ্য"}
+                    {product?.product_name || "Product"}
                   </span>{" "}
-                  – ভিডিও
+                  – Video
                 </>
               )}
             </h2>
@@ -170,7 +170,7 @@ export default function VideoSection({ product, theme }) {
                     <button
                       type="button"
                       onClick={handlePlay}
-                      aria-label="ভিডিও চালান"
+                      aria-label="Play video"
                       className="absolute inset-0 flex items-center justify-center transition-opacity"
                       style={{ background: "rgba(0,0,0,0.18)" }}
                     >

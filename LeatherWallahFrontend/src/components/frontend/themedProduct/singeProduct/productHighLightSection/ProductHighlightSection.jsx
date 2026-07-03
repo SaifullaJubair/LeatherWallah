@@ -295,7 +295,7 @@ const ProductHighlightSection = ({
           </div>
           {quantity >= stock && stock > 0 && (
             <p className="text-xs text-orange-500 font-medium w-full mt-1">
-              সর্বোচ্চ {stock}টি যোগ করা যাবে
+              Maximum {stock} can be added
             </p>
           )}
 

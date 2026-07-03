@@ -55,7 +55,7 @@ export default function DescriptionCard({ html, customFields = [] }) {
         {/* LEFT — description */}
         {hasHtml && (
           <div className="flex flex-col">
-            <SectionTitle>পণ্য সম্পর্কে</SectionTitle>
+            <SectionTitle>About This Product</SectionTitle>
             <div
               className="rounded-2xl shadow-sm p-5 md:p-6 flex-1 flex flex-col min-h-0"
               style={{ background: "#fff" }}
@@ -91,7 +91,7 @@ export default function DescriptionCard({ html, customFields = [] }) {
                   className="mt-3 shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold self-start"
                   style={{ color: "var(--brand-primary)" }}
                 >
-                  {expanded ? "কম দেখুন" : "আরও পড়ুন"}
+                  {expanded ? "Show less" : "Read more"}
                   <FaChevronDown
                     size={12}
                     className="transition-transform duration-200"
@@ -106,7 +106,7 @@ export default function DescriptionCard({ html, customFields = [] }) {
         {/* RIGHT — spec sheet (custom_fields), always fully visible */}
         {hasSpec && (
           <div className="flex flex-col">
-            <SectionTitle>পণ্যের বিবরণ</SectionTitle>
+            <SectionTitle>Specifications</SectionTitle>
             <ul
               className="rounded-2xl shadow-sm divide-y overflow-hidden flex-1"
               style={{ background: "#fff", borderColor: "var(--section-bg)" }}

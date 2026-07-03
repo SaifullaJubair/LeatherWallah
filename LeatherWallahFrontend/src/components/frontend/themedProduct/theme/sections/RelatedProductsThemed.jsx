@@ -37,7 +37,7 @@ export default function RelatedProductsThemed({ product_slug }) {
               fontWeight: "var(--brand-heading-weight, 700)",
             }}
           >
-            এগুলোও পছন্দ হতে পারে
+            You May Also Like
           </h2>
         </div>
 

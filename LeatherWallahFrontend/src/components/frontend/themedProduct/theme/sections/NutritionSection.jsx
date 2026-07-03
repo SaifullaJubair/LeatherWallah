@@ -26,19 +26,19 @@ const TRUST_ICONS = [
 // Soft subtitles used when admin hasn't supplied one (theme reference shows
 // every trust tile with a short supporting line). Cycles if more than 6.
 const TRUST_FALLBACK_SUBS = [
-  "কোনো কৃত্রিম উপাদান নয়",
-  "১০০% নিরাপদ",
-  "প্রিমিয়াম কোয়ালিটি",
-  "ফ্রেশ ও বিশুদ্ধ",
-  "সারাদেশে দ্রুত পৌঁছে",
-  "আমাদের অঙ্গীকার",
+  "Genuine leather",
+  "100% authentic",
+  "Premium quality",
+  "Handcrafted",
+  "Fast nationwide delivery",
+  "Our promise",
 ];
 
 // Filler tiles to complete the 6-cell grid when admin only set 4 trust cards.
 // These render only if the real trust list has fewer than 6 items.
 const TRUST_EXTRA = [
-  { title: "ফ্রেশ ও বিশুদ্ধ", description: "সরাসরি ফার্ম থেকে" },
-  { title: "গ্রাহক সন্তুষ্টি", description: "আমাদের অঙ্গীকার" },
+  { title: "Genuine Leather", description: "Premium full-grain" },
+  { title: "Customer Satisfaction", description: "Our commitment" },
 ];
 
 export default function NutritionSection({ product, theme, trustPoints }) {
@@ -76,7 +76,7 @@ export default function NutritionSection({ product, theme, trustPoints }) {
         {hasNutrition && (
           <div className="flex flex-col">
             <Heading>
-              পুষ্টি তথ্য {n?.per_serving ? `(${n.per_serving})` : ""}
+              {n?.per_serving?.trim() ? n.per_serving : "Product Highlights"}
             </Heading>
 
             <div
@@ -147,10 +147,10 @@ export default function NutritionSection({ product, theme, trustPoints }) {
           </div>
         )}
 
-        {/* ── RIGHT: আমাদের প্রতিশ্রুতি (trust 3×2 grid, compact tiles) ── */}
+        {/* ── RIGHT: Our Promise (trust 3×2 grid, compact tiles) ── */}
         {trust.length > 0 && (
           <div className="flex flex-col">
-            <Heading>আমাদের প্রতিশ্রুতি</Heading>
+            <Heading>Our Promise</Heading>
             <div
               className="rounded-2xl shadow-sm p-5 md:p-6 grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-6 flex-1 content-around"
               style={{ background: "#fff" }}

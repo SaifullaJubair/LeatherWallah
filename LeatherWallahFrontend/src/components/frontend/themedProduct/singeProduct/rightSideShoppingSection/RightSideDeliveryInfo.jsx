@@ -97,10 +97,10 @@ const RightSideDeliveryInfo = ({
         </span>
         <div>
           <p className="text-sm font-bold" style={{ color: "var(--heading-color)" }}>
-            অর্ডার তথ্য দিন
+            Enter Order Details
           </p>
           <p className="text-[11px]" style={{ color: "var(--body-color)", opacity: 0.7 }}>
-            ক্যাশ অন ডেলিভারি · দ্রুত শিপিং
+            Cash on Delivery · Fast Shipping
           </p>
         </div>
       </div>
@@ -115,14 +115,14 @@ const RightSideDeliveryInfo = ({
               style={{ color: "var(--heading-color)" }}
             >
               <FiUser size={12} style={{ color: "var(--brand-primary)" }} />
-              আপনার নাম
+              Your Name
             </label>
             <input
-              {...register("customer_name", { required: "নাম দিন" })}
+              {...register("customer_name", { required: "Please enter your name" })}
               type="text"
               readOnly={!!userInfo?.data}
               defaultValue={userInfo?.data?.user_name}
-              placeholder="আপনার পুরো নাম"
+              placeholder="Your full name"
               className="themed-input w-full px-3.5 py-3 text-sm rounded-xl border-2 outline-none transition-all placeholder:text-gray-400 bg-white read-only:bg-gray-50 read-only:text-gray-600"
             />
             {errors.customer_name && (
@@ -139,15 +139,15 @@ const RightSideDeliveryInfo = ({
               style={{ color: "var(--heading-color)" }}
             >
               <FiPhone size={12} style={{ color: "var(--brand-primary)" }} />
-              মোবাইল নম্বর
+              Mobile Number
             </label>
             {userInfo?.data?.user_phone ? (
               <input
                 {...register("customer_phone", {
-                  required: "মোবাইল নম্বর দিন",
+                  required: "Please enter your mobile number",
                   pattern: {
                     value: /^(?:\+88|88)?(01[3-9]\d{8})$/,
-                    message: "সঠিক নম্বর দিন",
+                    message: "Please enter a valid number",
                   },
                 })}
                 onChange={() => setUserPhoneLogin(true)}
@@ -184,10 +184,10 @@ const RightSideDeliveryInfo = ({
                 style={{ color: "var(--heading-color)" }}
               >
                 <FiMapPin size={12} style={{ color: "var(--brand-primary)" }} />
-                জেলা
+                District
               </label>
               <Select
-                placeholder="সিলেক্ট করুন"
+                placeholder="Select"
                 options={cities}
                 value={division ? { city_name: division } : null}
                 getOptionLabel={(x) => x?.city_name}
@@ -213,10 +213,10 @@ const RightSideDeliveryInfo = ({
                   style={{ color: "var(--heading-color)" }}
                 >
                   <FiMapPin size={12} style={{ color: "var(--brand-primary)" }} />
-                  থানা
+                  Thana / Area
                 </label>
                 <Select
-                  placeholder="সিলেক্ট করুন"
+                  placeholder="Select"
                   options={zoneData?.data}
                   value={district ? { zone_name: district } : null}
                   getOptionLabel={(x) => x?.zone_name}
@@ -242,13 +242,13 @@ const RightSideDeliveryInfo = ({
               style={{ color: "var(--heading-color)" }}
             >
               <FiHome size={12} style={{ color: "var(--brand-primary)" }} />
-              সম্পূর্ণ ঠিকানা
+              Full Address
             </label>
             <input
-              {...register("address", { required: "ঠিকানা দিন" })}
+              {...register("address", { required: "Please enter your address" })}
               type="text"
               defaultValue={userInfo?.data?.user_address}
-              placeholder="বাড়ি, রোড, এলাকা..."
+              placeholder="House, road, area..."
               className="themed-input w-full px-3.5 py-3 text-sm rounded-xl border-2 outline-none transition-all placeholder:text-gray-400"
             />
             {errors.address && (

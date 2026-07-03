@@ -91,7 +91,7 @@ const SoldBadge = ({ soldCount }) => {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">
       <FaShoppingBag size={11} />
-      {n.toLocaleString()}+ ইতিমধ্যে কিনেছেন
+      {n.toLocaleString()}+ already bought
     </span>
   );
 };
@@ -103,7 +103,7 @@ const ViewBadge = ({ viewCount }) => {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-50 border border-sky-100 text-sky-700">
       <FaEye size={11} />
-      {n.toLocaleString()} জন দেখেছেন
+      {n.toLocaleString()} viewing
     </span>
   );
 };

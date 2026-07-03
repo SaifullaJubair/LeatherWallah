@@ -59,7 +59,7 @@ export default function BenefitsUseCasesSection({ product, theme }) {
         {/* ── Benefits ── */}
         {benefits.length > 0 && (
           <div className="flex flex-col">
-            <Heading>{product?.product_name} এর উপকারিতা</Heading>
+            <Heading>Why You'll Love It</Heading>
             <div
               className="relative rounded-2xl shadow-sm p-5 md:p-6 overflow-hidden flex-1"
               style={{ background: "#fff" }}
@@ -107,7 +107,7 @@ export default function BenefitsUseCasesSection({ product, theme }) {
         {/* ── Use cases ── */}
         {useCases.length > 0 && (
           <div className="flex flex-col">
-            <Heading>কোথায় ব্যবহার করবেন?</Heading>
+            <Heading>Perfect For</Heading>
             <div
               className="relative rounded-2xl shadow-sm p-5 md:p-6 overflow-hidden flex-1"
               style={{ background: "#fff" }}

@@ -773,7 +773,7 @@ const SingleProduct = ({ product, theme }) => {
                       color: "var(--brand-primary-dark)",
                     }}
                   >
-                    {discountPct}% ছাড়
+                    {discountPct}% OFF
                   </span>
                 )}
               </div>
@@ -826,7 +826,7 @@ const SingleProduct = ({ product, theme }) => {
                     {rating}
                   </span>
                   <span className="text-sm text-gray-400">
-                    ({product?.total_review_ratting || 0}+ রিভিউ)
+                    ({product?.total_review_ratting || 0}+ reviews)
                   </span>
                 </div>
               )}
@@ -842,7 +842,7 @@ const SingleProduct = ({ product, theme }) => {
                     color: "var(--button-text, #fff)",
                   }}
                 >
-                  অর্ডার করুন এখনই <BsCartCheckFill size={14} />
+                  Order Now <BsCartCheckFill size={14} />
                 </a>
                 <WhatsAppOrderButton
                   whatsappNumber={whatsappNumber}
@@ -891,7 +891,7 @@ const SingleProduct = ({ product, theme }) => {
               className="relative z-10 text-xl md:text-2xl font-bold mb-5"
               style={{ color: "var(--heading-color)" }}
             >
-              অর্ডার করুন এখনই
+              Order Now
             </h2>
 
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -944,7 +944,7 @@ const SingleProduct = ({ product, theme }) => {
                     <>
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-xs font-semibold text-emerald-700">
-                        স্টকে আছে
+                        In Stock
                         {showStockCountOnPdp && (
                           <span
                             className={
@@ -953,14 +953,14 @@ const SingleProduct = ({ product, theme }) => {
                                 : "text-emerald-700 ml-1.5"
                             }
                           >
-                            · {stock}টি{stock <= 10 ? " বাকি!" : ""}
+                            · {stock} left{stock <= 10 ? "!" : ""}
                           </span>
                         )}
                       </span>
                     </>
                   ) : (
                     <span className="text-xs font-semibold text-red-600">
-                      স্টক শেষ
+                      Out of Stock
                     </span>
                   )}
                 </div>
@@ -972,7 +972,7 @@ const SingleProduct = ({ product, theme }) => {
                       className="text-sm font-semibold"
                       style={{ color: "var(--body-color)" }}
                     >
-                      পরিমাণ:
+                      Quantity:
                     </span>
                     <div
                       className="flex items-center overflow-hidden border-2"
@@ -1010,7 +1010,7 @@ const SingleProduct = ({ product, theme }) => {
 
                   <div className="flex items-center gap-2">
                     <span className="text-sm" style={{ color: "var(--body-color)" }}>
-                      মোট:
+                      Total:
                     </span>
                     {/* Show strikethrough subtotal when there's a discount so
                         the savings are visible on the inline total too. */}
@@ -1048,11 +1048,11 @@ const SingleProduct = ({ product, theme }) => {
                     >
                       {cartAnim ? (
                         <>
-                          <BsCartCheckFill size={16} /> কার্টে যোগ হয়েছে!
+                          <BsCartCheckFill size={16} /> Added to Cart!
                         </>
                       ) : (
                         <>
-                          <BsCart size={16} /> কার্টে যোগ করুন
+                          <BsCart size={16} /> Add to Cart
                         </>
                       )}
                     </button>
@@ -1092,19 +1092,19 @@ const SingleProduct = ({ product, theme }) => {
                   style={{ background: "#fff", color: "var(--body-color)" }}
                 >
                   <div className="flex justify-between">
-                    <span>সাবটোটাল</span>
+                    <span>Subtotal</span>
                     <span>{currencySymbol}{shopSubtotals}</span>
                   </div>
                   {totalDiscount > 0 && (
                     <div className="flex justify-between text-emerald-600">
-                      <span>ছাড়</span>
+                      <span>Discount</span>
                       <span>- {currencySymbol}{totalDiscount}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span>ডেলিভারি চার্জ</span>
+                    <span>Delivery Charge</span>
                     <span>
-                      {division ? `${currencySymbol}${shippingCharge}` : "এলাকা সিলেক্ট করুন"}
+                      {division ? `${currencySymbol}${shippingCharge}` : "Select area"}
                     </span>
                   </div>
                   <div
@@ -1112,7 +1112,7 @@ const SingleProduct = ({ product, theme }) => {
                     style={{ borderColor: "var(--brand-primary-light)" }}
                   >
                     <span className="font-bold" style={{ color: "var(--heading-color)" }}>
-                      সর্বমোট
+                      Grand Total
                     </span>
                     <span className="text-2xl font-black" style={{ color: "var(--brand-primary)" }}>
                       {currencySymbol}{shopGrandTotals}
@@ -1127,7 +1127,7 @@ const SingleProduct = ({ product, theme }) => {
                     style={{ background: "var(--brand-primary)", color: "var(--button-text,#fff)", opacity: 0.8 }}
                   >
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    অর্ডার হচ্ছে...
+                    Placing order...
                   </div>
                 ) : stock > 0 ? (
                   <button
@@ -1139,7 +1139,7 @@ const SingleProduct = ({ product, theme }) => {
                       borderRadius: "var(--button-radius, 8px)",
                     }}
                   >
-                    অর্ডার কনফার্ম করুন <FaLock size={13} />
+                    Confirm Order <FaLock size={13} />
                   </button>
                 ) : (
                   <div className="w-full py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500 rounded-xl">
@@ -1147,7 +1147,7 @@ const SingleProduct = ({ product, theme }) => {
                   </div>
                 )}
                 <p className="text-center text-[11px]" style={{ color: "var(--body-color)", opacity: 0.6 }}>
-                  আপনার তথ্য ১০০% নিরাপদ এবং গোপনীয়
+                  Your information is 100% safe and private
                 </p>
               </div>
 

@@ -60,9 +60,9 @@ export default function OfferBanner({ product, setting }) {
   );
 
   const perks = [
-    { icon: <FaTruckFast size={15} />, text: "ফ্রি ডেলিভারি" },
-    { icon: <FaMoneyBillWave size={15} />, text: "ক্যাশ অন ডেলিভারি" },
-    { icon: <FaArrowRotateLeft size={15} />, text: "সহজ রিটার্ন পলিসি" },
+    { icon: <FaTruckFast size={15} />, text: "Free Delivery" },
+    { icon: <FaMoneyBillWave size={15} />, text: "Cash on Delivery" },
+    { icon: <FaArrowRotateLeft size={15} />, text: "Easy Return Policy" },
   ];
 
   return (
@@ -74,26 +74,26 @@ export default function OfferBanner({ product, setting }) {
             className="text-sm font-semibold mb-1 opacity-90"
             style={{ color: "var(--button-text, #fff)" }}
           >
-            আজকের বিশেষ অফার
+            Today's Special Offer
           </p>
           <h2
             className="text-2xl md:text-3xl font-black mb-3"
             style={{ color: "var(--button-text, #fff)" }}
           >
-            {offerText || "২ টি কিনলে ১ টি ফ্রি"}
+            {offerText || "Buy 2 Get 1 Free"}
           </h2>
           <div className="flex gap-2 justify-center md:justify-start">
             {d > 0 && (
               <>
-                <TimeBox value={String(d).padStart(2, "0")} label="দিন" />
+                <TimeBox value={String(d).padStart(2, "0")} label="Days" />
                 <span className="text-xl font-black self-start mt-2" style={{ color: "var(--button-text, #fff)" }}>:</span>
               </>
             )}
-            <TimeBox value={h} label="ঘণ্টা" />
+            <TimeBox value={h} label="Hours" />
             <span className="text-xl font-black self-start mt-2" style={{ color: "var(--button-text, #fff)" }}>:</span>
-            <TimeBox value={m} label="মিনিট" />
+            <TimeBox value={m} label="Min" />
             <span className="text-xl font-black self-start mt-2" style={{ color: "var(--button-text, #fff)" }}>:</span>
-            <TimeBox value={s} label="সেকেন্ড" />
+            <TimeBox value={s} label="Sec" />
           </div>
         </div>
 
