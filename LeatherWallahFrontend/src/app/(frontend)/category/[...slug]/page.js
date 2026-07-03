@@ -29,7 +29,7 @@ export async function generateMetadata({ params }) {
     const rootName = slugToName(rootSlug);
     const pageTitle = leafSlug !== rootSlug ? `${leafName} – ${rootName}` : leafName;
 
-    const description = `${seo.siteName} এর ${pageTitle} collection। Premium quality, affordable price। Cash on delivery সারাদেশে।`;
+    const description = `Explore the ${pageTitle} collection at ${seo.siteName}. Premium quality, affordable prices, cash on delivery nationwide.`;
     const canonicalSlug = slug.join("/");
     const url = seo.joinUrl(seo.siteUrl, `category/${canonicalSlug}`);
 

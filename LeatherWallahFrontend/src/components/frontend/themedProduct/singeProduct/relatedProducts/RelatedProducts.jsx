@@ -28,7 +28,7 @@ const RelatedProducts = ({ product_slug }) => {
           className="text-xl md:text-2xl font-bold"
           style={{ color: "var(--heading-color)", fontWeight: "var(--brand-heading-weight, 700)" }}
         >
-          এগুলোও পছন্দ হতে পারে
+          You May Also Like
         </h2>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

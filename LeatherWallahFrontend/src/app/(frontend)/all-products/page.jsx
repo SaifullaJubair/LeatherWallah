@@ -10,7 +10,7 @@ export async function generateMetadata({ searchParams }) {
     const seo = await getSeoConfig();
     return {
       title: `"${search}" – Search Results`,
-      description: `${seo.siteName} এ "${search}" এর search results।`,
+      description: `Search results for "${search}" on ${seo.siteName}.`,
       robots: { index: false, follow: true },
     };
   }

@@ -7,9 +7,9 @@ import Contain from "@/components/common/Contain";
 import Reveal from "../boutique/reveal";
 import { GlowBlob } from "../boutique/bits";
 
-// Niche-neutral trust pills under the story copy. Food-friendly defaults; a
+// Niche-neutral trust pills under the story copy. Sensible defaults; a
 // future setting could make these editable, but they read true for any shop.
-const TRUST_PILLS = ["১০০% প্রাকৃতিক", "প্রিজারভেটিভ ছাড়া", "দ্রুত হোম ডেলিভারি", "মান-নিশ্চয়তা"];
+const TRUST_PILLS = ["100% Genuine Leather", "Handcrafted", "Fast Home Delivery", "Quality Assured"];
 
 /**
  * Story Band — the calm "why us / brand story" beat between product rows.
@@ -52,7 +52,7 @@ export default function StoryBand({ settings }) {
           {/* Copy */}
           <div className="relative z-10 order-2 flex flex-col gap-5">
             <Reveal as="span" className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-primary-500">
-              আমাদের সম্পর্কে
+              About Us
             </Reveal>
             {title && (
               <Reveal as="h2" delay={0.04} className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">

@@ -60,7 +60,7 @@ export default function ReviewsSection({ product, theme }) {
               fontWeight: "var(--brand-heading-weight, 700)",
             }}
           >
-            প্রাহকদের ভালোবাসা
+            Loved by Customers
           </h2>
         </div>
 

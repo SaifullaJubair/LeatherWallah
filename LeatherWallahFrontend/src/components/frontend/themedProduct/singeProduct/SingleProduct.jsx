@@ -1143,7 +1143,7 @@ const SingleProduct = ({ product, theme }) => {
                   </button>
                 ) : (
                   <div className="w-full py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500 rounded-xl">
-                    স্টক শেষ
+                    Out of Stock
                   </div>
                 )}
                 <p className="text-center text-[11px]" style={{ color: "var(--body-color)", opacity: 0.6 }}>

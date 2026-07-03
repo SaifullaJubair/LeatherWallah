@@ -30,7 +30,7 @@ export default function WhatsAppOrderButton({
         background: "white",
       }}
     >
-      <FaWhatsapp size={18} /> WhatsApp এ অর্ডার
+      <FaWhatsapp size={18} /> Order on WhatsApp
     </a>
   );
 }

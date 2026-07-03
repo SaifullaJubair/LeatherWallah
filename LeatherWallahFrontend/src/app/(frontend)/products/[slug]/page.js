@@ -79,7 +79,7 @@ export async function generateMetadata({ params }) {
   const pageTitle = product?.meta_title || product?.product_name;
   const description =
     product?.meta_description ||
-    `${product?.product_name} – ${seo.siteName} এ পাচ্ছেন মাত্র ${seo.currencySymbol}${price ?? ""}। Cash on delivery সারাদেশে।`;
+    `${product?.product_name} – available at ${seo.siteName} for just ${seo.currencySymbol}${price ?? ""}. Cash on delivery nationwide.`;
   const keywordsList = Array.isArray(product?.meta_keywords)
     ? product.meta_keywords.filter(Boolean)
     : [];

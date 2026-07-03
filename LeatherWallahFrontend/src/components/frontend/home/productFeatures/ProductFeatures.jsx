@@ -223,17 +223,17 @@ function FeatureRow({ product, index, currency }) {
       <Reveal delay={0.25} className="flex items-center gap-2.5 pt-1">
         <MotionButton
           onClick={() => actions.handleAddToCart(activeVar?._id || null)}
-          aria-label="কার্টে যোগ করুন"
-          title="কার্টে যোগ করুন"
+          aria-label="Add to cart"
+          title="Add to cart"
           className="inline-flex items-center justify-center gap-2 h-11 w-11 sm:w-auto sm:px-4 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-primary-600 hover:border-primary-400 transition-colors text-sm font-medium"
         >
           <FiShoppingCart className="shrink-0" />
-          <span className="hidden sm:inline">কার্ট</span>
+          <span className="hidden sm:inline">Cart</span>
         </MotionButton>
         <MotionButton
           onClick={actions.toggleWishlist}
-          aria-label="উইশলিস্ট"
-          title="উইশলিস্ট"
+          aria-label="Wishlist"
+          title="Wishlist"
           className={`inline-flex items-center justify-center gap-2 h-11 w-11 sm:w-auto sm:px-4 rounded-full border transition-colors text-sm font-medium ${
             actions.wishlisted
               ? "bg-red-50 border-red-200 text-red-500"
@@ -241,16 +241,16 @@ function FeatureRow({ product, index, currency }) {
           }`}
         >
           <FiHeart className={`shrink-0 ${actions.wishlisted ? "fill-current" : ""}`} />
-          <span className="hidden sm:inline">উইশলিস্ট</span>
+          <span className="hidden sm:inline">Wishlist</span>
         </MotionButton>
         <MotionButton
           onClick={() => actions.setQuickView(true)}
-          aria-label="দ্রুত দেখুন"
-          title="দ্রুত দেখুন"
+          aria-label="Quick view"
+          title="Quick view"
           className="inline-flex items-center justify-center gap-2 h-11 w-11 sm:w-auto sm:px-4 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-primary-600 hover:border-primary-400 transition-colors text-sm font-medium"
         >
           <FiEye className="shrink-0" />
-          <span className="hidden sm:inline">দেখুন</span>
+          <span className="hidden sm:inline">View</span>
         </MotionButton>
       </Reveal>
 
@@ -260,13 +260,13 @@ function FeatureRow({ product, index, currency }) {
           onClick={() => actions.buyNow(activeVar?._id || null)}
           className="inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white px-7 py-3 rounded-full font-semibold transition-colors shadow-lg shadow-primary-500/25"
         >
-          এখনই অর্ডার করুন
+          Order Now
         </MotionButton>
         <Link
           href={href}
           className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full font-semibold border border-gray-300 text-gray-700 hover:border-primary-400 hover:text-primary-600 transition-colors"
         >
-          বিস্তারিত দেখুন
+          View Details
         </Link>
       </Reveal>
     </div>
@@ -312,9 +312,9 @@ export default function ProductFeatures() {
     <section className="py-8 md:py-16">
       <Contain>
         <SectionHeading
-          eyebrow="আমাদের পণ্য"
-          title="হাতে বাছাই করা সেরা পণ্য"
-          subtitle="প্রতিটি পণ্য যত্ন নিয়ে বাছাই করা — তাজা, প্রাকৃতিক ও স্বাস্থ্যকর।"
+          eyebrow="Our Collection"
+          title="Handpicked Leather Essentials"
+          subtitle="Every piece is carefully selected — genuine leather, expert craftsmanship, built to last."
         />
         <div className="space-y-6 md:space-y-10">
           {rows.map((p, i) => (

@@ -27,14 +27,15 @@ export async function getSeoConfig() {
     s?.seo_title || `${siteName} – Premium Genuine Leather Footwear Bangladesh`;
   const seoDescription =
     s?.seo_description ||
-    `${siteName} – Bangladesh এর সেরা genuine leather wallet, bag ও belt। High quality, affordable price। Cash on delivery সারাদেশে।`;
+    `${siteName} – Bangladesh's finest genuine-leather footwear: Oxfords, loafers, sneakers and boots. High quality, affordable prices, cash on delivery nationwide.`;
   const seoKeywords = s?.seo_keywords
     ? s.seo_keywords.split(",").map((k) => k.trim())
     : [
-        "leather wallet",
+        "leather shoes",
         "genuine leather",
-        "leather bag",
-        "leather belt",
+        "leather boots",
+        "leather loafers",
+        "oxford shoes",
         "bangladesh",
       ];
 

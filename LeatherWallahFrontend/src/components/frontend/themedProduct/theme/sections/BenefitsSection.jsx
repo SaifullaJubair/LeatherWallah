@@ -30,7 +30,7 @@ export default function BenefitsSection({ product, theme }) {
               fontWeight: "var(--brand-heading-weight, 700)",
             }}
           >
-            {product?.product_name} এর উপকারিতা
+            Why You'll Love the {product?.product_name}
           </h2>
         </div>
 

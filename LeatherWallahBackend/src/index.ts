@@ -53,6 +53,7 @@ app.use(express.urlencoded({ extended: true, limit: "200kb" }));
 const DEV_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:3001",
+  "http://localhost:3005",
   "http://localhost:4173",
 ];
 

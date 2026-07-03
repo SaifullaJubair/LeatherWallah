@@ -49,7 +49,7 @@ export default function FaqSection({ product, theme }) {
                 fontWeight: "var(--brand-heading-weight, 700)",
               }}
             >
-              সাধারণ কিছু প্রশ্ন
+              Frequently Asked Questions
             </h2>
           </div>
 

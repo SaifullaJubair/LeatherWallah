@@ -27,7 +27,7 @@ export default function UseCasesSection({ product, theme }) {
               fontWeight: "var(--brand-heading-weight, 700)",
             }}
           >
-            কোথায় ব্যবহার করবেন?
+            Perfect For
           </h2>
         </div>
 

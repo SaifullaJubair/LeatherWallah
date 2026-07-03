@@ -17,7 +17,7 @@ export function buildWhatsAppLink({
 }) {
   const phone = normalizePhone(whatsappNumber);
   if (!phone) return null;
-  const lines = ["আমি একটি অর্ডার করতে চাই:"];
+  const lines = ["I'd like to place an order:"];
   if (productName) lines.push(`Product: ${productName}`);
   if (variantName) lines.push(`Variant: ${variantName}`);
   if (price) lines.push(`Price: ৳${price}`);

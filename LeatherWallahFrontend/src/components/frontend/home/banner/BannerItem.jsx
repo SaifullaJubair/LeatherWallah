@@ -79,7 +79,7 @@ const BannerItem = ({ bannerData }) => {
                       href={banner.banner_path}
                       className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-6 sm:px-7 py-2.5 sm:py-3 rounded-full transition-all hover:scale-[1.03] w-fit shadow-lg shadow-primary-500/30"
                     >
-                      এখনই কিনুন →
+                      Shop Now →
                     </Link>
                   )}
                 </div>

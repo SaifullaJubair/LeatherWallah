@@ -66,7 +66,7 @@ export default function HeroSpotlight() {
           {/* Copy */}
           <div className="relative z-10 order-2 lg:order-1 flex flex-col gap-5">
             <Reveal as="span" className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-primary-500">
-              ★ আজকের বিশেষ পণ্য
+              ★ Today's Featured Pick
             </Reveal>
             {product.badge_text && (
               <Reveal as="span" delay={0.04} className="self-start rounded-full bg-primary-500/10 text-primary-600 px-4 py-1.5 text-sm font-semibold">
@@ -97,17 +97,17 @@ export default function HeroSpotlight() {
             <Reveal delay={0.2} className="flex items-center gap-2.5 pt-2">
               <MotionButton
                 onClick={onCart}
-                aria-label="কার্টে যোগ করুন"
-                title="কার্টে যোগ করুন"
+                aria-label="Add to cart"
+                title="Add to cart"
                 className="inline-flex items-center justify-center gap-2 h-12 w-12 sm:w-auto sm:px-4 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-primary-600 hover:border-primary-400 transition-colors text-sm font-medium"
               >
                 <FiShoppingCart className="shrink-0" />
-                <span className="hidden sm:inline">কার্ট</span>
+                <span className="hidden sm:inline">Cart</span>
               </MotionButton>
               <MotionButton
                 onClick={actions.toggleWishlist}
-                aria-label="উইশলিস্ট"
-                title="উইশলিস্ট"
+                aria-label="Wishlist"
+                title="Wishlist"
                 className={`inline-flex items-center justify-center gap-2 h-12 w-12 sm:w-auto sm:px-4 rounded-full border transition-colors text-sm font-medium ${
                   actions.wishlisted
                     ? "bg-red-50 border-red-200 text-red-500"
@@ -115,16 +115,16 @@ export default function HeroSpotlight() {
                 }`}
               >
                 <FiHeart className={`shrink-0 ${actions.wishlisted ? "fill-current" : ""}`} />
-                <span className="hidden sm:inline">উইশলিস্ট</span>
+                <span className="hidden sm:inline">Wishlist</span>
               </MotionButton>
               <MotionButton
                 onClick={() => actions.setQuickView(true)}
-                aria-label="দ্রুত দেখুন"
-                title="দ্রুত দেখুন"
+                aria-label="Quick view"
+                title="Quick view"
                 className="inline-flex items-center justify-center gap-2 h-12 w-12 sm:w-auto sm:px-4 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-primary-600 hover:border-primary-400 transition-colors text-sm font-medium"
               >
                 <FiEye className="shrink-0" />
-                <span className="hidden sm:inline">দেখুন</span>
+                <span className="hidden sm:inline">View</span>
               </MotionButton>
             </Reveal>
 
@@ -134,13 +134,13 @@ export default function HeroSpotlight() {
                 onClick={onBuyNow}
                 className="inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white px-8 py-3.5 rounded-full font-semibold transition-colors shadow-lg shadow-primary-500/25"
               >
-                এখনই অর্ডার করুন
+                Order Now
               </MotionButton>
               <Link
                 href={href}
                 className="inline-flex items-center justify-center px-7 py-3.5 rounded-full font-semibold border border-gray-300 text-gray-700 hover:border-primary-400 hover:text-primary-600 transition-colors"
               >
-                বিস্তারিত দেখুন
+                View Details
               </Link>
             </Reveal>
           </div>

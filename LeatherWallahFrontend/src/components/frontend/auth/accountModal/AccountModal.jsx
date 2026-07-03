@@ -542,7 +542,7 @@ const AccountModal = ({
               )}
               {mode === "login" && (
                 <p className="text-xs text-center text-gray-500 bg-gray-50 rounded-lg py-2 px-3">
-                  আপনার account আছে। Login করুন order track করতে।
+                  You already have an account. Log in to track your orders.
                 </p>
               )}
               <PasswordField

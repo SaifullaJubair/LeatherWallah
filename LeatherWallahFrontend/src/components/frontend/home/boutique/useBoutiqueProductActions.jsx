@@ -71,7 +71,7 @@ export default function useBoutiqueProductActions(product) {
       window.dispatchEvent(new Event("localStorageUpdated"));
       setWishlisted(!exists);
       toast[exists ? "error" : "success"](
-        exists ? "উইশলিস্ট থেকে সরানো হয়েছে" : "উইশলিস্টে যোগ হয়েছে",
+        exists ? "Removed from wishlist" : "Added to wishlist",
         { autoClose: 1200 },
       );
     } catch {}
@@ -88,7 +88,7 @@ export default function useBoutiqueProductActions(product) {
         : item.productId === product?._id && !item.variation_product_id,
     );
     if (already) {
-      toast.info("এই পণ্যটি ইতিমধ্যে কার্টে আছে", { autoClose: 1200 });
+      toast.info("This item is already in your cart", { autoClose: 1200 });
       return false;
     }
     // F1.2 — clamp to stock (selected variation's qty, else simple product qty).
@@ -112,11 +112,11 @@ export default function useBoutiqueProductActions(product) {
 
   const handleAddToCart = (variationId = null) => {
     if (addToCartWith(variationId)) {
-      toast.success("কার্টে যোগ হয়েছে", { autoClose: 1200 });
+      toast.success("Added to cart", { autoClose: 1200 });
     }
   };
 
-  // "এখনই অর্ডার করুন" — add (if needed) then go straight to checkout.
+  // "Order Now" — add (if needed) then go straight to checkout.
   const buyNow = (variationId = null) => {
     addToCartWith(variationId); // no-op toast if already there; still proceed
     router.push("/checkout");

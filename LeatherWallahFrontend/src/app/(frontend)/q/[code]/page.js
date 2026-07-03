@@ -44,16 +44,16 @@ export default async function QrLookupPage({ params }) {
     <div className="min-h-[60vh] flex items-center justify-center px-6 py-12">
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-semibold text-gray-900">
-          এই কোডটি আর কাজ করছে না
+          This code no longer works
         </h1>
         <p className="mt-3 text-gray-600">
-          Product-টি removed হয়েছে অথবা কোডটি ভুল scan হয়েছে।
+          The product was removed, or the code was scanned incorrectly.
         </p>
         <a
           href="/"
           className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          হোমে যান
+          Go Home
         </a>
       </div>
     </div>

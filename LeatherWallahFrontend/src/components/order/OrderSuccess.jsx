@@ -190,11 +190,10 @@ const OrderSuccessContent = () => {
               </div>
               <div className="flex-1">
                 <p className="text-gray-800 font-semibold text-sm mb-1">
-                  আপনার account তৈরি হয়েছে!
+                  Your account has been created!
                 </p>
                 <p className="text-gray-500 text-xs mb-4 leading-relaxed">
-                  পাসওয়ার্ড সেট করলে পরবর্তীতে অর্ডার ট্র্যাক করতে ও invoice
-                  দেখতে পারবেন।
+                  Set a password to track your orders and view invoices later.
                 </p>
                 <button
                   onClick={() => {
@@ -219,10 +218,10 @@ const OrderSuccessContent = () => {
               </div>
               <div className="flex-1">
                 <p className="text-gray-800 font-semibold text-sm mb-1">
-                  আপনার account আছে!
+                  You already have an account!
                 </p>
                 <p className="text-gray-500 text-xs mb-4 leading-relaxed">
-                  Login করুন order track করতে এবং invoice দেখতে।
+                  Log in to track your orders and view invoices.
                 </p>
                 <button
                   onClick={() => {

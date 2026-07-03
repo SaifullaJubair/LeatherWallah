@@ -146,27 +146,27 @@ const LeftPanel = ({ step }) => {
     {
       icon: "📱",
       title: "Enter Your Phone",
-      desc: "আপনার phone number দিন। আমরা check করবো account আছে কিনা।",
+      desc: "Enter your phone number. We'll check whether an account exists.",
     },
     {
       icon: "🔐",
       title: "Verify Number",
-      desc: "আপনার phone এ OTP পাঠানো হবে। কোডটি দিয়ে verify করুন।",
+      desc: "An OTP will be sent to your phone. Verify it with the code.",
     },
     {
       icon: "✏️",
       title: "Enter the Code",
-      desc: "Phone এ আসা 4-digit OTP code টি এখানে দিন।",
+      desc: "Enter the 4-digit OTP code sent to your phone here.",
     },
     {
       icon: "🛡️",
       title: "Set Password",
-      desc: "একটি শক্তিশালী password তৈরি করুন।",
+      desc: "Create a strong password.",
     },
     {
       icon: "✅",
       title: "All Done!",
-      desc: "আপনার account secure হয়েছে। এখন login করুন।",
+      desc: "Your account is secure. Now log in.",
     },
   ];
   const c = content[Math.min(step, content.length - 1)];
@@ -299,7 +299,7 @@ const SetPasswordContent = () => {
   // ── Step 0: Phone submit ───────────────────────────────────────────────────
   const handlePhoneSubmit = async () => {
     if (!phone || !isValidPhoneNumber(phone)) {
-      toast.error("Valid phone number দিন");
+      toast.error("Enter a valid phone number");
       return;
     }
     await checkPhone(phone);
@@ -332,7 +332,7 @@ const SetPasswordContent = () => {
   // ── Step 2: Verify OTP ─────────────────────────────────────────────────────
   const handleVerifyOTP = async () => {
     if (otp.length !== 4) {
-      toast.error("4-digit OTP দিন");
+      toast.error("Enter the 4-digit OTP");
       return;
     }
     setLoading(true);
@@ -455,7 +455,7 @@ const SetPasswordContent = () => {
                       Password Already Set!
                     </h3>
                     <p className="text-gray-500 text-sm mb-1">
-                      আপনি আগেই password set করেছেন।
+                      You have already set a password.
                     </p>
                     <p className="text-xs text-gray-400 font-mono bg-gray-50 px-3 py-1 rounded-lg inline-block mt-1">
                       {phone}
@@ -486,10 +486,10 @@ const SetPasswordContent = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800 mb-1">
-                      Account পাওয়া যায়নি
+                      Account Not Found
                     </h3>
                     <p className="text-gray-500 text-sm mb-1">
-                      এই number এ কোনো account নেই।
+                      There's no account for this number.
                     </p>
                     <p className="text-xs text-gray-400 font-mono bg-gray-50 px-3 py-1 rounded-lg inline-block mt-1">
                       {phone}
@@ -529,10 +529,10 @@ const SetPasswordContent = () => {
                     <div className="space-y-6">
                       <div className="text-center space-y-1">
                         <h3 className="text-xl font-bold text-gray-800">
-                          আপনার Phone Number দিন
+                          Enter Your Phone Number
                         </h3>
                         <p className="text-gray-500 text-sm">
-                          আমরা check করবো account আছে কিনা
+                          We'll check whether an account exists
                         </p>
                       </div>
                       <div>
@@ -571,12 +571,12 @@ const SetPasswordContent = () => {
                     <div className="space-y-6">
                       <div className="text-center space-y-2">
                         <h3 className="text-xl font-bold text-gray-800">
-                          OTP পাঠান
+                          Send OTP
                         </h3>
                         <p className="text-gray-500 text-sm leading-relaxed">
-                          আপনার account আছে কিন্তু password set করা হয়নি।
+                          Your account exists but a password hasn't been set.
                           <br />
-                          নিচের button এ click করলে আপনার phone এ OTP যাবে।
+                          Click the button below to send an OTP to your phone.
                         </p>
                       </div>
                       <button
@@ -601,10 +601,10 @@ const SetPasswordContent = () => {
                     <div className="space-y-6">
                       <div className="text-center space-y-1">
                         <h3 className="text-xl font-bold text-gray-800">
-                          OTP Verify করুন
+                          Verify OTP
                         </h3>
                         <p className="text-gray-500 text-sm">
-                          আপনার phone এ আসা 4-digit code টি দিন
+                          Enter the 4-digit code sent to your phone
                         </p>
                       </div>
                       <OTPInput
@@ -649,10 +649,10 @@ const SetPasswordContent = () => {
                     >
                       <div className="text-center space-y-1">
                         <h3 className="text-xl font-bold text-gray-800">
-                          Password তৈরি করুন
+                          Create Password
                         </h3>
                         <p className="text-gray-500 text-sm">
-                          একটি শক্তিশালী password দিন
+                          Enter a strong password
                         </p>
                       </div>
                       <div className="space-y-1">
@@ -719,12 +719,12 @@ const SetPasswordContent = () => {
                         </div>
                         <div>
                           <h3 className="text-2xl font-bold text-gray-800 mb-1">
-                            সব হয়ে গেছে! 🎉
+                            All Done! 🎉
                           </h3>
                           <p className="text-gray-500 text-sm leading-relaxed">
-                            আপনার password সফলভাবে set হয়েছে।
+                            Your password has been set successfully.
                             <br />
-                            এখন login করে সব order দেখতে পারবেন।
+                            Now log in to view all your orders.
                           </p>
                         </div>
                       </div>

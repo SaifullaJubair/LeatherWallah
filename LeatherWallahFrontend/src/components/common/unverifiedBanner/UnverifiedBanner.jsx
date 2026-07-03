@@ -54,7 +54,7 @@ const UnverifiedBanner = () => {
             <FiShield size={14} className="text-amber-600" />
           </div>
           <p className="text-xs text-amber-800 font-medium truncate">
-            আপনার account তৈরি আছে! পাসওয়ার্ড সেট করুন order track করতে।
+            Your account is created! Set a password to track your orders.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

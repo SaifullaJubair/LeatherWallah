@@ -20,8 +20,8 @@ import { BASE_URL } from "@/components/utils/baseURL";
 
 const discountLabel = (price, type) => {
   if (!price) return null;
-  if (type === "percent") return `${price}% ছাড়`;
-  if (type === "fixed") return `৳${price} ছাড়`;
+  if (type === "percent") return `${price}% off`;
+  if (type === "fixed") return `৳${price} off`;
   return null;
 };
 
@@ -86,11 +86,11 @@ export default function OfferDiscoveryBanner({ productId }) {
                   {o.offer_title}
                 </p>
                 <p className="text-xs text-amber-700">
-                  এই product টি {o.product_count}-টি item বান্ডেলের অংশ — একসাথে নিলে সাশ্রয়।
+                  This product is part of a {o.product_count}-item bundle — save more when you buy together.
                 </p>
               </div>
               <span className="hidden sm:inline text-sm font-semibold text-amber-700 group-hover:underline">
-                Bundle দেখুন →
+                View Bundle →
               </span>
             </div>
           </Link>
