@@ -180,14 +180,16 @@ const ProductCard = ({ product, badge, activeFilters }) => {
 
   return (
     <>
-      <div className="group bg-white rounded-2xl border border-gray-100 hover:border-primary/20 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
+      <div
+        className="group bg-white rounded-2xl border border-gray-200 shadow-[0_1px_3px_rgba(16,12,10,0.08)] hover:border-primary/30 hover:shadow-[0_10px_28px_-6px_rgba(107,26,31,0.22)] transition-all duration-300 overflow-hidden flex flex-col"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
 
         {/* ── Image area ── */}
         <Link
           href={href}
           className="block relative overflow-hidden bg-gray-50 aspect-[3/4] shrink-0"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
         >
 
           {/* Base layer — ALWAYS main_image. Stays mounted so the card never
