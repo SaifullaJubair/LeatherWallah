@@ -14,14 +14,14 @@ const NEUTRAL_FALLBACK = {
   theme_name: "Default",
   theme_slug: "default",
   colors: {
-    primary: "#1B5E20",        // deep rich green — strong brand presence
-    primary_light: "#C8E6C9",  // soft fresh tint
-    primary_dark: "#0F2E11",   // very dark green
+    primary: "#6B1A1F",        // deep burgundy (logo) — strong brand presence
+    primary_light: "#EAC9CB",  // soft rose tint
+    primary_dark: "#4A0E12",   // very dark wine
     page_bg: "#F8F6F0",        // ≈ background (warm cream)
-    section_bg: "#EDE9DC",     // ≈ muted (light beige-green)
+    section_bg: "#EDE9DC",     // ≈ muted (light beige)
     heading_text: "#2C2520",   // ≈ foreground
     body_text: "#4A3F35",      // ≈ muted-foreground
-    accent: "#E6B547",         // warm gold — pairs well with green
+    accent: "#C9A227",         // warm gold — pairs with burgundy (logo)
     button_text: "#FFFFFF",
   },
   floating_assets: [],

@@ -9,23 +9,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ── Primary palette — vibrant brand green for FruitSnacks (fresh,
-        //    natural, fruity). DEFAULT ≈ emerald-600, more saturated than
-        //    the previous forest-green so CTAs/buttons pop. Shades follow
-        //    the Tailwind green/emerald curve so 500 is the strong brand
-        //    tone and 50/100 stay legible as backgrounds.
+        // ── Primary palette — deep burgundy for Leather Wallah, taken from the
+        //    brand logo (burgundy leather ground + gold LW mark). DEFAULT is the
+        //    logo's core burgundy; it pairs with the gold `accent` palette below
+        //    (hover/highlight) for the leather-luxury look. Shades run 50 (soft
+        //    rose tint for backgrounds) → 900 (near-black wine); white text is
+        //    legible from 500 down. 500 is the strong CTA/brand tone.
         primary: {
-          50: "#E8F5E9",
-          100: "#C8E6C9",
-          200: "#A5D6A7",
-          300: "#81C784",
-          400: "#4CAF50",
-          500: "#1B5E20",   // brand — deep rich green
-          600: "#174D1B",
-          700: "#133D16",
-          800: "#0F2E11",
-          900: "#0A1F0C",
-          DEFAULT: "#1B5E20",
+          50: "#F7EAEB",
+          100: "#EAC9CB",
+          200: "#D89A9D",
+          300: "#C36B70",
+          400: "#9E3E44",
+          500: "#6B1A1F",   // brand — deep burgundy (logo)
+          600: "#5A1418",
+          700: "#4A0E12",
+          800: "#360A0D",
+          900: "#240608",
+          DEFAULT: "#6B1A1F",
         },
         secondary: {
           50: "#F0E9E8",
