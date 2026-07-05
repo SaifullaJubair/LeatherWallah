@@ -157,6 +157,9 @@
 
   .custom-phone-input input {
     outline: none !important;
+    background: transparent;
+    font-size: 15px;
+    color: #241a17;
   }
 }
 

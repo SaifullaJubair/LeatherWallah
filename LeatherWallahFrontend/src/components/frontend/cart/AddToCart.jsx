@@ -472,7 +472,7 @@ const AddToCart = () => {
 
   if (!mounted)
     return (
-      <div className="min-h-screen bg-gray-50/60">
+      <div className="min-h-screen bg-[#FAF7F2]">
         <Contain>
           <div className="pt-6 pb-4">
             <div className="h-7 w-32 bg-gray-100 rounded-lg animate-pulse mb-1" />
@@ -492,15 +492,15 @@ const AddToCart = () => {
 
   if (!products?.length)
     return (
-      <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <div className="text-center max-w-sm bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+      <div className="min-h-[60vh] flex items-center justify-center px-4 bg-[#FAF7F2]">
+        <div className="text-center max-w-sm bg-white rounded-2xl border border-secondary-100/70 shadow-[0_1px_3px_rgba(62,39,35,0.06)] p-8">
           <img
             src="/assets/images/empty/Empty-cuate.png"
             alt="Empty cart"
             className="mx-auto mb-4 w-52"
           />
-          <h3 className="text-lg font-bold text-gray-800 mb-1">
-            Your cart is empty
+          <h3 className="text-xl font-serif font-bold text-secondary mb-1">
+            Your bag is empty
           </h3>
           <p className="text-sm text-gray-500 mb-6">
             Add items to your cart to checkout.
@@ -518,66 +518,73 @@ const AddToCart = () => {
     );
 
   return (
-    <div className="min-h-screen bg-gray-50/60 relative pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#FAF7F2] relative pb-24 md:pb-0">
       {loading && (
-        <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+        <div className="fixed inset-0 z-50 bg-secondary/20 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-600 font-medium">Placing your order...</p>
+          <p className="text-secondary font-serif font-medium">Placing your order…</p>
         </div>
       )}
       <form onSubmit={handleSubmit(handleOrderProduct)}>
         <Contain>
-          {/* Page header */}
-          <div className="pt-6 pb-4">
-            <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {products?.length} {products?.length === 1 ? "item" : "items"} in your cart
+          {/* Page header — boutique serif with gold underline */}
+          <div className="pt-8 pb-6">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/70 mb-1.5">
+              <span className="h-px w-6 bg-accent-700" />
+              Secure Checkout
+            </div>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-secondary tracking-tight">
+              Complete your order
+            </h1>
+            <p className="text-sm text-gray-500 mt-1.5 tabular-nums">
+              {products?.length} {products?.length === 1 ? "item" : "items"} · ready for delivery
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pb-10">
-            {/* Left column: cart items only (2/3 width) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pb-10 items-start">
+            {/* Left column (wide, 2/3): Delivery form — the main task, gets the room */}
             <div className="md:col-span-2">
-              {isLoading ? (
-                <CartTableSkeleton />
+              {userGetLoading ? (
+                <DeliveryInformationSkeleton />
               ) : (
-                <CartTable
-                  products={products}
-                  couponData={couponData}
-                  shopProduct={cartData}
-                  adjustedPrices={adjustedPrices}
-                  onRemoveFromCache={handleRemoveFromCache}
+                <DeliveryInformation
+                  register={register}
+                  userInfo={userInfo}
+                  errors={errors}
+                  setUserPhoneLogin={setUserPhoneLogin}
+                  setUserPhone={handlePhoneChangeWithTracking}
+                  customer_phone={customer_phone}
+                  setDivision={setDivision}
+                  setDistrictId={setDistrictId}
+                  setDivisionID={setDivisionID}
+                  division={division}
+                  district={district}
+                  setDistrict={setDistrict}
+                  setIsOpenDistrict={setIsOpenDistrict}
+                  isOpenDistrict={isOpenDistrict}
+                  refetchZone={refetchZone}
+                  zoneLoading={zoneLoading}
+                  zoneData={zoneData}
+                  savedAddresses={savedAddresses}
+                  onPickSavedAddress={applySavedAddress}
+                  showEmailField={showEmailField}
                 />
               )}
             </div>
 
-            {/* Right column: Delivery form + Summary stacked (1/3 width, sticky + scrollable) */}
+            {/* Right column (1/3): cart items + summary + Place Order, together and
+                sticky so Place Order stays on screen regardless of cart size. */}
             <div className="md:col-span-1">
               <div className="md:sticky md:top-[90px] md:max-h-[calc(100vh-100px)] md:overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-0.5">
-                {userGetLoading ? (
-                  <DeliveryInformationSkeleton />
+                {isLoading ? (
+                  <CartTableSkeleton />
                 ) : (
-                  <DeliveryInformation
-                    register={register}
-                    userInfo={userInfo}
-                    errors={errors}
-                    setUserPhoneLogin={setUserPhoneLogin}
-                    setUserPhone={handlePhoneChangeWithTracking}
-                    customer_phone={customer_phone}
-                    setDivision={setDivision}
-                    setDistrictId={setDistrictId}
-                    setDivisionID={setDivisionID}
-                    division={division}
-                    district={district}
-                    setDistrict={setDistrict}
-                    setIsOpenDistrict={setIsOpenDistrict}
-                    isOpenDistrict={isOpenDistrict}
-                    refetchZone={refetchZone}
-                    zoneLoading={zoneLoading}
-                    zoneData={zoneData}
-                    savedAddresses={savedAddresses}
-                    onPickSavedAddress={applySavedAddress}
-                    showEmailField={showEmailField}
+                  <CartTable
+                    products={products}
+                    couponData={couponData}
+                    shopProduct={cartData}
+                    adjustedPrices={adjustedPrices}
+                    onRemoveFromCache={handleRemoveFromCache}
                   />
                 )}
                 <CartSummary
@@ -603,21 +610,21 @@ const AddToCart = () => {
         </Contain>
 
         {/* Mobile fixed bottom bar — hidden on md+ (desktop uses sidebar Place Order) */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] px-4 py-3">
+        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-secondary-100 shadow-[0_-4px_20px_rgba(62,39,35,0.12)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <p className="text-[10px] text-gray-400 leading-none mb-0.5">Total</p>
-              <p className="text-base font-bold text-primary leading-none">
+              <p className="text-[10px] uppercase tracking-wide text-gray-400 leading-none mb-1">Total</p>
+              <p className="text-lg font-bold text-primary leading-none tabular-nums">
                 {settingData?.data?.[0]?.currency_symbol ?? ""}{shopGrandTotals || 0}
               </p>
             </div>
             <button
               type="submit"
               disabled={loading || (minOrderAmount > 0 && shopSubtotals < minOrderAmount)}
-              className="flex items-center justify-center gap-2 bg-primary text-white text-sm font-semibold px-6 py-3 rounded-2xl disabled:opacity-60 active:scale-95 transition-all"
+              className="flex items-center justify-center gap-2 bg-gradient-to-b from-primary to-primary-700 text-white text-[15px] font-semibold px-7 py-3.5 rounded-2xl shadow-[0_6px_16px_-4px_rgba(107,26,31,0.45)] disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all"
             >
-              <FiLock size={13} />
-              {loading ? "Placing..." : "Place Order"}
+              <FiLock size={14} />
+              {loading ? "Placing…" : "Place Order"}
             </button>
           </div>
         </div>

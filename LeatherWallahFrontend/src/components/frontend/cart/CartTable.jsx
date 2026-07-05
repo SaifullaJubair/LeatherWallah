@@ -11,7 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { productPrice } from "@/utils/helper";
 import useGetSettingData from "@/components/lib/getSettingData";
 import { PhotoProvider, PhotoView } from "react-photo-view";
-import { FiMinus, FiPlus, FiTrash2, FiEye } from "react-icons/fi";
+import { FiMinus, FiPlus, FiTrash2, FiEye, FiShoppingBag, FiChevronDown } from "react-icons/fi";
 import QuickViewModal from "@/components/shared/quickViewModal/QuickViewModal";
 
 const CartTable = ({
@@ -121,21 +121,65 @@ const CartTable = ({
     onRemoveFromCache?.(product?._id, product?.variations?._id);
   };
 
+  const list = Array.isArray(shopProduct) ? shopProduct : [];
+  const itemCount = list.length;
+
+  // Accordion: bag OPEN by default so the buyer sees what they're ordering;
+  // they can collapse it to shorten the column. Header toggles open/closed.
+  // Order Summary + Total (in CartSummary) always stay visible regardless.
+  const [bagOpen, setBagOpen] = useState(true);
+
+  // Thumbnails shown in the collapsed header strip (first few items).
+  const previewThumbs = list
+    .map(
+      (p) =>
+        p?.variations?.variation_images?.[0] ||
+        p?.variations?.variation_image ||
+        p?.main_image,
+    )
+    .filter(Boolean)
+    .slice(0, 3);
+
   return (
     <>
     <PhotoProvider>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/60">
-          <h2 className="text-sm font-semibold text-gray-700">
-            Order Items{" "}
-            <span className="text-gray-400 font-normal">
-              ({(Array.isArray(shopProduct) ? shopProduct : []).length})
-            </span>
+      <div className="bg-white rounded-2xl border border-secondary-100/70 shadow-[0_1px_3px_rgba(62,39,35,0.06)] overflow-hidden">
+        {/* Accordion header — click to expand/collapse the item list */}
+        <button
+          type="button"
+          onClick={() => setBagOpen((v) => !v)}
+          aria-expanded={bagOpen}
+          className="w-full flex items-center gap-2.5 px-4 py-3 border-b border-secondary-100/60 bg-secondary-50/30 hover:bg-secondary-50/60 transition-colors text-left"
+        >
+          <FiShoppingBag size={13} className="text-primary shrink-0" />
+          <h2 className="text-[13px] font-semibold text-secondary tracking-tight shrink-0">
+            Your Bag
           </h2>
-        </div>
 
-        <div className="divide-y divide-gray-50">
+          {/* When collapsed, show mini thumbnails so the buyer still sees what's inside */}
+          {!bagOpen && previewThumbs.length > 0 && (
+            <span className="flex items-center -space-x-2 ml-1">
+              {previewThumbs.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  className="w-6 h-6 rounded-md object-cover border border-white ring-1 ring-secondary-100"
+                />
+              ))}
+            </span>
+          )}
+
+          <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-gray-400 tabular-nums shrink-0">
+            {itemCount} {itemCount === 1 ? "item" : "items"}
+            <FiChevronDown
+              size={15}
+              className={`transition-transform ${bagOpen ? "rotate-180" : ""}`}
+            />
+          </span>
+        </button>
+
+        <div className={`divide-y divide-secondary-50/80 ${bagOpen ? "" : "hidden"}`}>
           {(Array.isArray(shopProduct) ? shopProduct : []).map((product, index) => {
             const currentQty = getQuantity(product);
             const maxStock = getMaxStock(product);
@@ -163,11 +207,11 @@ const CartTable = ({
             return (
               <div
                 key={`${product._id}-${product?.variations?._id || "no-var"}`}
-                className="flex gap-3 p-4 hover:bg-gray-50/40 transition-colors"
+                className="flex gap-3 p-3.5 hover:bg-secondary-50/30 transition-colors"
               >
                 {/* Image */}
                 <PhotoView src={cartImg}>
-                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100 cursor-zoom-in bg-gray-50">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-secondary-100/70 cursor-zoom-in bg-secondary-50/40 shadow-[0_1px_2px_rgba(62,39,35,0.05)]">
                     <Image
                       src={cartImg || "/assets/images/placeholder.jpg"}
                       width={64}
@@ -204,15 +248,15 @@ const CartTable = ({
                     <div className="flex items-center gap-1.5">
                       {hasCoupon ? (
                         <>
-                          <span className="text-xs text-gray-400 line-through">
+                          <span className="text-xs text-gray-400 line-through tabular-nums">
                             {currencySymbol}{unitPrice}
                           </span>
-                          <span className="text-sm font-bold text-primary">
+                          <span className="text-sm font-bold text-primary tabular-nums">
                             {currencySymbol}{displayPrice}
                           </span>
                         </>
                       ) : (
-                        <span className="text-sm font-bold text-gray-900">
+                        <span className="text-sm font-bold text-secondary tabular-nums">
                           {currencySymbol}{unitPrice}
                         </span>
                       )}
@@ -256,7 +300,7 @@ const CartTable = ({
 
                     {/* Subtotal + actions */}
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900 min-w-[56px] text-right">
+                      <span className="text-sm font-bold text-secondary min-w-[56px] text-right tabular-nums">
                         {currencySymbol}{subtotal}
                       </span>
                       <button

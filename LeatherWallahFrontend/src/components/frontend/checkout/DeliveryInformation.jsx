@@ -4,6 +4,35 @@ import Select from "react-select";
 import { FaMapMarkedAlt, FaStar } from "react-icons/fa";
 import { FiMapPin } from "react-icons/fi";
 import "react-phone-number-input/style.css";
+
+// Brand-matched react-select styling so City/Zone dropdowns line up with the
+// text inputs (same height, radius, burgundy focus). menuPortal z-index kept
+// at 999 exactly as before so the menu still renders above the sticky column.
+const selectStyles = {
+  menuPortal: (base) => ({ ...base, zIndex: 999 }),
+  control: (base, state) => ({
+    ...base,
+    minHeight: 44,
+    borderRadius: 12,
+    fontSize: 15,
+    backgroundColor: state.isFocused ? "#ffffff" : "rgba(240,233,232,0.2)",
+    borderColor: state.isFocused ? "#6B1A1F" : "#EAC9CB",
+    boxShadow: state.isFocused ? "0 0 0 2px rgba(107,26,31,0.10)" : "none",
+    "&:hover": { borderColor: state.isFocused ? "#6B1A1F" : "#D89A9D" },
+  }),
+  placeholder: (base) => ({ ...base, color: "#9ca3af", fontSize: 15 }),
+  option: (base, state) => ({
+    ...base,
+    fontSize: 14,
+    backgroundColor: state.isSelected
+      ? "#6B1A1F"
+      : state.isFocused
+        ? "rgba(107,26,31,0.06)"
+        : "#fff",
+    color: state.isSelected ? "#fff" : "#3E2723",
+  }),
+};
+
 const DeliveryInformation = ({
   register,
   userInfo,
@@ -31,19 +60,25 @@ const DeliveryInformation = ({
   showEmailField = true,
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <FiMapPin size={14} className="text-primary" />
-          Delivery Information
-        </h2>
+    <div className="bg-white rounded-2xl border border-secondary-100/70 shadow-[0_1px_3px_rgba(62,39,35,0.06)] overflow-hidden">
+      {/* Header — numbered step 2 with gold accent rail */}
+      <div className="relative px-5 py-4 border-b border-secondary-100/60 bg-gradient-to-r from-secondary-50/50 to-transparent flex items-center justify-between">
+        <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-accent-700 to-accent-800" />
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-[11px] font-bold shrink-0">
+            1
+          </span>
+          <h2 className="text-[15px] font-serif font-semibold text-secondary tracking-tight flex items-center gap-2">
+            Delivery Details
+          </h2>
+        </div>
         {savedAddresses?.length > 0 && (
           <span className="text-[10px] text-gray-400 hidden sm:block">
-            Pick a saved address to auto-fill
+            Pick a saved address
           </span>
         )}
       </div>
-      <div className="p-3">
+      <div className="p-4 sm:p-5">
 
       {/* S6 — Saved address picker */}
       {savedAddresses?.length > 0 && (
@@ -80,33 +115,36 @@ const DeliveryInformation = ({
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-2.5">
+      <div className="grid grid-cols-1 gap-3.5">
 
         <div>
-          <label htmlFor="" className="block text-xs font-medium text-gray-700 mb-1">
-            Name
+          <label htmlFor="customer_name" className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
+            Name <span className="text-primary">*</span>
           </label>
 
           <input
+            id="customer_name"
             {...register("customer_name", { required: "Name is required" })}
             type="text"
-            placeholder="Your Name"
-            className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
+            autoComplete="name"
+            placeholder="Your full name"
+            className="w-full border border-secondary-100 rounded-xl px-3.5 py-2.5 text-[15px] outline-none bg-secondary-50/20 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
           />
           {errors.customer_name && (
-            <p className="text-red-600 text-sm ml-2">
+            <p className="text-red-600 text-xs mt-1 ml-0.5" role="alert">
               {errors.customer_name?.message}
             </p>
           )}
         </div>
         <div className="">
-          <label htmlFor="" className="block text-xs font-medium text-gray-700 mb-1">
-            Phone Number
+          <label htmlFor="customer_phone" className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
+            Phone Number <span className="text-primary">*</span>
           </label>
 
           {userInfo?.data?.user_phone ? (
             <div>
               <input
+                id="customer_phone"
                 {...register("customer_phone", {
                   required: "Phone number is required",
                   pattern: {
@@ -116,20 +154,21 @@ const DeliveryInformation = ({
                 })}
                 onChange={() => setUserPhoneLogin(true)}
                 type="tel"
+                autoComplete="tel"
                 defaultValue={userInfo?.data?.user_phone}
-                placeholder="Your Phone"
-                className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
+                placeholder="01XXXXXXXXX"
+                className="w-full border border-secondary-100 rounded-xl px-3.5 py-2.5 text-[15px] outline-none bg-secondary-50/20 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
               />
               {errors.customer_phone && (
-                <p className="text-red-600 text-sm ml-2">
+                <p className="text-red-600 text-xs mt-1 ml-0.5" role="alert">
                   {errors.customer_phone?.message}
                 </p>
               )}
             </div>
           ) : (
             <PhoneInput
-              className="custom-phone-input w-full   mt-2 border border-white-light bg-white px-4 py-2 text-sm text-black placeholder:text-white-dark"
-              placeholder="Enter phone number"
+              className="custom-phone-input w-full border border-secondary-100 rounded-xl bg-secondary-50/20 px-3.5 py-2.5 text-[15px] text-black placeholder:text-gray-400 focus-within:bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all"
+              placeholder="01XXXXXXXXX"
               id="customer_phone"
               value={customer_phone}
               defaultCountry="BD"
@@ -148,10 +187,10 @@ const DeliveryInformation = ({
         </div>
 
         {/* City + Zone side by side */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-0.5">
-              City
+            <label className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
+              City <span className="text-primary">*</span>
             </label>
             <Select
               id="city"
@@ -171,12 +210,12 @@ const DeliveryInformation = ({
                 setTimeout(() => setIsOpenDistrict(true), 100);
               }}
               menuPortalTarget={document.body}
-              styles={{ menuPortal: (base) => ({ ...base, zIndex: 999 }) }}
+              styles={selectStyles}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-0.5">
-              Zone
+            <label className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
+              Zone <span className="text-primary">*</span>
             </label>
             <Select
               id="Zone"
@@ -193,28 +232,30 @@ const DeliveryInformation = ({
                 setDistrictId(selectedOption?.zone_id);
               }}
               menuPortalTarget={document.body}
-              styles={{ menuPortal: (base) => ({ ...base, zIndex: 999 }) }}
+              styles={selectStyles}
             />
           </div>
         </div>
         <div className="">
           <label
             htmlFor="address"
-            className="block text-xs font-medium text-gray-700 mb-1"
+            className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide"
           >
-            Address
+            Address <span className="text-primary">*</span>
           </label>
 
           <input
+            id="address"
             {...register("address", {
               required: "Fill the address",
             })}
             type="text"
-            placeholder="Your Address"
-            className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
+            autoComplete="street-address"
+            placeholder="House, road, area…"
+            className="w-full border border-secondary-100 rounded-xl px-3.5 py-2.5 text-[15px] outline-none bg-secondary-50/20 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
           />
           {errors.address && (
-            <p className="text-red-600 text-sm ml-2">
+            <p className="text-red-600 text-xs mt-1 ml-0.5" role="alert">
               {errors.address?.message}
             </p>
           )}
@@ -224,15 +265,17 @@ const DeliveryInformation = ({
           <div className="">
             <label
               htmlFor="customer_email"
-              className="block text-xs font-medium text-gray-700 mb-1"
+              className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide"
             >
-              Email (optional)
+              Email <span className="text-gray-400 normal-case font-normal tracking-normal">(optional)</span>
             </label>
             <input
+              id="customer_email"
               {...register("customer_email")}
               type="email"
+              autoComplete="email"
               placeholder="your@email.com"
-              className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
+              className="w-full border border-secondary-100 rounded-xl px-3.5 py-2.5 text-[15px] outline-none bg-secondary-50/20 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
             />
           </div>
         )}
