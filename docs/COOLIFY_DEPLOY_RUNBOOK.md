@@ -234,6 +234,25 @@ docker run --rm --network coolify --user 0:0 -v /root/lwdump:/dump mongo:7 \
 Verify counts match Atlas (products:6, categories:6, variations:9, admins:1, settings:1, pageseos:24,
 reviews:18, themes:1).
 
+> ⚠️ **USE `mongodump`/`mongorestore` (BSON), NOT `mongoexport`/`mongoimport` or JSON.** BSON preserves
+> types; JSON has no ObjectId type, so every `*_id` reference field silently degrades to a plain string.
+> A stringified `category_id` never matches `categories._id` in a `$lookup`, so the home-page sections
+> (`top_selling`, `new_arrival`, `trending_product`, `just_for_you`) come back **empty** even though
+> `search_product` (plain find, no lookup) shows all products. We hit exactly this. If it happens, run
+> the repair below — it converts the stringified refs back to real ObjectIds (idempotent):
+> ```bash
+> # sanity check: are refs strings? (expect String, not ObjectId)
+> ssh ... 'docker exec <DB_UUID> mongosh "mongodb://root:<PW>@localhost:27017/leatherwallah?authSource=admin" \
+>   --quiet --eval "print(typeof db.products.findOne().category_id)"'   # "string" = broken
+>
+> # fix it, from a machine that can reach the DB (locally with MONGO_URI in .env, or via the container):
+> cd LeatherWallahBackend && npx ts-node-dev --transpile-only src/scripts/fix-stringified-objectids.ts
+> ```
+> The script repairs products.{category_id,theme_id,product_publisher_id}, categories.category_publisher_id,
+> variations.product_id. Then re-check: `/product/top_selling`, `/product/trending_product` must return items.
+> Note `just_for_you` additionally needs at least one category with `explore_category_show:true` (a seed
+> flag, not a migration artifact) — set it in Admin → Categories or via a one-off `updateMany`.
+
 ### 7c. Point backend at Contabo + redeploy
 ```bash
 # find MONGO_URI env uuid
