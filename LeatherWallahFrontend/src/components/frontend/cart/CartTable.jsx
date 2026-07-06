@@ -170,7 +170,7 @@ const CartTable = ({
             </span>
           )}
 
-          <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-gray-400 tabular-nums shrink-0">
+          <span className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-secondary/70 tabular-nums shrink-0">
             {itemCount} {itemCount === 1 ? "item" : "items"}
             <FiChevronDown
               size={15}
@@ -179,7 +179,11 @@ const CartTable = ({
           </span>
         </button>
 
-        <div className={`divide-y divide-secondary-50/80 ${bagOpen ? "" : "hidden"}`}>
+        <div
+          className={`divide-y divide-secondary-50/80 overflow-y-auto overscroll-contain bag-scroll ${
+            bagOpen ? "max-h-[288px]" : "hidden"
+          }`}
+        >
           {(Array.isArray(shopProduct) ? shopProduct : []).map((product, index) => {
             const currentQty = getQuantity(product);
             const maxStock = getMaxStock(product);
@@ -307,14 +311,14 @@ const CartTable = ({
                         type="button"
                         title="Edit variant"
                         onClick={() => handleOpenEditModal(product)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:bg-primary/10 hover:text-primary transition-all"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-secondary/50 hover:bg-primary/10 hover:text-primary transition-all"
                       >
                         <FiEye size={13} />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleRemove(product)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-secondary/50 hover:bg-red-50 hover:text-red-500 transition-all"
                       >
                         <FiTrash2 size={13} />
                       </button>

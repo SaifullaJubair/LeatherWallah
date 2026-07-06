@@ -575,7 +575,7 @@ const AddToCart = () => {
             {/* Right column (1/3): cart items + summary + Place Order, together and
                 sticky so Place Order stays on screen regardless of cart size. */}
             <div className="md:col-span-1">
-              <div className="md:sticky md:top-[90px] md:max-h-[calc(100vh-100px)] md:overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-0.5">
+              <div className="md:sticky md:top-[90px] space-y-4">
                 {isLoading ? (
                   <CartTableSkeleton />
                 ) : (

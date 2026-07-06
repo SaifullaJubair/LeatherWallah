@@ -65,9 +65,7 @@ const DeliveryInformation = ({
       <div className="relative px-5 py-4 border-b border-secondary-100/60 bg-gradient-to-r from-secondary-50/50 to-transparent flex items-center justify-between">
         <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-accent-700 to-accent-800" />
         <div className="flex items-center gap-2.5">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-[11px] font-bold shrink-0">
-            1
-          </span>
+          <FiMapPin size={15} className="text-primary shrink-0" />
           <h2 className="text-[15px] font-serif font-semibold text-secondary tracking-tight flex items-center gap-2">
             Delivery Details
           </h2>

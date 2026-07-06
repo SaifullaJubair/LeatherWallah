@@ -171,6 +171,27 @@
 *::-webkit-scrollbar {
   display: none; /* Chrome, Safari, and Opera */
 }
+
+/* Checkout bag list — re-enable a visible, on-brand scrollbar so buyers know
+   the item list scrolls when the cart is large. Overrides the global hide. */
+.bag-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(107, 26, 31, 0.35) transparent;
+}
+.bag-scroll::-webkit-scrollbar {
+  display: block;
+  width: 7px;
+}
+.bag-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.bag-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(107, 26, 31, 0.3);
+  border-radius: 6px;
+}
+.bag-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 26, 31, 0.5);
+}
 /* .track {
   background-color: #e0f4f0; 
   height: 10px;
