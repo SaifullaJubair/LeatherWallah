@@ -111,14 +111,16 @@ const CategoryGroup = ({ group, index }) => {
         )}
       </Link>
 
-      {/* ── Products slider — 3 cols on sm, 4 cols on lg ── */}
-      <div className="sm:col-span-3 lg:col-span-4 relative px-6">
+      {/* ── Products slider ── mobile shows ~1 full-width card with a small peek
+          of the next (no side padding, so the card isn't squeezed thin); sm/lg
+          fit more. Nav arrows sit over the card edges (fine on mobile). */}
+      <div className="sm:col-span-3 lg:col-span-4 relative sm:px-6">
         <Swiper
           modules={[Navigation, Autoplay]}
-          slidesPerView={2}
+          slidesPerView={1.15}
           spaceBetween={12}
           breakpoints={{
-            480:  { slidesPerView: 2, spaceBetween: 12 },
+            480:  { slidesPerView: 1.3, spaceBetween: 12 },
             640:  { slidesPerView: 3, spaceBetween: 14 },
             1280: { slidesPerView: 3, spaceBetween: 14 },
           }}
@@ -133,10 +135,10 @@ const CategoryGroup = ({ group, index }) => {
           ))}
         </Swiper>
 
-        <button className={`${prevId} absolute left-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all duration-200 -translate-x-1`}>
+        <button className={`${prevId} absolute left-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all duration-200`}>
           <FaAngleLeft className="text-xs" />
         </button>
-        <button className={`${nextId} absolute right-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all duration-200 translate-x-1`}>
+        <button className={`${nextId} absolute right-0 top-[40%] -translate-y-1/2 z-10 w-8 h-8 bg-white rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all duration-200`}>
           <FaAngleRight className="text-xs" />
         </button>
       </div>
