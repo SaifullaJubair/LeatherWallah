@@ -69,45 +69,54 @@ const NewsletterForm = ({ settings }) => {
       : "Email address or phone number";
 
   return (
-    <div className="py-4 md:py-10 bg-primary-50">
-      <div className="max-w-[98%] mx-auto text-center">
-        <h2
-          className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2"
-          style={{ fontFamily: titleFont.style.fontFamily }}
-        >
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">{subtitle}</p>
-        )}
-        {done ? (
-          <p className="text-primary-600 font-medium text-sm">
-            Thank you for subscribing!
+    // Deep-burgundy band on the warm canvas, matching the Featured Collections
+    // section so the two premium blocks bookend the storefront.
+    <div className="py-8 md:py-12 px-3 sm:px-5">
+      <div className="relative overflow-hidden rounded-[28px] py-12 md:py-16 max-w-[1400px] mx-auto bg-gradient-to-br from-primary-800 via-primary-900 to-[#1a0405] shadow-[0_20px_60px_-24px_rgba(36,6,8,0.55)]">
+        {/* Ambient gold glow for depth */}
+        <div className="pointer-events-none absolute -bottom-24 -left-16 w-96 h-96 rounded-full bg-accent-700/10 blur-3xl" />
+        <div className="relative max-w-[98%] mx-auto text-center px-4">
+          <p className="text-[11px] uppercase tracking-[0.22em] font-bold mb-3 text-accent-300">
+            Newsletter
           </p>
-        ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row gap-2 justify-center max-w-md mx-auto"
+          <h2
+            className="text-2xl sm:text-3xl font-bold text-white mb-2"
+            style={{ fontFamily: titleFont.style.fontFamily }}
           >
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => { setValue(e.target.value); setError(""); }}
-              placeholder={placeholder}
-              className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 whitespace-nowrap"
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-white/60 text-sm mb-7 max-w-md mx-auto">{subtitle}</p>
+          )}
+          {done ? (
+            <p className="font-medium text-sm text-accent-300">
+              Thank you for subscribing!
+            </p>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col sm:flex-row gap-2.5 justify-center max-w-md mx-auto"
             >
-              {loading ? "Subscribing…" : "Subscribe"}
-            </button>
-          </form>
-        )}
-        {error && (
-          <p className="mt-2 text-red-500 text-xs">{error}</p>
-        )}
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => { setValue(e.target.value); setError(""); }}
+                placeholder={placeholder}
+                className="flex-1 border border-white/15 bg-white/10 text-white placeholder:text-white/45 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/40 focus:bg-white/15 transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-60 whitespace-nowrap text-primary-900 bg-accent hover:bg-accent-400 shadow-[0_4px_14px_rgba(212,175,55,0.35)]"
+              >
+                {loading ? "Subscribing…" : "Subscribe"}
+              </button>
+            </form>
+          )}
+          {error && (
+            <p className="mt-3 text-red-300 text-xs">{error}</p>
+          )}
+        </div>
       </div>
     </div>
   );

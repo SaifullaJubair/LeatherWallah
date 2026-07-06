@@ -41,18 +41,22 @@ module.exports = {
           900: "#1D0E0B",
           DEFAULT: "#3E2723",
         },
+        // Rich brand gold ramp (was a pale tan). 500 is the footer-rule gold;
+        // DEFAULT is a slightly brighter classic gold that reads clearly on the
+        // dark burgundy bands. 300–400 pop on dark grounds, 600–700 stay legible
+        // on light ones.
         accent: {
-          50: "#FDF9F4",
-          100: "#FAF4EC",
-          200: "#F5E9DD",
-          300: "#EFDECD",
-          400: "#E9D3BE",
-          500: "#E2C8AE",
-          600: "#D5B08C",
-          700: "#C79869",
-          800: "#B88146",
-          900: "#A96923",
-          DEFAULT: "#EDE0D4",
+          50: "#FBF6E6",
+          100: "#F6EBC4",
+          200: "#EFDC97",
+          300: "#E8CD6C",
+          400: "#DFBB44",
+          500: "#C9A227", // brand gold (footer rule)
+          600: "#A9871C",
+          700: "#876A15",
+          800: "#654F10",
+          900: "#43350A",
+          DEFAULT: "#D4AF37", // classic rich gold
         },
         neutral: {
           50: "#F5F5F5",

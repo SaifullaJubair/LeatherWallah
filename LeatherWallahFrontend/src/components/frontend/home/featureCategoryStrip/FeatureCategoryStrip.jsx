@@ -133,16 +133,16 @@ const FeatureCategoryStrip = () => {
                the footer rule; the tailwind "accent" ramp is a light tan, too
                pale to read as gold on this dark ground, so set it directly). */}
           <div className="flex flex-col">
-            <p className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] font-bold mb-4" style={{ color: "#D9B95A" }}>
+            <p className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] font-bold mb-4 text-accent-300">
               Curated
-              <span className="h-px flex-1" style={{ background: "rgba(217,185,90,0.4)" }} />
+              <span className="h-px flex-1 bg-accent-300/40" />
             </p>
             <h2
               className="text-3xl sm:text-4xl leading-[1.08] tracking-tight text-white mb-4"
               style={{ fontFamily: titleFont.style.fontFamily }}
             >
               Featured{" "}
-              <span className="italic" style={{ color: "#D9B95A" }}>Collections</span>
+              <span className="italic text-accent-300">Collections</span>
             </h2>
             <p className="text-white/65 text-[15px] leading-relaxed max-w-[34ch] mb-6">
               Handpicked lines, each built around a single leather craft — explore
@@ -150,8 +150,7 @@ const FeatureCategoryStrip = () => {
             </p>
             <Link
               href="/shop"
-              className="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors w-fit hover:brightness-110"
-              style={{ color: "#D9B95A" }}
+              className="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors w-fit text-accent-300 hover:text-accent-200"
             >
               View all collections
               <FiArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
