@@ -232,10 +232,12 @@ const ProductCard = ({ product, badge, activeFilters }) => {
               />
             ))}
 
-          {/* Discount badge — top left */}
+          {/* Discount badge — top left. Overlaid on the image so it never adds
+              to the card's body height (the old in-body "Save N%" pill wrapped
+              on mobile and stretched the card). */}
           {discount > 0 && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
-              -{discount}%
+            <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm">
+              Save {discount}%
             </span>
           )}
 
@@ -305,19 +307,16 @@ const ProductCard = ({ product, badge, activeFilters }) => {
             </div>
           )}
 
-          {/* Price row */}
-          <div className="flex items-center gap-2 mt-auto pt-1 flex-wrap">
+          {/* Price row — kept to a single line (no wrap) so cards stay the same
+              height on mobile. The discount is already shown as the "-N%" badge
+              over the image, so no "Save N%" pill is repeated here. */}
+          <div className="flex items-baseline gap-2 mt-auto pt-1">
             <span className="text-sm font-bold text-gray-900">
               {currencySymbol}{price}
             </span>
             {origPrice && (
               <span className="text-xs line-through text-gray-400">
                 {currencySymbol}{origPrice}
-              </span>
-            )}
-            {discount > 0 && (
-              <span className="ml-auto text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
-                Save {discount}%
               </span>
             )}
           </div>

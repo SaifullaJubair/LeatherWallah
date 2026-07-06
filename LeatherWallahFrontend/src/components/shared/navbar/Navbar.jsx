@@ -486,6 +486,9 @@ const Navbar = ({ menuData: menuDataProp }) => {
   const [accountOpen, setAccountOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wishlistLength, setWishlistLength] = useState(0);
+  // Mobile: search is hidden behind an icon (it was a permanent row that ate a
+  // lot of vertical space); tapping the icon slides the field down.
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const accountRef = useRef(null);
   const siteData = settingsData?.data?.[0];
@@ -512,6 +515,7 @@ const Navbar = ({ menuData: menuDataProp }) => {
   useEffect(() => {
     setAccountOpen(false);
     setDrawerOpen(false);
+    setMobileSearchOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -567,6 +571,17 @@ const Navbar = ({ menuData: menuDataProp }) => {
             {/* ── Right icons ── */}
             <div className="flex items-center gap-0.5">
 
+              {/* Search toggle — mobile only (desktop has the inline search bar) */}
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen((o) => !o)}
+                aria-label="Search"
+                aria-expanded={mobileSearchOpen}
+                className="md:hidden flex items-center justify-center p-2 text-white/75 hover:text-accent-500 transition-colors"
+              >
+                {mobileSearchOpen ? <FiX size={20} /> : <FiSearch size={20} />}
+              </button>
+
               {/* Wishlist */}
               <Link href="/wishlist" className="relative flex flex-col items-center gap-0.5 p-2 text-white/75 hover:text-accent-500 transition-colors group">
                 <FiHeart size={20} className="group-hover:scale-110 transition-transform" />
@@ -617,9 +632,16 @@ const Navbar = ({ menuData: menuDataProp }) => {
           </div>
         </Contain>
 
-        {/* Mobile search row */}
-        <div className="md:hidden px-3 py-2 border-t border-white/10 bg-primary-900">
-          <SearchBar className="w-full" />
+        {/* Mobile search — slides down only when toggled, so it doesn't
+            permanently eat vertical space under the navbar. */}
+        <div
+          className={`md:hidden overflow-hidden bg-primary-900 transition-[max-height,opacity] duration-300 ease-out ${
+            mobileSearchOpen ? "max-h-24 opacity-100 border-t border-white/10" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="px-3 py-2">
+            <SearchBar className="w-full" />
+          </div>
         </div>
       </header>
 
