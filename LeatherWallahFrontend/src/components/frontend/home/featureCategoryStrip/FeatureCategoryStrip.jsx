@@ -85,19 +85,21 @@ const FeatureCategoryStrip = () => {
   }, []);
 
   if (loading) {
+    // Soft neutral skeleton (not the deep-burgundy band) so the loading flash
+    // is easy on the eyes; same width as the loaded band + the hero banner.
     return (
-      <section className="py-8 md:py-12 px-3 sm:px-5">
-        <div className="rounded-[28px] py-12 md:py-16 max-w-[1400px] mx-auto bg-primary-900">
+      <section className="py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="rounded-[28px] py-12 md:py-16 mx-auto bg-secondary-50/40">
           <div className="max-w-[92%] xl:max-w-6xl mx-auto px-2">
             <div className="grid lg:grid-cols-[0.85fr_2fr] gap-8 lg:gap-10">
               <div className="space-y-3">
-                <div className="h-3 w-24 bg-white/10 rounded animate-pulse" />
-                <div className="h-9 w-52 bg-white/10 rounded-lg animate-pulse" />
-                <div className="h-16 w-full bg-white/5 rounded animate-pulse" />
+                <div className="h-3 w-24 bg-secondary-100/60 rounded animate-pulse" />
+                <div className="h-9 w-52 bg-secondary-100/60 rounded-lg animate-pulse" />
+                <div className="h-16 w-full bg-secondary-100/40 rounded animate-pulse" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {[0, 1].map((i) => (
-                  <div key={i} className="aspect-[4/5] bg-white/10 rounded-2xl animate-pulse" />
+                  <div key={i} className="aspect-[4/5] bg-secondary-100/50 rounded-2xl animate-pulse" />
                 ))}
               </div>
             </div>
@@ -121,9 +123,10 @@ const FeatureCategoryStrip = () => {
 
   return (
     // Outer wrapper sits on the warm page canvas and gives the dark band room
-    // to breathe, so it no longer butts straight against the hero above it.
-    <section className="py-8 md:py-12 px-3 sm:px-5">
-      <div className="relative overflow-hidden rounded-[28px] py-12 md:py-16 max-w-[1400px] mx-auto bg-gradient-to-br from-primary-800 via-primary-900 to-[#1a0405] shadow-[0_20px_60px_-24px_rgba(36,6,8,0.55)]">
+    // to breathe (small side gutter so the rounded band never touches the edge),
+    // roughly the hero banner's width.
+    <section className="py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-[28px] py-12 md:py-16 mx-auto bg-gradient-to-br from-primary-800 via-primary-900 to-[#1a0405] shadow-[0_20px_60px_-24px_rgba(36,6,8,0.55)]">
         {/* Ambient gold glow so the dark ground has depth, not a flat wash */}
         <div className="pointer-events-none absolute -top-24 -right-16 w-96 h-96 rounded-full bg-accent-700/10 blur-3xl" />
         <div className="relative max-w-[92%] xl:max-w-6xl mx-auto px-2">

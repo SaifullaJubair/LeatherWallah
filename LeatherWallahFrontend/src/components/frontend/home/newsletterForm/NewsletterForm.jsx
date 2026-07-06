@@ -69,10 +69,11 @@ const NewsletterForm = ({ settings }) => {
       : "Email address or phone number";
 
   return (
-    // Deep-burgundy band on the warm canvas, matching the Featured Collections
-    // section so the two premium blocks bookend the storefront.
-    <div className="py-8 md:py-12 px-3 sm:px-5">
-      <div className="relative overflow-hidden rounded-[28px] py-12 md:py-16 max-w-[1400px] mx-auto bg-gradient-to-br from-primary-800 via-primary-900 to-[#1a0405] shadow-[0_20px_60px_-24px_rgba(36,6,8,0.55)]">
+    // Deep-burgundy band, same burgundy family as the Featured Collections
+    // section but noticeably narrower — the newsletter has little content, so a
+    // wide band would look empty. Centered on the warm canvas.
+    <div className="py-8 md:py-12 px-4 sm:px-6">
+      <div className="relative overflow-hidden rounded-[28px] py-12 md:py-14 max-w-4xl mx-auto bg-gradient-to-br from-primary-800 via-primary-900 to-[#1a0405] shadow-[0_20px_60px_-24px_rgba(36,6,8,0.55)]">
         {/* Ambient gold glow for depth */}
         <div className="pointer-events-none absolute -bottom-24 -left-16 w-96 h-96 rounded-full bg-accent-700/10 blur-3xl" />
         <div className="relative max-w-[98%] mx-auto text-center px-4">
