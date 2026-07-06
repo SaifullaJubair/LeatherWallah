@@ -200,6 +200,11 @@ const seed = async (publisherId: any, images: Map<string, { Location: string; Ke
       parent_id: parentId,
       category_path: parentPath,
       depth,
+      // Storefront visibility flags — without these the footer "Explore
+      // Category" list and the home featured-category strip render empty.
+      // Every node shows in Explore; only roots (depth 0) feature on home.
+      explore_category_show: true,
+      feature_category_show: depth === 0,
       category_publisher_id: publisherId,
       is_demo: true,
     });
