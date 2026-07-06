@@ -254,15 +254,17 @@ const ProductCard = ({ product, badge, activeFilters }) => {
               className={`w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 ${
                 wishlisted
                   ? "bg-red-50 text-red-500"
-                  : "bg-white/90 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
+                  : "bg-white/90 text-gray-400 lg:opacity-0 lg:group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
               }`}
             >
               <FiHeart size={12} fill={wishlisted ? "currentColor" : "none"} />
             </button>
           </div>
 
-          {/* Bottom action bar — slides up on hover */}
-          <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10 flex">
+          {/* Bottom action bar. Touch devices have no hover, so it's always
+              visible there; only on lg+ (mouse) screens is it hidden until the
+              card is hovered, then slides up. */}
+          <div className="absolute inset-x-0 bottom-0 z-10 flex transition-transform duration-300 lg:translate-y-full lg:group-hover:translate-y-0">
             <button
               type="button"
               onClick={handleAddToCart}
@@ -282,13 +284,13 @@ const ProductCard = ({ product, badge, activeFilters }) => {
           </div>
         </Link>
 
-        {/* ── Info ── */}
-        <div className="p-3 flex flex-col gap-1.5 flex-1">
-          <Link href={href}>
-            <h3 className="text-xs sm:text-sm text-gray-800 font-medium line-clamp-2 leading-snug hover:text-primary transition-colors min-h-[2.5rem]">
-              {product?.product_name}
-            </h3>
-          </Link>
+        {/* ── Info ── whole block is a link so tapping the name, swatches or
+            price anywhere in the body opens the product (esp. important on
+            touch, where there's no hover action bar to rely on). */}
+        <Link href={href} className="p-3 flex flex-col gap-1.5 flex-1">
+          <h3 className="text-xs sm:text-sm text-gray-800 font-medium line-clamp-2 leading-snug group-hover:text-primary transition-colors min-h-[2.5rem]">
+            {product?.product_name}
+          </h3>
 
           {/* Color swatches */}
           {colors?.length > 0 && (
@@ -320,6 +322,7 @@ const ProductCard = ({ product, badge, activeFilters }) => {
               </span>
             )}
           </div>
+        </Link>
         </div>
       </div>
 
