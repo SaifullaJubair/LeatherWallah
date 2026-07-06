@@ -30,8 +30,9 @@ const Footer = ({ menuData }) => {
       className="bg-primary-900 mt-10 md:pb-0 pb-16 border-t-4 overflow-x-hidden"
       style={{
         // Keep the dark footer (text is designed for a dark bg); only the top
-        // accent border picks up the theme colour on themed pages.
-        borderColor: "var(--brand-primary, #1B5E20)",
+        // accent border picks up the theme colour on themed pages. Fallback is
+        // the brand gold so it pairs with the burgundy navbar/footer.
+        borderColor: "var(--brand-primary, #C9A227)",
       }}
     >
       <Contain>

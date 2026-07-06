@@ -50,6 +50,10 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
   const cartProducts = useSelector((state) => state.cart.products);
   const { data: settingsData } = useGetSettingData();
   const currencySymbol = settingsData?.data[0]?.currency_symbol;
+  // Same admin toggle the PDP uses — only show the exact "Only N left" count
+  // when the owner has opted in; otherwise a bare "In Stock" (no count leaked).
+  const showStockCountOnPdp =
+    settingsData?.data?.[0]?.show_stock_count_on_pdp ?? false;
   const { data: userInfo } = useUserInfoQuery();
   const modalRef = useRef(null);
 
@@ -450,31 +454,25 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
     };
   }, []);
 
+  // Always render 5 stars; each star fills left→right by percentage so a
+  // 4.3 rating shows 4 full stars + a star filled 30%. Grey base star sits
+  // underneath a clipped gold overlay (Daraz/Amazon style — no "½" glyph).
   const renderRatingStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars)
-        stars.push(
-          <span key={i} className="text-yellow-400">
+    const value = Math.max(0, Math.min(5, Number(rating) || 0));
+    return [1, 2, 3, 4, 5].map((i) => {
+      const fill = Math.max(0, Math.min(1, value - (i - 1))); // 0..1 for this star
+      return (
+        <span key={i} className="relative inline-block leading-none">
+          <span className="text-gray-300">★</span>
+          <span
+            className="absolute inset-0 overflow-hidden text-yellow-400"
+            style={{ width: `${fill * 100}%` }}
+          >
             ★
-          </span>,
-        );
-      else if (hasHalfStar && i === fullStars + 1)
-        stars.push(
-          <span key={i} className="text-yellow-400">
-            ½
-          </span>,
-        );
-      else
-        stars.push(
-          <span key={i} className="text-gray-300">
-            ★
-          </span>,
-        );
-    }
-    return stars;
+          </span>
+        </span>
+      );
+    });
   };
 
   return createPortal(
@@ -780,10 +778,32 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
                             </p>
                             <div className="flex items-center gap-3 w-full xs:w-auto justify-start xs:justify-end">
                               <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                <span className="text-[10px] sm:text-xs text-gray-500">
-                                  {stock} in stock
-                                </span>
+                                {(() => {
+                                  const lowStock =
+                                    showStockCountOnPdp && stock <= 10;
+                                  return (
+                                    <>
+                                      <span
+                                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                                          lowStock
+                                            ? "bg-amber-500"
+                                            : "bg-green-500"
+                                        }`}
+                                      />
+                                      <span
+                                        className={`text-[10px] sm:text-xs font-medium ${
+                                          lowStock
+                                            ? "text-amber-600"
+                                            : "text-green-600"
+                                        }`}
+                                      >
+                                        {lowStock
+                                          ? `Only ${stock} left`
+                                          : "In Stock"}
+                                      </span>
+                                    </>
+                                  );
+                                })()}
                               </div>
                               <motion.button
                                 whileHover={{ scale: 1.1 }}

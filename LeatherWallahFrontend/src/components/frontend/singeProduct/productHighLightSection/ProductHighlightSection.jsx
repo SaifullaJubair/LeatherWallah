@@ -18,18 +18,26 @@ import ChartModal from "./ChartModal";
 import ModalAxisSelector from "./ModalAxisSelector";
 import DynamicIcon from "@/lib/icons/DynamicIcon";
 
+// Each star fills left→right by percentage (Daraz/Amazon style) so a 4.3
+// rating shows 4 full stars + a star filled 30% — not rounded to whole stars.
 const StarRow = ({ rating }) => {
-  const r = parseFloat(rating);
+  const r = Math.max(0, Math.min(5, parseFloat(rating) || 0));
   return (
     <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span
-          key={i}
-          className={`text-sm ${i <= Math.round(r) ? "text-amber-400" : "text-gray-200"}`}
-        >
-          ★
-        </span>
-      ))}
+      {[1, 2, 3, 4, 5].map((i) => {
+        const fill = Math.max(0, Math.min(1, r - (i - 1)));
+        return (
+          <span key={i} className="relative inline-block text-sm leading-none">
+            <span className="text-gray-200">★</span>
+            <span
+              className="absolute inset-0 overflow-hidden text-amber-400"
+              style={{ width: `${fill * 100}%` }}
+            >
+              ★
+            </span>
+          </span>
+        );
+      })}
     </div>
   );
 };

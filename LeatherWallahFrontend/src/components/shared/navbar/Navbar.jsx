@@ -181,11 +181,11 @@ const CategoriesDropdown = ({ menuData }) => {
     <div className="relative shrink-0" onMouseEnter={show} onMouseLeave={hide}>
       <button
         className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium whitespace-nowrap rounded-lg transition-colors ${
-          isActive ? "text-primary bg-primary/8 font-semibold" : "text-gray-600 hover:text-primary hover:bg-gray-50"
+          isActive ? "text-white bg-white/15 font-semibold" : "text-white/80 hover:text-white hover:bg-white/10"
         }`}
       >
         Categories
-        <FiChevronDown size={12} className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <FiChevronDown size={12} className={`text-white/60 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
@@ -462,24 +462,25 @@ const Navbar = ({ menuData: menuDataProp }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-100">
+      <header className="sticky top-0 z-30 bg-primary-900 shadow-md border-b border-accent-700/25">
         <Contain>
           <div className="flex items-center h-[72px] gap-2 lg:gap-4">
 
             {/* ── Mobile hamburger ── */}
             <button
               onClick={() => setDrawerOpen(true)}
-              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-100 transition-colors text-gray-700 shrink-0"
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-white/10 transition-colors text-white shrink-0"
             >
               <FiMenu size={21} />
             </button>
 
-            {/* ── Logo ── */}
+            {/* ── Logo ── (transparent — the logo already reads on the dark
+                 burgundy navbar, no light container needed) */}
             <Link href="/" className="shrink-0 mr-1">
               {siteData?.logo ? (
                 <img src={siteData.logo} alt={siteData?.title || "Logo"} className="h-10 w-auto object-contain" />
               ) : (
-                <span className="text-lg font-bold text-primary">{siteData?.title || "Leather Wallah"}</span>
+                <span className="text-lg font-bold text-white">{siteData?.title || "Leather Wallah"}</span>
               )}
             </Link>
 
@@ -488,7 +489,7 @@ const Navbar = ({ menuData: menuDataProp }) => {
               <Link
                 href="/shop"
                 className={`flex items-center px-3 py-1.5 text-sm font-semibold whitespace-nowrap rounded-lg transition-colors ${
-                  pathname === "/shop" ? "text-primary bg-primary/8" : "text-gray-700 hover:text-primary hover:bg-gray-50"
+                  pathname === "/shop" ? "text-white bg-white/15" : "text-white/80 hover:text-white hover:bg-white/10"
                 }`}
               >
                 All Products
@@ -506,39 +507,39 @@ const Navbar = ({ menuData: menuDataProp }) => {
             <div className="flex items-center gap-0.5">
 
               {/* Wishlist */}
-              <Link href="/wishlist" className="relative flex flex-col items-center gap-0.5 p-2 text-gray-500 hover:text-primary transition-colors group">
+              <Link href="/wishlist" className="relative flex flex-col items-center gap-0.5 p-2 text-white/75 hover:text-accent-500 transition-colors group">
                 <FiHeart size={20} className="group-hover:scale-110 transition-transform" />
                 {wishlistLength > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-primary text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
+                  <span className="absolute -top-0.5 -right-0.5 bg-accent-600 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
                     {wishlistLength}
                   </span>
                 )}
-                <span className="text-[9px] text-gray-400 hidden md:block">Wishlist</span>
+                <span className="text-[9px] text-white/50 hidden md:block">Wishlist</span>
               </Link>
 
               {/* Cart */}
-              <Link href="/checkout" className="relative flex flex-col items-center gap-0.5 p-2 text-gray-500 hover:text-primary transition-colors group">
+              <Link href="/checkout" className="relative flex flex-col items-center gap-0.5 p-2 text-white/75 hover:text-accent-500 transition-colors group">
                 <FiShoppingCart size={20} className="group-hover:scale-110 transition-transform" />
                 {products?.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
+                  <span className="absolute -top-0.5 -right-0.5 bg-accent-600 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
                     {products.length}
                   </span>
                 )}
-                <span className="text-[9px] text-gray-400 hidden md:block">Cart</span>
+                <span className="text-[9px] text-white/50 hidden md:block">Cart</span>
               </Link>
 
               {/* Account — desktop only */}
               <div className="hidden md:block relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountOpen(!accountOpen)}
-                  className="flex flex-col items-center gap-0.5 p-2 text-gray-500 hover:text-primary transition-colors group"
+                  className="flex flex-col items-center gap-0.5 p-2 text-white/75 hover:text-accent-500 transition-colors group"
                 >
                   {userInfo?.data?.user_image ? (
-                    <img src={userInfo.data.user_image} alt="" className="w-5 h-5 rounded-full object-cover border border-gray-200" />
+                    <img src={userInfo.data.user_image} alt="" className="w-5 h-5 rounded-full object-cover border border-white/30" />
                   ) : (
                     <FiUser size={20} className="group-hover:scale-110 transition-transform" />
                   )}
-                  <span className="text-[9px] text-gray-400 whitespace-nowrap">
+                  <span className="text-[9px] text-white/50 whitespace-nowrap">
                     {userInfo?.data ? userInfo.data.user_name?.split(" ")[0] : "Account"}
                   </span>
                 </button>
@@ -548,7 +549,7 @@ const Navbar = ({ menuData: menuDataProp }) => {
               </div>
 
               {/* Account — mobile only */}
-              <Link href={userInfo?.data ? "/user-profile?tab=dashboard" : "/sign-in"} className="md:hidden flex items-center justify-center p-2 text-gray-500 hover:text-primary transition-colors">
+              <Link href={userInfo?.data ? "/user-profile?tab=dashboard" : "/sign-in"} className="md:hidden flex items-center justify-center p-2 text-white/75 hover:text-accent-500 transition-colors">
                 <FiUser size={20} />
               </Link>
             </div>
@@ -556,7 +557,7 @@ const Navbar = ({ menuData: menuDataProp }) => {
         </Contain>
 
         {/* Mobile search row */}
-        <div className="md:hidden px-3 py-2 border-t border-gray-100 bg-white">
+        <div className="md:hidden px-3 py-2 border-t border-white/10 bg-primary-900">
           <SearchBar className="w-full" />
         </div>
       </header>

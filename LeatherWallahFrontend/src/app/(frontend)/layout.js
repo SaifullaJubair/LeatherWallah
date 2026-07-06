@@ -21,7 +21,9 @@ const MainLayout = async ({ children }) => {
   }
 
   return (
-    <div>
+    // Warm off-white page canvas (#FAF7F2) so white product cards "float"
+    // and the storefront reads premium instead of plain white.
+    <div className="bg-[#FAF7F2]">
       <AnnouncementBar items={announcementItems} />
       <Navbar menuData={dataArray} />
       <UnverifiedBanner />
