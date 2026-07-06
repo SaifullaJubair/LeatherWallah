@@ -74,10 +74,31 @@ export interface DemoProduct {
   og_description?: string;
   // Variation axis = which seeded attribute (by slug) drives combinations.
   // Omit for a simple (non-variation) product. Each listed value (by slug)
-  // becomes one variation row with the given price/qty.
+  // becomes one variation row with the given price/qty. SINGLE-AXIS.
   variation?: {
     attribute_slug: string;
-    rows: { value_slug: string; price: number; quantity: number; discount_price?: number }[];
+    rows: {
+      value_slug: string;
+      price: number;
+      quantity: number;
+      discount_price?: number;
+      image?: DemoImage; // optional per-variation image
+    }[];
+  };
+  // MULTI-AXIS variation (e.g. Size × Color). `axes` lists the attribute slugs
+  // in the order they should appear on the picker; `rows` enumerates every
+  // combination explicitly (value_slugs must line up with `axes` order). This
+  // mirrors what the Admin combination matrix produces, so variation_name is
+  // built as "Value / Value" and `combination` is the SORTED value-id array.
+  multi_variation?: {
+    axes: string[]; // attribute slugs, picker order
+    rows: {
+      value_slugs: string[]; // one per axis, same order as `axes`
+      price: number;
+      quantity: number;
+      discount_price?: number;
+      image?: DemoImage; // optional per-combination image
+    }[];
   };
   // ── page-content ──
   benefits?: string[];
@@ -131,6 +152,18 @@ export const DEMO_ATTRIBUTES: DemoAttribute[] = [
       { name: "EU 42", slug: "eu-42", code: "42" },
       { name: "EU 43", slug: "eu-43", code: "43" },
       { name: "EU 44", slug: "eu-44", code: "44" },
+    ],
+  },
+  {
+    // Colour swatch — used by the multi-axis demo product (Size × Colour). The
+    // `code` is a hex value so the storefront renders a colour dot swatch.
+    name: "Shoe Color",
+    slug: "shoe-color",
+    display_type: "swatch",
+    tracks_weight: false,
+    values: [
+      { name: "Tan Brown", slug: "tan-brown", code: "#8B5A2B" },
+      { name: "Jet Black", slug: "jet-black", code: "#1C1C1C" },
     ],
   },
 ];
@@ -462,6 +495,81 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       { question: "How many cards does it hold?", answer: "Six dedicated card slots plus two cash compartments." },
     ],
     reviews: REVIEWS_B,
+  },
+
+  // 6) MULTI-AXIS variation product — Monk Strap in Size × Colour. Each of the
+  //    four combinations has its own price, discount, stock and image so the
+  //    QuickView / PDP picker can be exercised end-to-end.
+  {
+    name: "Double Monk Strap Shoes",
+    slug: "double-monk-strap-shoes",
+    category_slug: "formal-shoes",
+    price: 5200, // base — real prices live on the combination rows
+    quantity: 0,
+    unit: "Pair",
+    short_description: "Handcrafted double monk strap shoes in full-grain leather — pick your size and colour.",
+    description:
+      "A refined double monk strap silhouette in 100% full-grain leather. Available in Tan Brown and Jet Black across multiple sizes, each pair Goodyear-welted with a cushioned insole and leather sole.",
+    badge_text: "New Arrival",
+    hero_corner_badge: "New",
+    short_features: ["Full-Grain Leather", "Goodyear Welted", "Two Colours"],
+    og_title: "Double Monk Strap Shoes — Size & Colour Options | Leather Wallah",
+    og_description:
+      "Handcrafted double monk strap leather shoes in Tan Brown & Jet Black. Multiple sizes, cushioned insole, cash on delivery across Bangladesh.",
+    main_image: {
+      slug: "monk-main",
+      url: "https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=900&q=80",
+    },
+    other_images: [
+      { slug: "monk-2", url: "https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=900&q=80" },
+    ],
+    multi_variation: {
+      axes: ["shoe-size", "shoe-color"],
+      rows: [
+        {
+          value_slugs: ["eu-40", "tan-brown"],
+          price: 5200,
+          discount_price: 4900,
+          quantity: 12,
+          image: { slug: "monk-40-tan", url: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=900&q=80" },
+        },
+        {
+          value_slugs: ["eu-40", "jet-black"],
+          price: 5200,
+          quantity: 8,
+          image: { slug: "monk-40-black", url: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=900&q=80" },
+        },
+        {
+          value_slugs: ["eu-42", "tan-brown"],
+          price: 5400,
+          discount_price: 5000,
+          quantity: 15,
+          image: { slug: "monk-42-tan", url: "https://images.unsplash.com/photo-1449505278894-297fdb3edbc1?w=900&q=80" },
+        },
+        {
+          value_slugs: ["eu-42", "jet-black"],
+          price: 5400,
+          quantity: 5,
+          image: { slug: "monk-42-black", url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=900&q=80" },
+        },
+      ],
+    },
+    benefits: ["100% full-grain leather", "Goodyear-welted durability", "Two colour options", "Cushioned all-day comfort"],
+    use_cases: [{ text: "Office & formal" }, { text: "Weddings" }, { text: "Everyday smart-casual" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Material", value: "Full-grain leather" },
+        { label: "Construction", value: "Goodyear welted" },
+        { label: "Sole", value: "Leather with rubber heel" },
+      ],
+      info_tiles: [{ label: "Origin", value: "Handmade in BD" }],
+    },
+    faqs: [
+      { question: "Do the colours run true?", answer: "Yes — Tan Brown is a warm mid-brown and Jet Black is a deep true black." },
+      { question: "How do I pick my size?", answer: "Select your EU size and colour above; stock and price update per combination." },
+    ],
+    reviews: REVIEWS_A,
   },
 ];
 

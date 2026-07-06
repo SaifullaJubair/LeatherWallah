@@ -69,6 +69,9 @@ const resolveAllImages = async (): Promise<Map<string, { Location: string; Key: 
   DEMO_PRODUCTS.forEach((p) => {
     all.push(p.main_image);
     (p.other_images || []).forEach((i) => all.push(i));
+    // Per-variation images (single- and multi-axis).
+    (p.variation?.rows || []).forEach((r) => { if (r.image) all.push(r.image); });
+    (p.multi_variation?.rows || []).forEach((r) => { if (r.image) all.push(r.image); });
   });
   // Category logos (recurse the nested tree).
   const walkCatImgs = (nodes: DemoCategory[]) =>
@@ -281,40 +284,69 @@ const seed = async (publisherId: any, images: Map<string, { Location: string; Ke
   let reviewCount = 0;
 
   for (const p of DEMO_PRODUCTS) {
-    const isVariation = !!p.variation;
+    const isVariation = !!p.variation || !!p.multi_variation;
     const mainImg = images.get(p.main_image.slug)!;
     const otherImgs = (p.other_images || []).map((i) => {
       const r = images.get(i.slug)!;
       return { other_image: r.Location, other_image_key: r.Key };
     });
 
-    // Variation wiring — link the product to its axis attribute so the PDP
+    // Normalise single- and multi-axis variation into ONE shape: a list of
+    // axes (attribute slugs, picker order) + a list of combos (value_slugs per
+    // axis + price/qty/discount/image). Single-axis is just one axis with
+    // one-element combos.
+    const axisSlugs: string[] = p.multi_variation
+      ? p.multi_variation.axes
+      : p.variation
+        ? [p.variation.attribute_slug]
+        : [];
+    const combos = p.multi_variation
+      ? p.multi_variation.rows.map((r) => ({
+          value_slugs: r.value_slugs,
+          price: r.price,
+          discount_price: r.discount_price,
+          quantity: r.quantity,
+          image: r.image,
+        }))
+      : (p.variation?.rows || []).map((r) => ({
+          value_slugs: [r.value_slug],
+          price: r.price,
+          discount_price: r.discount_price,
+          quantity: r.quantity,
+          image: r.image,
+        }));
+
+    // Variation wiring — link the product to its axis attribute(s) so the PDP
     // picker + filter render. Built from the REAL seeded attribute + value ids.
     let productAttributes: any[] = [];
     let variantAxes: any[] = [];
     let attributesDetails: any[] = [];
     if (isVariation) {
-      const attr = attrBySlug.get(p.variation!.attribute_slug);
-      if (!attr) throw new Error(`Demo product "${p.slug}" references unknown attribute "${p.variation!.attribute_slug}"`);
-      const chosenValueIds = p.variation!.rows.map((r) => {
-        const id = attr.valueIdBySlug.get(r.value_slug);
-        if (!id) throw new Error(`Demo product "${p.slug}" references unknown value "${r.value_slug}"`);
-        return id;
-      });
-      productAttributes = [
-        { attribute_id: attr.attrId, value_ids: chosenValueIds, show_in_filter: true },
-      ];
-      variantAxes = [{ attribute_id: attr.attrId, is_mandatory: true }];
-      attributesDetails = [
-        {
+      for (const axisSlug of axisSlugs) {
+        const attr = attrBySlug.get(axisSlug);
+        if (!attr) throw new Error(`Demo product "${p.slug}" references unknown attribute "${axisSlug}"`);
+        // Value ids actually used on this axis, de-duped, filter-visible.
+        const usedValueSlugs = Array.from(
+          new Set(
+            combos.map((c) => c.value_slugs[axisSlugs.indexOf(axisSlug)]),
+          ),
+        );
+        const chosenValueIds = usedValueSlugs.map((vs) => {
+          const id = attr.valueIdBySlug.get(vs);
+          if (!id) throw new Error(`Demo product "${p.slug}" references unknown value "${vs}"`);
+          return id;
+        });
+        productAttributes.push({ attribute_id: attr.attrId, value_ids: chosenValueIds, show_in_filter: true });
+        variantAxes.push({ attribute_id: attr.attrId, is_mandatory: true });
+        attributesDetails.push({
           attribute_id: attr.attrId,
-          attribute_name: DEMO_ATTRIBUTES.find((a) => a.slug === p.variation!.attribute_slug)!.name,
-          attribute_values: p.variation!.rows.map((r) => {
-            const meta = attr.valueMeta.get(r.value_slug);
+          attribute_name: DEMO_ATTRIBUTES.find((a) => a.slug === axisSlug)!.name,
+          attribute_values: usedValueSlugs.map((vs) => {
+            const meta = attr.valueMeta.get(vs);
             return { attribute_value_name: meta.name, attribute_value_code: meta.code };
           }),
-        },
-      ];
+        });
+      }
     }
 
     const created = await ProductModel.create({
@@ -356,20 +388,41 @@ const seed = async (publisherId: any, images: Map<string, { Location: string; Ke
     });
     productCount += 1;
 
-    // Variations
+    // Variations — one row per combo. variation_name and `combination` MUST
+    // match what the Admin combination matrix produces, or the storefront
+    // picker (QuickView / PDP) can't map a selection back to a row:
+    //   • variation_name = value names joined by " / "  (NOT "Product - Value")
+    //   • combination    = value ids SORTED as strings   (chosen-combo lookup)
     if (isVariation) {
-      const attr = attrBySlug.get(p.variation!.attribute_slug)!;
-      const rows = p.variation!.rows.map((r) => {
-        const valueId = attr.valueIdBySlug.get(r.value_slug);
-        const meta = attr.valueMeta.get(r.value_slug);
+      const axisAttrs = axisSlugs.map((s) => attrBySlug.get(s)!);
+      const rows = combos.map((c) => {
+        // value id + meta per axis, in picker order
+        const perAxis = c.value_slugs.map((vs, ai) => ({
+          id: axisAttrs[ai].valueIdBySlug.get(vs),
+          meta: axisAttrs[ai].valueMeta.get(vs),
+          tracksWeight: axisAttrs[ai].tracks_weight,
+        }));
+        const variation_name = perAxis.map((a) => a.meta.name).join(" / ");
+        // combination is sorted by string id (D2 lookup contract).
+        const combination = perAxis
+          .map((a) => a.id)
+          .sort((x, y) => String(x).localeCompare(String(y)));
+        const weight = perAxis.reduce(
+          (sum, a) => sum + (a.tracksWeight ? a.meta.weight_grams ?? 0 : 0),
+          0,
+        );
+        const varImg = c.image ? images.get(c.image.slug) : null;
         return {
-          variation_name: `${p.name} - ${meta.name}`,
+          variation_name,
           product_id: created._id,
-          variation_price: r.price,
-          variation_discount_price: r.discount_price,
-          variation_quantity: r.quantity,
-          variation_weight_grams: attr.tracks_weight ? meta.weight_grams ?? null : null,
-          combination: [valueId], // single-axis → one id (already "sorted")
+          variation_price: c.price,
+          variation_discount_price: c.discount_price,
+          variation_quantity: c.quantity,
+          variation_weight_grams: weight > 0 ? weight : null,
+          combination,
+          ...(varImg
+            ? { variation_image: varImg.Location, variation_image_key: varImg.Key }
+            : {}),
           is_active: true,
         };
       });
