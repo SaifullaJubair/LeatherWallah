@@ -193,13 +193,16 @@ const ProductCard = ({ product, badge, activeFilters }) => {
         >
 
           {/* Base layer — ALWAYS main_image. Stays mounted so the card never
-              flashes empty; the video / carousel frame fades in on top. */}
+              flashes empty; the video / carousel frame fades in on top.
+              The fade-out is gated to lg+ (mouse) only: on touch, a tap fires a
+              momentary :hover which would blank the base image while the hover
+              frames (hidden md:block) aren't there — leaving a white card. */}
           <Image
             fill
             src={mainImage}
             alt={product?.product_name || "Product"}
             className={`object-cover transition-all duration-500 ${
-              (hasVideo || hasCarousel) ? "group-hover:opacity-0" : "group-hover:scale-105"
+              (hasVideo || hasCarousel) ? "lg:group-hover:opacity-0" : "lg:group-hover:scale-105"
             }`}
           />
 
@@ -213,7 +216,7 @@ const ProductCard = ({ product, badge, activeFilters }) => {
               muted
               playsInline
               preload="none"
-              className="hidden md:block absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              className="hidden lg:block absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
             />
           )}
 
@@ -226,7 +229,7 @@ const ProductCard = ({ product, badge, activeFilters }) => {
                 fill
                 src={src}
                 alt={product?.product_name || "Product"}
-                className={`object-cover absolute inset-0 transition-opacity duration-500 hidden md:block ${
+                className={`object-cover absolute inset-0 transition-opacity duration-500 hidden lg:block ${
                   hovered && carouselIdx === i ? "opacity-100" : "opacity-0"
                 }`}
               />
