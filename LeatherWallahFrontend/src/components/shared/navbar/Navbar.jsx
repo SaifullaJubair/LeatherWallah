@@ -165,7 +165,10 @@ const SearchBar = ({ className = "" }) => {
   );
 };
 
-// ─── All Categories single dropdown ───────────────────────────────────────────
+// ─── Categories mega menu ─────────────────────────────────────────────────────
+// One column per root category: root heading (+ logo) → its subcategories →
+// "View all" link. Column count scales with how many roots there are so a
+// small catalog (2 roots) doesn't look sparse and a large one still fits.
 const CategoriesDropdown = ({ menuData }) => {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -176,6 +179,14 @@ const CategoriesDropdown = ({ menuData }) => {
   const hide = () => { timerRef.current = setTimeout(() => setOpen(false), 150); };
 
   if (!menuData?.length) return null;
+
+  const rootCount = menuData.length;
+  // cap columns so the panel never gets absurdly wide
+  const cols = Math.min(rootCount, 4);
+  const colClass =
+    cols >= 4 ? "sm:grid-cols-4" : cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
+  // panel width tracks column count (~200px per column, min 2 for breathing room)
+  const panelWidth = Math.max(cols, 2) * 210;
 
   return (
     <div className="relative shrink-0" onMouseEnter={show} onMouseLeave={hide}>
@@ -190,29 +201,79 @@ const CategoriesDropdown = ({ menuData }) => {
 
       {open && (
         <div className="absolute left-0 top-full pt-2 z-[100]" onMouseEnter={show} onMouseLeave={hide}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden w-64">
-            <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+          <div
+            className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-w-[92vw]"
+            style={{ width: panelWidth }}
+          >
+            <div className="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-secondary-50/60 to-transparent">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Browse Categories</p>
             </div>
-            <div className="py-1.5 max-h-80 overflow-y-auto">
+
+            <div className={`grid grid-cols-2 ${colClass} gap-x-2 gap-y-1 p-4`}>
               {menuData.map((item) => {
-                const href = `/category/${item?.category?.category_slug}`;
-                const active = pathname.startsWith(href);
+                const cat = item?.category;
+                const rootHref = `/category/${cat?.category_slug}`;
+                const subs = item?.sub_categories || [];
                 return (
-                  <Link
-                    key={item?.category?._id}
-                    href={href}
-                    className={`flex items-center gap-3 px-4 py-2.5 transition-colors ${
-                      active ? "bg-primary/8 text-primary" : "text-gray-700 hover:bg-primary/5 hover:text-primary"
-                    }`}
-                  >
-                    {item?.category?.category_logo ? (
-                      <img src={item.category.category_logo} alt="" className="w-6 h-6 object-contain rounded shrink-0" />
-                    ) : (
-                      <span className="w-6 h-6 rounded-full bg-primary/10 shrink-0" />
+                  <div key={cat?._id} className="min-w-0 flex flex-col">
+                    {/* Root heading */}
+                    <Link
+                      href={rootHref}
+                      className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                    >
+                      {cat?.category_logo ? (
+                        <img src={cat.category_logo} alt="" className="w-7 h-7 object-cover rounded-md shrink-0" />
+                      ) : (
+                        <span className="w-7 h-7 rounded-md bg-primary/10 shrink-0" />
+                      )}
+                      <span className="text-sm font-bold text-secondary group-hover:text-primary transition-colors truncate">
+                        {cat?.category_name}
+                      </span>
+                    </Link>
+
+                    {/* Subcategories (+ child level, flat) — capped height so a
+                        long list scrolls inside its own column instead of
+                        stretching the whole panel. */}
+                    {subs.length > 0 && (
+                      <div className="mt-0.5 mb-1 pl-2 border-l border-gray-100 ml-3.5 max-h-64 overflow-y-auto bag-scroll">
+                        {subs.map((sub) => {
+                          const subHref = `/category/${cat?.category_slug}/${sub?.sub_category_slug}`;
+                          const children = sub?.child_categories || [];
+                          return (
+                            <div key={sub?._id}>
+                              <Link
+                                href={subHref}
+                                className="block px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:text-primary hover:bg-primary/5 rounded-md transition-colors truncate"
+                              >
+                                {sub?.sub_category_name}
+                              </Link>
+                              {children.length > 0 && (
+                                <div className="pl-3 border-l border-gray-100 ml-3">
+                                  {children.map((child) => (
+                                    <Link
+                                      key={child?._id}
+                                      href={`${subHref}/${child?.child_category_slug}`}
+                                      className="block px-2.5 py-1 text-[12px] text-gray-500 hover:text-primary hover:bg-primary/5 rounded-md transition-colors truncate"
+                                    >
+                                      {child?.child_category_name}
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-                    <span className="text-sm font-medium">{item?.category?.category_name}</span>
-                  </Link>
+
+                    {/* View all */}
+                    <Link
+                      href={rootHref}
+                      className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-primary/80 hover:text-primary transition-colors ml-3.5 mt-auto"
+                    >
+                      View all <FiChevronDown size={11} className="-rotate-90" />
+                    </Link>
+                  </div>
                 );
               })}
             </div>

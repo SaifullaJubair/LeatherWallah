@@ -17,9 +17,13 @@ const Footer = ({ menuData }) => {
 
   const footerData = settingsData?.data[0];
 
-  const exploreData = menuData?.filter(
-    (item) => item?.category?.explore_category_show === true,
-  );
+  // Footer "Explore Category" is a curated short-list, not full navigation —
+  // cap it so a large catalog doesn't produce a runaway column. (The navbar
+  // mega menu stays uncapped for real browsing.)
+  const EXPLORE_CAP = 3;
+  const exploreData = menuData
+    ?.filter((item) => item?.category?.explore_category_show === true)
+    ?.slice(0, EXPLORE_CAP);
 
   if (isLoading) {
     return null;

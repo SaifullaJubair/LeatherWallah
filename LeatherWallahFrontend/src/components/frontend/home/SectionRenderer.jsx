@@ -6,6 +6,7 @@
 import TrendingProduct from "./trendingProduct/TrendingProduct";
 import LatestProducts from "./latestProducts/LatestProducts";
 import CategoryWiseProduct from "./categoryWiseProduct/CategoryWiseProduct";
+import FeatureCategoryStrip from "./featureCategoryStrip/FeatureCategoryStrip";
 import FeatureService from "./featureService/FeatureService";
 import PromotionalBanner from "./promotionalBanner/PromotionalBanner";
 import PopularProducts from "./popularProducts/PopularProducts";
@@ -26,6 +27,7 @@ const SERVER_SIDE_IDS = new Set(["hero", "flash_sale"]);
 const SECTION_COMPONENTS = {
   trending_products:  TrendingProduct,
   new_arrivals:       LatestProducts,
+  feature_categories: FeatureCategoryStrip,
   category_wise_strip: CategoryWiseProduct,
   bestsellers:        PopularProducts,
   promo_banner:       PromotionalBanner,
@@ -41,7 +43,7 @@ const SECTION_COMPONENTS = {
   product_features:    ProductFeatures,
   story_band:          StoryBand,
   // lower-priority sections not yet wired to components — will silently skip
-  // trust_strip, feature_categories, offers_block, just_for_you
+  // trust_strip, offers_block, just_for_you
 };
 
 export default function SectionRenderer({ sections, settings }) {
