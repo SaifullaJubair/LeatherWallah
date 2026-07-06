@@ -323,7 +323,6 @@ const ProductCard = ({ product, badge, activeFilters }) => {
             )}
           </div>
         </Link>
-        </div>
       </div>
 
       {quickView && (
