@@ -605,8 +605,10 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
 
               {/* Right — Details */}
               <div className="md:w-[55%] p-4 sm:p-6 overflow-y-auto md:max-h-[90dvh]">
-                <div className="space-y-4 pb-6">
-                  <div className="mt-12 sm:mt-0">
+                <div className="space-y-3 sm:space-y-4 pb-4 sm:pb-6">
+                  {/* mobile: small gap from the image above (was mt-12, which
+                      left a big empty band); desktop keeps no top margin. */}
+                  <div className="mt-2 sm:mt-0">
                     {product.product_brand && (
                       <span className="text-xs text-gray-400 uppercase tracking-wider">
                         {product.product_brand}
