@@ -571,6 +571,280 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     ],
     reviews: REVIEWS_A,
   },
+
+  // ── Extra demo products so each category strip looks full (8 more) ──
+
+  // 8) Formal — Wingtip Brogues (sizes)
+  {
+    name: "Wingtip Brogue Shoes",
+    slug: "wingtip-brogue-shoes",
+    category_slug: "formal-shoes",
+    price: 4800,
+    quantity: 0,
+    unit: "Pair",
+    short_description: "Classic wingtip brogues with decorative broguing — sharp formal character.",
+    description:
+      "Full-grain leather wingtip brogues featuring signature medallion broguing, a cushioned insole and a durable stacked sole. A statement formal shoe with timeless detail.",
+    badge_text: "Best Seller",
+    short_features: ["Full-Grain Leather", "Hand-Brogued", "Cushioned Insole"],
+    main_image: { slug: "brogue-main", url: "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=900&q=80" },
+    other_images: [{ slug: "brogue-2", url: "https://images.unsplash.com/photo-1531310197839-ccf54634509e?w=900&q=80" }],
+    variation: {
+      attribute_slug: "shoe-size",
+      rows: [
+        { value_slug: "eu-40", price: 4800, quantity: 14 },
+        { value_slug: "eu-41", price: 4800, discount_price: 4500, quantity: 16 },
+        { value_slug: "eu-42", price: 4800, quantity: 20 },
+        { value_slug: "eu-43", price: 4800, quantity: 12 },
+      ],
+    },
+    benefits: ["Timeless brogue detail", "Premium leather", "All-day comfort", "Durable stacked sole"],
+    use_cases: [{ text: "Office & business" }, { text: "Formal events" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Full-grain leather" },
+        { label: "Sole", value: "Stacked leather" },
+        { label: "Construction", value: "Goodyear welted" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "6 months" }],
+    },
+    faqs: [{ question: "Is broguing hand-finished?", answer: "Yes, the medallion and wing detailing are hand-punched by our artisans." }],
+    reviews: REVIEWS_B,
+  },
+
+  // 9) Formal — Derby Shoes (sizes)
+  {
+    name: "Leather Derby Shoes",
+    slug: "leather-derby-shoes",
+    category_slug: "formal-shoes",
+    price: 4300,
+    quantity: 0,
+    unit: "Pair",
+    short_description: "Open-lacing Derby shoes in smooth calf leather — comfortable and versatile.",
+    description:
+      "Smooth calf-leather Derby shoes with an open-lacing system for an adjustable, roomy fit. A softer, more relaxed formal option that pairs well from office to dinner.",
+    short_features: ["Calf Leather", "Open Lacing", "Roomy Fit"],
+    main_image: { slug: "derby-main", url: "https://images.unsplash.com/photo-1582897085656-c636d006a246?w=900&q=80" },
+    other_images: [{ slug: "derby-2", url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=900&q=80" }],
+    variation: {
+      attribute_slug: "shoe-size",
+      rows: [
+        { value_slug: "eu-41", price: 4300, quantity: 18 },
+        { value_slug: "eu-42", price: 4300, quantity: 22 },
+        { value_slug: "eu-43", price: 4300, discount_price: 3999, quantity: 15 },
+      ],
+    },
+    benefits: ["Adjustable open lacing", "Soft calf leather", "Everyday formal comfort"],
+    use_cases: [{ text: "Office wear" }, { text: "Dinner & events" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Calf leather" },
+        { label: "Closure", value: "Open lacing" },
+        { label: "Sole", value: "Rubber" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "3 months" }],
+    },
+    faqs: [{ question: "Derby vs Oxford — what's the difference?", answer: "Derbys have open lacing (more room and adjustability); Oxfords have closed lacing for a sleeker look." }],
+    reviews: REVIEWS_A,
+  },
+
+  // 10) Loafers — Tassel Loafers (sizes)
+  {
+    name: "Suede Tassel Loafers",
+    slug: "suede-tassel-loafers",
+    category_slug: "loafers",
+    price: 3600,
+    quantity: 0,
+    unit: "Pair",
+    short_description: "Soft suede tassel loafers — a refined slip-on with playful detail.",
+    description:
+      "Premium suede tassel loafers with a hand-stitched apron and lightweight flexible sole. Effortless slip-on style with a touch of personality.",
+    badge_text: "Premium",
+    short_features: ["Soft Suede", "Tassel Detail", "Slip-On"],
+    main_image: { slug: "tassel-main", url: "https://images.unsplash.com/photo-1614253429340-98120bd6d753?w=900&q=80" },
+    other_images: [{ slug: "tassel-2", url: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=900&q=80" }],
+    variation: {
+      attribute_slug: "shoe-size",
+      rows: [
+        { value_slug: "eu-40", price: 3600, quantity: 10 },
+        { value_slug: "eu-41", price: 3600, discount_price: 3300, quantity: 14 },
+        { value_slug: "eu-42", price: 3600, quantity: 16 },
+      ],
+    },
+    benefits: ["Refined tassel detail", "Breathable suede", "Lightweight slip-on"],
+    use_cases: [{ text: "Smart-casual" }, { text: "Evening outings" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Suede leather" },
+        { label: "Closure", value: "Slip-on" },
+        { label: "Sole", value: "TPR lightweight" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "3 months" }],
+    },
+    faqs: [{ question: "How do I care for suede loafers?", answer: "Brush regularly with a suede brush and apply a protector spray before first wear." }],
+    reviews: REVIEWS_B,
+  },
+
+  // 11) Loafers — Horsebit Loafers (sizes)
+  {
+    name: "Classic Horsebit Loafers",
+    slug: "classic-horsebit-loafers",
+    category_slug: "loafers",
+    price: 4100,
+    quantity: 0,
+    unit: "Pair",
+    short_description: "Leather horsebit loafers with a polished metal bit — timeless luxury style.",
+    description:
+      "Genuine leather horsebit loafers finished with a signature polished metal bit across the vamp. A classic dress-loafer that elevates any smart outfit.",
+    short_features: ["Genuine Leather", "Metal Horsebit", "Leather Lining"],
+    main_image: { slug: "horsebit-main", url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=900&q=80" },
+    other_images: [{ slug: "horsebit-2", url: "https://images.unsplash.com/photo-1582897085656-c636d006a246?w=900&q=80" }],
+    variation: {
+      attribute_slug: "shoe-size",
+      rows: [
+        { value_slug: "eu-41", price: 4100, quantity: 12 },
+        { value_slug: "eu-42", price: 4100, quantity: 18 },
+        { value_slug: "eu-43", price: 4100, discount_price: 3800, quantity: 10 },
+      ],
+    },
+    benefits: ["Signature horsebit detail", "Premium leather lining", "Dress-loafer versatility"],
+    use_cases: [{ text: "Business casual" }, { text: "Formal events" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Genuine leather" },
+        { label: "Hardware", value: "Polished metal bit" },
+        { label: "Lining", value: "Leather" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "6 months" }],
+    },
+    faqs: [{ question: "Will the metal bit tarnish?", answer: "The bit is treated for shine retention; an occasional soft-cloth polish keeps it bright." }],
+    reviews: REVIEWS_A,
+  },
+
+  // 12) Sneakers — High-Top (simple)
+  {
+    name: "Leather High-Top Sneakers",
+    slug: "leather-high-top-sneakers",
+    category_slug: "sneakers",
+    price: 3900,
+    discount_price: 3500,
+    quantity: 40,
+    unit: "Pair",
+    short_description: "Premium leather high-tops with ankle support and a cushioned footbed.",
+    description:
+      "Full-grain leather high-top sneakers with padded ankle collars and a memory-foam footbed. A bold everyday silhouette with all-day comfort.",
+    badge_text: "Everyday Comfort",
+    short_features: ["Full-Grain Leather", "Padded Collar", "Memory-Foam Footbed"],
+    main_image: { slug: "hightop-main", url: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=900&q=80" },
+    other_images: [{ slug: "hightop-2", url: "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=900&q=80" }],
+    benefits: ["Supportive ankle collar", "All-day cushioning", "Durable leather upper"],
+    use_cases: [{ text: "Everyday casual" }, { text: "Street style" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Full-grain leather" },
+        { label: "Footbed", value: "Memory foam" },
+        { label: "Outsole", value: "Rubber" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "3 months" }],
+    },
+    faqs: [{ question: "Do high-tops give good ankle support?", answer: "Yes, the padded collar wraps the ankle for extra support and comfort." }],
+    reviews: REVIEWS_B,
+  },
+
+  // 13) Sneakers — Canvas & Leather (simple)
+  {
+    name: "Canvas Leather Trainers",
+    slug: "canvas-leather-trainers",
+    category_slug: "sneakers",
+    price: 2800,
+    quantity: 55,
+    unit: "Pair",
+    short_description: "Lightweight canvas trainers with leather trims — breezy everyday wear.",
+    description:
+      "Breathable canvas trainers accented with genuine leather trims and a cushioned insole. Lightweight and easy to style for warm-weather everyday wear.",
+    short_features: ["Breathable Canvas", "Leather Trims", "Lightweight"],
+    main_image: { slug: "trainer-main", url: "https://images.unsplash.com/photo-1465453869711-7e174808ace9?w=900&q=80" },
+    other_images: [{ slug: "trainer-2", url: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=900&q=80" }],
+    benefits: ["Breathable & light", "Leather-trim durability", "Easy everyday styling"],
+    use_cases: [{ text: "Casual daily wear" }, { text: "Summer outings" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Canvas + leather trim" },
+        { label: "Insole", value: "Cushioned" },
+        { label: "Outsole", value: "Vulcanised rubber" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "1 month" }],
+    },
+    faqs: [{ question: "Are these machine washable?", answer: "Spot-clean only — the leather trims should not be machine washed." }],
+    reviews: REVIEWS_A,
+  },
+
+  // 14) Accessories — Card Holder (simple)
+  {
+    name: "Slim Leather Card Holder",
+    slug: "slim-leather-card-holder",
+    category_slug: "leather-accessories",
+    price: 800,
+    discount_price: 650,
+    quantity: 120,
+    unit: "Piece",
+    short_description: "Minimal full-grain card holder — four slots for everyday essentials.",
+    description:
+      "A slim full-grain leather card holder with four card slots and a central pocket. Pocket-friendly minimalist carry that patinas beautifully over time.",
+    badge_text: "Everyday Carry",
+    short_features: ["Full-Grain Leather", "4 Card Slots", "Slim Profile"],
+    main_image: { slug: "cardholder-main", url: "https://images.unsplash.com/photo-1606503825008-909a67e63c3d?w=900&q=80" },
+    other_images: [{ slug: "cardholder-2", url: "https://images.unsplash.com/photo-1627123424574-724758594e93?w=900&q=80" }],
+    benefits: ["Ultra-slim carry", "Premium full-grain leather", "Ages with character"],
+    use_cases: [{ text: "Everyday carry" }, { text: "Gift item" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Material", value: "Full-grain leather" },
+        { label: "Card Slots", value: "4" },
+        { label: "Pockets", value: "1 central" },
+      ],
+      info_tiles: [{ label: "Origin", value: "Handmade in BD" }],
+    },
+    faqs: [{ question: "How many cards does it hold?", answer: "Four cards in the slots plus a couple more folded in the central pocket." }],
+    reviews: REVIEWS_B,
+  },
+
+  // 15) Men's Footwear — Desert Boots (simple)
+  {
+    name: "Suede Desert Boots",
+    slug: "suede-desert-boots",
+    category_slug: "mens-footwear",
+    price: 4600,
+    quantity: 38,
+    unit: "Pair",
+    short_description: "Classic suede desert boots with a crepe sole — rugged yet refined.",
+    description:
+      "Timeless suede desert boots featuring a two-eyelet lace-up and a comfortable crepe rubber sole. A versatile between-seasons staple that works with denim or chinos.",
+    badge_text: "Editor's Pick",
+    short_features: ["Soft Suede", "Crepe Sole", "Two-Eyelet Lace"],
+    main_image: { slug: "desert-main", url: "https://images.unsplash.com/photo-1605812860427-4024433a70fd?w=900&q=80" },
+    other_images: [{ slug: "desert-2", url: "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=900&q=80" }],
+    benefits: ["Cushioned crepe sole", "Soft breathable suede", "Between-seasons versatility"],
+    use_cases: [{ text: "Casual daily wear" }, { text: "Autumn & spring" }],
+    nutrition: {
+      per_serving: "Specifications",
+      rows: [
+        { label: "Upper Material", value: "Suede leather" },
+        { label: "Sole", value: "Crepe rubber" },
+        { label: "Closure", value: "Two-eyelet lace" },
+      ],
+      info_tiles: [{ label: "Warranty", value: "3 months" }],
+    },
+    faqs: [{ question: "Is a crepe sole durable?", answer: "Crepe soles are comfortable and grippy; re-soling is easy when they eventually wear down." }],
+    reviews: REVIEWS_A,
+  },
 ];
 
 // Theme seeded for the demo (leather-friendly warm palette) + floating accents.
