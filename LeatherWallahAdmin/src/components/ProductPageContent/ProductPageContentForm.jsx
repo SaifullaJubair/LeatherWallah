@@ -3,8 +3,7 @@ import { useForm } from "react-hook-form";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaPlus, FaTrash, FaListUl, FaArrowLeft } from "react-icons/fa";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+import RichTextEditor from "../common/RichTextEditor/RichTextEditor";
 import IconPicker from "../common/IconPicker/IconPicker";
 import CustomFieldsBlock from "../ProductNew/sections/CustomFieldsBlock";
 import { BASE_URL } from "../../utils/baseURL";
@@ -547,9 +546,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
               পণ্যের মূল বিবরণ (rich text)। এটা product edit form-এর Description-এর
               সাথে একই — যেখান থেকেই শেষবার সেভ হবে সেটাই দেখাবে।
             </p>
-            <ReactQuill
-              className="bg-white"
-              theme="snow"
+            <RichTextEditor
               value={description}
               onChange={setDescription}
               placeholder="Enter product description"

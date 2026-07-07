@@ -5,8 +5,7 @@ import { MdAddToPhotos } from "react-icons/md";
 
 import { RiImageAddFill } from "react-icons/ri";
 import { RxCross1, RxCrossCircled } from "react-icons/rx";
-import ReactQuill from "react-quill-new";
-// import 'react-quill-new/dist/quill.snow.css'
+import RichTextEditor from "../common/RichTextEditor/RichTextEditor";
 import UseGetProduct from "./../../hooks/UseGetProduct";
 import NoDataFound from "../../shared/NoDataFound/NoDataFound";
 import Pagination from "../common/pagination/Pagination";
@@ -243,14 +242,10 @@ const AddOffers = () => {
                 <span className="text-red-500">*</span>
               </label>
 
-              <ReactQuill
-                id="offer_description"
-                required
-                theme="snow"
+              <RichTextEditor
                 value={description}
                 onChange={setDescription}
                 placeholder="Enter Offer Description"
-                className="h-56 mb-12"
               />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4">

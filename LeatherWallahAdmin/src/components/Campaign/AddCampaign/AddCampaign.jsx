@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 
 import { RiImageAddFill } from "react-icons/ri";
 import { RxCross1, RxCrossCircled } from "react-icons/rx";
-import ReactQuill from "react-quill-new";
+import RichTextEditor from "../../common/RichTextEditor/RichTextEditor";
 import CampaignProductTable from "./CampaignProductTable";
 
 import { GoEye } from "react-icons/go";
@@ -214,11 +214,7 @@ const AddCampaign = ({
                 <span className="text-red-500">*</span>
               </label>
 
-              <ReactQuill
-                className="h-56 mb-12"
-                id="campaign_description"
-                required
-                theme="snow"
+              <RichTextEditor
                 value={description}
                 onChange={setDescription}
                 placeholder="Enter Campaign Description"

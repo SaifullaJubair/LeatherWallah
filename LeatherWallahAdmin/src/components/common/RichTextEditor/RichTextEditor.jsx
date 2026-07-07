@@ -30,8 +30,10 @@ export default function RichTextEditor({
   placeholder = "Write here…",
   minHeight = 220,
   className = "",
+  readOnly = false,
 }) {
   const editor = useEditor({
+    editable: !readOnly,
     extensions: buildEditorExtensions(),
     content: value || "",
     editorProps: {
@@ -50,6 +52,11 @@ export default function RichTextEditor({
     immediatelyRender: false, // avoid SSR hydration warnings (harmless in SPA)
   });
 
+  // Toggle editability when the readOnly prop changes (e.g. Policies edit/view).
+  useEffect(() => {
+    if (editor) editor.setEditable(!readOnly);
+  }, [readOnly, editor]);
+
   // Keep the editor in sync when the parent resets `value` (e.g. edit-form load,
   // form reset). Guard against feedback loops by comparing to current HTML.
   useEffect(() => {
@@ -63,7 +70,7 @@ export default function RichTextEditor({
 
   return (
     <div className={`rte-wrap ${className}`}>
-      <Toolbar editor={editor} />
+      {!readOnly && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
     </div>
   );

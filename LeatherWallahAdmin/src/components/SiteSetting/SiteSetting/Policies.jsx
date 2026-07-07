@@ -1,20 +1,9 @@
 import { useState } from "react";
-import ReactQuill from "react-quill-new";
+import RichTextEditor from "../../common/RichTextEditor/RichTextEditor";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { BASE_URL } from "../../../utils/baseURL";
 import MiniSpinner from "../../../shared/MiniSpinner/MiniSpinner";
-
-const modules = {
-  toolbar: [
-    [{ header: [1, 2, 3, 4, 5, 6, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    [{ color: [] }, { background: [] }],
-    ["link", "image"],
-    ["clean"],
-  ],
-};
 
 const Policies = ({ refetch, getInitialCurrencyData }) => {
   const [activeTab, setActiveTab] = useState("about");
@@ -163,15 +152,12 @@ const Policies = ({ refetch, getInitialCurrencyData }) => {
               )}
             </div>
 
-            <ReactQuill
-              theme="snow"
+            <RichTextEditor
               value={policies[currentField]}
               onChange={(value) =>
                 setPolicies((prev) => ({ ...prev, [currentField]: value }))
               }
-              modules={modules}
               readOnly={!isEditing}
-              className={`h-64 mb-12 ${!isEditing && "quill-readonly"}`}
             />
 
             {isEditing && (
