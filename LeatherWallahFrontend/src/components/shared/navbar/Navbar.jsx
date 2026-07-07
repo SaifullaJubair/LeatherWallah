@@ -497,6 +497,11 @@ const Navbar = ({ menuData: menuDataProp }) => {
   const [accountOpen, setAccountOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wishlistLength, setWishlistLength] = useState(0);
+  // Cart/wishlist counts come from localStorage-hydrated state, so the server
+  // (empty) and the client (has items) render different badge markup → React
+  // hydration mismatch (#418). Gate the badges behind a mount flag so the
+  // first client render matches the server; badges then appear right after.
+  const [mounted, setMounted] = useState(false);
   // Mobile: search is hidden behind an icon (it was a permanent row that ate a
   // lot of vertical space); tapping the icon slides the field down.
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -504,6 +509,8 @@ const Navbar = ({ menuData: menuDataProp }) => {
   const accountRef = useRef(null);
   const siteData = settingsData?.data?.[0];
   const menuData = menuDataProp?.data || menuDataProp || [];
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const update = () => {
@@ -596,7 +603,7 @@ const Navbar = ({ menuData: menuDataProp }) => {
               {/* Wishlist */}
               <Link href="/wishlist" className="relative flex flex-col items-center gap-0.5 p-2 text-white/75 hover:text-accent-500 transition-colors group">
                 <FiHeart size={20} className="group-hover:scale-110 transition-transform" />
-                {wishlistLength > 0 && (
+                {mounted && wishlistLength > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-accent-600 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
                     {wishlistLength}
                   </span>
@@ -607,7 +614,7 @@ const Navbar = ({ menuData: menuDataProp }) => {
               {/* Cart */}
               <Link href="/checkout" className="relative flex flex-col items-center gap-0.5 p-2 text-white/75 hover:text-accent-500 transition-colors group">
                 <FiShoppingCart size={20} className="group-hover:scale-110 transition-transform" />
-                {products?.length > 0 && (
+                {mounted && products?.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-accent-600 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
                     {products.length}
                   </span>
