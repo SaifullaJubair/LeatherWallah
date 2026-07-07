@@ -1,24 +1,38 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 // Server components (Banner/hero, FlashSale) are rendered directly in Home.jsx —
 // this component handles only client-side sections driven by home_section_array.
 // IDs here MUST match HOME_SECTION_DEFAULTS in setting.services.ts (source of truth).
+//
+// PERF: the whole homepage used to static-import every section, so all of their
+// JS landed in the initial bundle — heavy on slow mobile CPUs (long TBT/TTI).
+// Below-the-fold sections are now code-split with next/dynamic. `ssr` stays TRUE
+// (the default) so each section is still server-rendered into the HTML — SEO,
+// section order, and the Admin Home-Layout toggle/drag behaviour are unchanged;
+// only the client JS chunk is deferred. First-fold sections stay eager-imported
+// so above-the-fold content paints without an extra request.
+
+// ── First-fold: eager (paint immediately) ──
 import TrendingProduct from "./trendingProduct/TrendingProduct";
 import LatestProducts from "./latestProducts/LatestProducts";
 import CategoryWiseProduct from "./categoryWiseProduct/CategoryWiseProduct";
 import FeatureCategoryStrip from "./featureCategoryStrip/FeatureCategoryStrip";
-import FeatureService from "./featureService/FeatureService";
-import PromotionalBanner from "./promotionalBanner/PromotionalBanner";
-import PopularProducts from "./popularProducts/PopularProducts";
-import BrandStory from "./brandStory/BrandStory";
-import ReviewsCarousel from "./reviewsCarousel/ReviewsCarousel";
-import SiteFaqSection from "./siteFaqSection/SiteFaqSection";
-import NewsletterForm from "./newsletterForm/NewsletterForm";
-import ECommerceChoice from "./eCommerceChoice/ECommerceChoice";
+
+// ── Below-fold: code-split (ssr:true, so still in the server HTML) ──
+const FeatureService    = dynamic(() => import("./featureService/FeatureService"));
+const PromotionalBanner = dynamic(() => import("./promotionalBanner/PromotionalBanner"));
+const PopularProducts   = dynamic(() => import("./popularProducts/PopularProducts"));
+const BrandStory        = dynamic(() => import("./brandStory/BrandStory"));
+const ReviewsCarousel   = dynamic(() => import("./reviewsCarousel/ReviewsCarousel"));
+const SiteFaqSection    = dynamic(() => import("./siteFaqSection/SiteFaqSection"));
+const NewsletterForm    = dynamic(() => import("./newsletterForm/NewsletterForm"));
+const ECommerceChoice   = dynamic(() => import("./eCommerceChoice/ECommerceChoice"));
 // Boutique preset (few-products storytelling home)
-import HeroSpotlight from "./heroSpotlight/HeroSpotlight";
-import ProductFeatures from "./productFeatures/ProductFeatures";
-import StoryBand from "./storyBand/StoryBand";
+const HeroSpotlight     = dynamic(() => import("./heroSpotlight/HeroSpotlight"));
+const ProductFeatures   = dynamic(() => import("./productFeatures/ProductFeatures"));
+const StoryBand         = dynamic(() => import("./storyBand/StoryBand"));
 
 // Sections handled server-side in Home.jsx — skip here to avoid double-render
 const SERVER_SIDE_IDS = new Set(["hero", "flash_sale"]);
