@@ -580,8 +580,8 @@ const Navbar = ({ menuData: menuDataProp }) => {
               <CategoriesDropdown menuData={menuData} />
             </nav>
 
-            {/* ── Search (fills remaining space) ── */}
-            <SearchBar className="hidden md:flex flex-1 min-w-0" />
+            {/* ── Search (grows but capped, centred in the remaining space) ── */}
+            <SearchBar className="hidden md:flex flex-1 min-w-0 max-w-2xl mx-auto" />
 
             {/* ── Mobile: spacer ── */}
             <div className="flex-1 md:hidden" />
