@@ -1,0 +1,150 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Shared rich-text content styles.
+
+   This ONE stylesheet defines how saved editor HTML looks. It is imported by:
+     • the RichTextEditor's editable area (admin)  → true WYSIWYG
+     • every PDP / policy render site (frontend)    → same look as the editor
+
+   The frontend does NOT have @tailwindcss/typography wired, so we do NOT rely
+   on `prose`. Everything a description needs (headings, lists, tables, colors,
+   sizes, links, alignment) is styled explicitly here, scoped under .rt-content.
+
+   Keep this file in sync between admin + frontend (copy on change) — it is the
+   single source of truth for description appearance.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.rt-content {
+  color: #374151;               /* gray-700 */
+  font-size: 0.95rem;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.rt-content > :first-child { margin-top: 0; }
+.rt-content > :last-child  { margin-bottom: 0; }
+
+/* Headings */
+.rt-content h1 { font-size: 1.6rem;  font-weight: 700; margin: 1.2em 0 0.5em; color: #1f2937; line-height: 1.25; }
+.rt-content h2 { font-size: 1.35rem; font-weight: 700; margin: 1.1em 0 0.5em; color: #1f2937; line-height: 1.3; }
+.rt-content h3 { font-size: 1.15rem; font-weight: 600; margin: 1em 0 0.4em;   color: #1f2937; }
+
+/* Paragraphs */
+.rt-content p { margin: 0.6em 0; }
+
+/* Lists */
+.rt-content ul,
+.rt-content ol { margin: 0.6em 0; padding-left: 1.6em; }
+.rt-content ul { list-style: disc; }
+.rt-content ol { list-style: decimal; }
+.rt-content li { margin: 0.25em 0; }
+.rt-content li > p { margin: 0; }
+
+/* Nested-list markers change by depth so nesting is visually distinct. */
+.rt-content ul ul { list-style: circle; }
+.rt-content ul ul ul { list-style: square; }
+.rt-content ol ol { list-style: lower-alpha; }
+.rt-content ol ol ol { list-style: lower-roman; }
+
+/* List-item alignment fix (ported from Sams-360): when a list item's content
+   is centre/right/justify aligned, the marker must move too — otherwise the
+   bullet/number stays flush-left while the text shifts (looks broken). The
+   TextAlign extension applies text-align to the inner <p>, so :has() forwards
+   it up to the <li>; the [style] selectors also match alignment set directly
+   on the <li> (older content). */
+.rt-content li:has(> p[style*="text-align: center"]),
+.rt-content li[style*="text-align: center"] { text-align: center; list-style-position: inside; }
+.rt-content li:has(> p[style*="text-align: right"]),
+.rt-content li[style*="text-align: right"] { text-align: right; list-style-position: inside; }
+.rt-content li:has(> p[style*="text-align: justify"]),
+.rt-content li[style*="text-align: justify"] { text-align: justify; list-style-position: inside; }
+/* Make the inner <p> inline so the marker sits ON THE SAME LINE as the text
+   (list-style-position:inside + a block <p> would otherwise push the text to
+   the next line — the marker-alone-on-its-line bug). */
+.rt-content li:has(> p[style*="text-align: center"]) > p,
+.rt-content li:has(> p[style*="text-align: right"]) > p,
+.rt-content li:has(> p[style*="text-align: justify"]) > p,
+.rt-content li[style*="text-align: center"] > p,
+.rt-content li[style*="text-align: right"] > p,
+.rt-content li[style*="text-align: justify"] > p { display: inline; }
+
+/* Highlight mark */
+.rt-content mark { border-radius: 2px; padding: 0 0.1em; }
+
+/* Links */
+.rt-content a {
+  color: #6B1A1F;               /* brand burgundy */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rt-content a:hover { color: #8a2429; }
+
+/* Emphasis */
+.rt-content strong { font-weight: 700; color: #1f2937; }
+.rt-content em { font-style: italic; }
+.rt-content u { text-decoration: underline; }
+.rt-content s { text-decoration: line-through; }
+
+/* Blockquote */
+.rt-content blockquote {
+  border-left: 3px solid #C9A227; /* gold */
+  padding-left: 1em;
+  margin: 0.8em 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Code */
+.rt-content code {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+  font-family: ui-monospace, monospace;
+}
+.rt-content pre {
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.rt-content pre code { background: none; padding: 0; color: inherit; }
+
+/* Horizontal rule */
+.rt-content hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.2em 0; }
+
+/* Text alignment (from TextAlign extension → inline style, but also class-safe) */
+.rt-content [style*="text-align: center"] { text-align: center; }
+.rt-content [style*="text-align: right"]  { text-align: right; }
+.rt-content [style*="text-align: justify"]{ text-align: justify; }
+
+/* Tables — the headline "edit like a doc" feature */
+.rt-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.9em 0;
+  overflow: hidden;
+  table-layout: fixed;
+}
+.rt-content th,
+.rt-content td {
+  border: 1px solid #d1d5db;
+  padding: 0.5em 0.7em;
+  vertical-align: top;
+  text-align: left;
+}
+.rt-content th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #1f2937;
+}
+.rt-content table p { margin: 0; }
+
+/* Images (disabled in the editor, but if legacy content has one, keep it sane) */
+.rt-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+
+/* ── Legacy Quill class shims (optional safety for old ql-* content) ── */
+.rt-content .ql-align-center  { text-align: center; }
+.rt-content .ql-align-right   { text-align: right; }
+.rt-content .ql-align-justify { text-align: justify; }

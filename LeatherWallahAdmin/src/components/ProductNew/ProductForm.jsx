@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import Select from "react-select";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+import RichTextEditor from "../common/RichTextEditor/RichTextEditor";
 import { MdCancel } from "react-icons/md";
 import {
   RiImageAddLine,
@@ -1711,9 +1710,8 @@ const ProductForm = ({ mode = "add", initialData = null, onSaved }) => {
           <label className="font-medium text-gray-800">
             Description<span className="text-red-500">*</span>
           </label>
-          <ReactQuill
-            className="mt-2 bg-white"
-            theme="snow"
+          <RichTextEditor
+            className="mt-2"
             value={description}
             onChange={setDescription}
             placeholder="Enter product description"

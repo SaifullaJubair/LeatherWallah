@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
 import { FiChevronDown, FiFileText, FiList } from "react-icons/fi";
+// Shared rich-text styles — the SAME stylesheet the admin editor uses, so the
+// saved description renders on the PDP exactly as it looked while editing.
+import "@/styles/richtext.css";
 
 const AccordionItem = ({ title, icon, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -52,9 +55,7 @@ const ProductDescription = ({ product }) => {
           defaultOpen={true}
         >
           <div
-            className="prose prose-sm max-w-none text-gray-600 leading-relaxed
-              prose-headings:text-gray-800 prose-strong:text-gray-800
-              prose-ul:space-y-1 prose-li:text-gray-600"
+            className="rt-content max-w-none"
             dangerouslySetInnerHTML={{ __html: product?.description }}
           />
         </AccordionItem>

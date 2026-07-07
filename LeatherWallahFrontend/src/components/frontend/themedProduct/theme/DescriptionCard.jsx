@@ -196,6 +196,43 @@ export default function DescriptionCard({ html, customFields = [] }) {
         .pdp-desc :global(li) {
           margin: 0.2rem 0;
         }
+        /* Nested-list markers by depth. */
+        .pdp-desc :global(ul ul) { list-style: circle; }
+        .pdp-desc :global(ul ul ul) { list-style: square; }
+        .pdp-desc :global(ol ol) { list-style: lower-alpha; }
+        .pdp-desc :global(ol ol ol) { list-style: lower-roman; }
+        /* List-item alignment fix — move the marker with the text when a list
+           item is centre/right/justify aligned (else the bullet stays left). */
+        .pdp-desc :global(li:has(> p[style*="text-align: center"])),
+        .pdp-desc :global(li[style*="text-align: center"]) {
+          text-align: center;
+          list-style-position: inside;
+        }
+        .pdp-desc :global(li:has(> p[style*="text-align: right"])),
+        .pdp-desc :global(li[style*="text-align: right"]) {
+          text-align: right;
+          list-style-position: inside;
+        }
+        .pdp-desc :global(li:has(> p[style*="text-align: justify"])),
+        .pdp-desc :global(li[style*="text-align: justify"]) {
+          text-align: justify;
+          list-style-position: inside;
+        }
+        /* Inner <p> inline so the number/bullet stays on the same line as the
+           text when a list item is aligned (otherwise it line-breaks). */
+        .pdp-desc :global(li:has(> p[style*="text-align: center"]) > p),
+        .pdp-desc :global(li:has(> p[style*="text-align: right"]) > p),
+        .pdp-desc :global(li:has(> p[style*="text-align: justify"]) > p),
+        .pdp-desc :global(li[style*="text-align: center"] > p),
+        .pdp-desc :global(li[style*="text-align: right"] > p),
+        .pdp-desc :global(li[style*="text-align: justify"] > p) {
+          display: inline;
+        }
+        /* Highlight mark from the editor */
+        .pdp-desc :global(mark) {
+          border-radius: 2px;
+          padding: 0 0.1em;
+        }
         .pdp-desc :global(blockquote) {
           margin: 0.75rem 0;
           padding: 0.6rem 0.9rem;
