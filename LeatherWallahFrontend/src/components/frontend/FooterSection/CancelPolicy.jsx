@@ -1,29 +1,5 @@
-"use client";
+import PolicyPageLayout from "../policyPage/PolicyPageLayout";
 
-import Contain from "@/components/common/Contain";
-import useGetSettingData from "@/components/lib/getSettingData";
-import CustomLoader from "@/components/shared/loader/CustomLoader";
-
-const CancelPolicy = () => {
-  const { data: settingsData, isLoading } = useGetSettingData();
-  const footerData = settingsData?.data[0];
-
-  return (
-    <div>
-      <Contain>
-        {isLoading ? (
-          <CustomLoader />
-        ) : (
-          <div
-            className="my-6"
-            dangerouslySetInnerHTML={{
-              __html: footerData?.cancellation_policy,
-            }}
-          />
-        )}
-      </Contain>
-    </div>
-  );
-};
+const CancelPolicy = () => <PolicyPageLayout slug="cancel-policy" />;
 
 export default CancelPolicy;

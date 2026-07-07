@@ -1,28 +1,5 @@
-"use client";
+import PolicyPageLayout from "../policyPage/PolicyPageLayout";
 
-import Contain from "@/components/common/Contain";
-import useGetSettingData from "@/components/lib/getSettingData";
-import CustomLoader from "@/components/shared/loader/CustomLoader";
-
-const TermsCondition = () => {
-  const { data: settingsData, isLoading } = useGetSettingData();
-  const footerData = settingsData?.data[0];
-
-  return (
-    <div>
-      {" "}
-      <Contain>
-        {isLoading ? (
-          <CustomLoader />
-        ) : (
-          <div
-            className="my-6"
-            dangerouslySetInnerHTML={{ __html: footerData?.terms_condition }}
-          />
-        )}
-      </Contain>
-    </div>
-  );
-};
+const TermsCondition = () => <PolicyPageLayout slug="terms-condition" />;
 
 export default TermsCondition;
