@@ -44,8 +44,19 @@ const SearchBar = ({ className = "" }) => {
   useEffect(() => {
     setSearchTerm(searchText);
     if (searchText) {
+      // Only fire the analytics event on type — no auto-redirect. The user
+      // picks a suggestion, presses Enter, or clicks "View all" to navigate.
       trackSearch(searchText);
-      router.push(`/shop?search=${encodeURIComponent(searchText.trim())}`);
+    } else if (pathname === "/shop") {
+      // Box emptied (backspace or clear) while on the shop page → drop the
+      // stale ?search param so the full list returns, no Enter/click needed.
+      // Never navigates away from home or any other page.
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("search")) {
+        params.delete("search");
+        const qs = params.toString();
+        router.replace(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
+      }
     }
   }, [searchText]); // eslint-disable-line react-hooks/exhaustive-deps
 
