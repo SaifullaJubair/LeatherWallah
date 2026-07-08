@@ -7,6 +7,17 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    // PERF: the upstream S3 (Contabo) serves images with no Cache-Control, so
+    // Next's optimizer fell back to its 4h default (14400s) and kept re-fetching
+    // + re-encoding. Uploads are UUID-prefixed (see backend image.upload.ts), so
+    // replacing an image always yields a new URL — a long TTL can never serve a
+    // stale one. 30 days.
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+    // NOTE: deviceSizes/imageSizes are deliberately left at their defaults.
+    // Narrowing them makes the optimizer reject any width outside the list with
+    // a 400 — which would break already-indexed /_next/image?...&w=828 URLs on
+    // this live site. Widths are generated on demand, so an unused entry costs
+    // nothing anyway.
     remotePatterns: [
       {
         protocol: "https",

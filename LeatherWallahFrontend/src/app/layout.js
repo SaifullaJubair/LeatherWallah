@@ -16,6 +16,26 @@ import GoogleTagManager, {
   GoogleTagManagerNoScript,
 } from "@/components/analyticsScripts/googleAnalytics/GoogleTagManager";
 import MicrosoftClarity from "@/components/analyticsScripts/microsoftClarity/MicrosoftClarity";
+import { BASE_URL } from "@/components/utils/baseURL";
+
+/**
+ * PERF — origins the very first paint depends on, so the browser can do
+ * DNS + TCP + TLS while it is still parsing the HTML instead of after the
+ * first JS request fires. PageSpeed measured ~300 ms of LCP sitting in the
+ * api-origin handshake alone; the image host is the LCP banner's origin.
+ * Derived from env (never hardcoded) and capped at Chrome's useful limit
+ * of ~4 preconnects. Bad/unset env just yields no hint.
+ */
+function preconnectOrigins() {
+  const origins = new Set();
+  try {
+    if (BASE_URL) origins.add(new URL(BASE_URL).origin);
+  } catch {
+    /* malformed NEXT_PUBLIC_API_URL — skip the hint rather than crash render */
+  }
+  origins.add("https://sin1.contabostorage.com"); // S3 image host (no CDN in front)
+  return [...origins];
+}
 
 export async function generateMetadata() {
   const seo = await getSeoConfig();
@@ -107,6 +127,12 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="bn" className={sansFont.variable}>
       <head>
+        {/* Warm up the connections the first paint depends on — see
+            preconnectOrigins() above. crossOrigin is required for the API
+            (fetches run with credentials) and harmless for the image host. */}
+        {preconnectOrigins().map((origin) => (
+          <link key={origin} rel="preconnect" href={origin} crossOrigin="anonymous" />
+        ))}
         {seo.gtmId && <GoogleTagManager gtmId={seo.gtmId} />}
         {/* DB-driven favicon (Admin → Site Settings). This is the ONLY
             <link rel="icon"> on the page. The old static src/app/favicon.ico

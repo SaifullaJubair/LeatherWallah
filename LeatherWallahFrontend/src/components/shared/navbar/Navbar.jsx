@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -372,7 +373,16 @@ const MobileDrawer = ({ isOpen, onClose, menuData, userInfo, onLogout, siteData 
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 bg-gray-50">
           {siteData?.logo && (
             <Link href="/" onClick={onClose}>
-              <img src={siteData.logo} alt="" className="h-9 w-auto object-contain" />
+              {/* next/image so the 1600px source is resized/WebP'd to the ~36px
+                  it actually renders at. Explicit width/height also removes the
+                  CLS this <img> was causing. */}
+              <Image
+                src={siteData.logo}
+                alt=""
+                width={144}
+                height={36}
+                className="h-9 w-auto object-contain"
+              />
             </Link>
           )}
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors ml-auto">
@@ -408,7 +418,18 @@ const MobileDrawer = ({ isOpen, onClose, menuData, userInfo, onLogout, siteData 
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   {item?.category?.category_logo ? (
-                    <img src={item.category.category_logo} alt="" className="w-5 h-5 object-contain rounded shrink-0" />
+                    /* 20x20 icon inside the off-screen mobile drawer. As a raw
+                       <img> the browser eagerly fetched the full-size original
+                       and even preloaded it ahead of the LCP banner. next/image
+                       + explicit dims + lazy keeps it out of the critical path. */
+                    <Image
+                      src={item.category.category_logo}
+                      alt=""
+                      width={20}
+                      height={20}
+                      loading="lazy"
+                      className="w-5 h-5 object-contain rounded shrink-0"
+                    />
                   ) : (
                     <span className="w-5 h-5 rounded-full bg-primary/10 shrink-0" />
                   )}
@@ -561,7 +582,18 @@ const Navbar = ({ menuData: menuDataProp }) => {
                  burgundy navbar, no light container needed) */}
             <Link href="/" className="shrink-0 mr-1">
               {siteData?.logo ? (
-                <img src={siteData.logo} alt={siteData?.title || "Logo"} className="h-10 w-auto object-contain" />
+                /* Was a raw <img> pulling the full 1600x1318 original (~148 KiB)
+                   to paint 49x40 — it competed with the LCP banner for bandwidth.
+                   next/image serves a right-sized WebP; priority because it is
+                   above the fold on every route. */
+                <Image
+                  src={siteData.logo}
+                  alt={siteData?.title || "Logo"}
+                  width={160}
+                  height={40}
+                  priority
+                  className="h-10 w-auto object-contain"
+                />
               ) : (
                 <span className="text-lg font-bold text-white">{siteData?.title || "Leather Wallah"}</span>
               )}

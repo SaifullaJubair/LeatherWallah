@@ -1,6 +1,7 @@
 "use client";
 import Contain from "@/components/common/Contain";
 import useGetSettingData from "@/components/lib/getSettingData";
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -46,7 +47,19 @@ const Footer = ({ menuData }) => {
               <div>
                 <div className="flex justify-center text-primary sm:justify-start">
                   <div className="flex gap-1 items-center">
-                    <img src={footerData?.logo} className="h-28" alt="" />
+                    {/* next/image resizes the 1600px original down to what the
+                        112px-tall footer mark actually needs. Guarded because
+                        next/image throws on an undefined src, whereas the old
+                        raw <img> silently rendered nothing while settings load. */}
+                    {footerData?.logo && (
+                      <Image
+                        src={footerData.logo}
+                        alt=""
+                        width={448}
+                        height={112}
+                        className="h-28 w-auto object-contain"
+                      />
+                    )}
                   </div>
                 </div>
 

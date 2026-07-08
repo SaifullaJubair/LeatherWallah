@@ -53,14 +53,27 @@ const BannerItem = ({ bannerData }) => {
         {items?.map((banner, i) => (
           <SwiperSlide key={banner?._id || i}>
             <div className="relative w-full aspect-[16/10] sm:aspect-[16/6] overflow-hidden bg-gray-900">
+              {/* PERF: slide 0 is the LCP element on the homepage. It gets
+                  priority + fetchPriority="high" so Next emits a <link rel=preload
+                  fetchpriority=high> and the browser starts it alongside the CSS
+                  instead of after. It also skips `placeholder="blur"` — decoding the
+                  base64 blur is extra main-thread work on the one image we want
+                  painted first, and the slide already sits on a bg-gray-900 backdrop.
+                  `sizes` matches the real render width (full-bleed inside Contain),
+                  so we don't download a 1600px file for a 360px phone. */}
               <Image
                 src={banner?.banner_image}
                 alt={banner?.banner_title || `Banner ${i + 1}`}
                 fill
                 className="object-cover opacity-90"
-                placeholder="blur"
-                blurDataURL={images.loadingProductImg}
-                priority={i === 0}
+                sizes="(max-width: 640px) 100vw, (max-width: 1200px) 92vw, 1200px"
+                {...(i === 0
+                  ? { priority: true, fetchPriority: "high" }
+                  : {
+                      loading: "lazy",
+                      placeholder: "blur",
+                      blurDataURL: images.loadingProductImg,
+                    })}
               />
               {/* gradient overlay — slightly deeper for readable text */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
