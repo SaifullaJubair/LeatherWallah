@@ -1,6 +1,9 @@
 import Image from "next/image";
 import React from "react";
 import { PhotoProvider, PhotoView } from "react-photo-view";
+// CSS co-located with its only consumers. Importing it in the root layout made
+// every route (incl. the homepage, which has no lightbox) render-block on 18.5 KiB.
+import "react-photo-view/dist/react-photo-view.css";
 
 const ChartModal = ({ showChart, setShowChart, size_chart }) => {
   return (

@@ -2,6 +2,9 @@
 import { isVideo } from "@/utils/helper";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { PhotoProvider, PhotoView } from "react-photo-view";
+// CSS co-located with its only consumers. Importing it in the root layout made
+// every route (incl. the homepage, which has no lightbox) render-block on 18.5 KiB.
+import "react-photo-view/dist/react-photo-view.css";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import { BsPlayCircleFill } from "react-icons/bs";

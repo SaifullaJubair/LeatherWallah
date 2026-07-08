@@ -3,6 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PhotoProvider, PhotoView } from "react-photo-view";
+// CSS co-located with its only consumers. Importing it in the root layout made
+// every route (incl. the homepage, which has no lightbox) render-block on 18.5 KiB.
+import "react-photo-view/dist/react-photo-view.css";
 import { toast } from "react-toastify";
 import Link from "next/link";
 

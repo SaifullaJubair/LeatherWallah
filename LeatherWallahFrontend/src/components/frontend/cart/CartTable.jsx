@@ -11,6 +11,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { productPrice } from "@/utils/helper";
 import useGetSettingData from "@/components/lib/getSettingData";
 import { PhotoProvider, PhotoView } from "react-photo-view";
+// CSS co-located with its only consumers. Importing it in the root layout made
+// every route (incl. the homepage, which has no lightbox) render-block on 18.5 KiB.
+import "react-photo-view/dist/react-photo-view.css";
 import { FiMinus, FiPlus, FiTrash2, FiEye, FiShoppingBag, FiChevronDown } from "react-icons/fi";
 import QuickViewModal from "@/components/shared/quickViewModal/QuickViewModal";
 

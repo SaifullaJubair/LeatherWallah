@@ -2,11 +2,20 @@ import { getSeoConfig } from "@/components/lib/getSeoConfig";
 import Providers from "@/components/providers/Providers";
 import QueryProviders from "@/components/providers/QueryProviders";
 import { bodyFont, sansFont } from "@/utils/font";
+// PERF: every `import "x.css"` here becomes its own render-blocking <link> on
+// EVERY route. On slow 4G the homepage was serialising ~10 stylesheets into
+// ~4,950 ms of blocked paint — for only 35.7 KiB. So only genuinely global CSS
+// stays here:
+//   - skeleton.css  : 14 components across most routes (1 KiB)
+//   - ReactToastify : the ToastContainer below is mounted in this layout
+//   - globals.css   : Tailwind
+// Moved out:
+//   - react-photo-view.css (18.5 KiB) → co-located with its 6 consumers
+//     (PDP gallery, cart, profile). The homepage has no lightbox.
+//   - react-tooltip.css → deleted; nothing in src/ ever imported react-tooltip.
 import "react-loading-skeleton/dist/skeleton.css";
-import "react-photo-view/dist/react-photo-view.css";
 import { Slide, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "react-tooltip/dist/react-tooltip.css";
 import "./globals.css";
 import AnalyticsAdvancedMatching from "@/components/analyticsScripts/utils/AnalyticsAdvancedMatching";
 import FbclidCapture from "@/components/analyticsScripts/utils/FbclidCapture";

@@ -11,7 +11,12 @@ import {
 } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
-import "swiper/css/bundle";
+// Was also `swiper/css/bundle` — the whole 20 KiB stylesheet covering every
+// Swiper module, render-blocking the homepage. Each global `import "x.css"`
+// becomes its own <link>, and on slow 4G the request count is what hurts.
+// The Swiper below never passes `navigation=` or `scrollbar=` props, so those
+// modules render no markup and need no CSS; A11y/Keyboard/Parallax/Autoplay
+// ship none either. Core `swiper/css` is all that is actually used.
 import Link from "next/link";
 import { calculatePrice } from "@/utils/helper";
 
