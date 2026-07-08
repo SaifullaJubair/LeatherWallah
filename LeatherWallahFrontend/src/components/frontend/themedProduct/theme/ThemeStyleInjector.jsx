@@ -4,6 +4,8 @@
 // data attribute when needed; here we use :root because the entire product
 // page renders themed.
 
+import ThemeFonts from "@/components/theme/ThemeFonts";
+
 // Each stack ends with "Hind Siliguri" so Bangla glyphs always render even when
 // the chosen face is Latin-first (Poppins/Inter/etc.).
 const FONT_FAMILY_MAP = {
@@ -58,5 +60,12 @@ export default function ThemeStyleInjector({ theme }) {
     }
   `.trim();
 
-  return <style dangerouslySetInnerHTML={{ __html: css }} />;
+  return (
+    <>
+      {/* The faces referenced by --brand-font. Loaded here (not from globals.css)
+          so only themed routes pay for them, and without blocking first paint. */}
+      <ThemeFonts />
+      <style dangerouslySetInnerHTML={{ __html: css }} />
+    </>
+  );
 }

@@ -19,22 +19,34 @@ import MicrosoftClarity from "@/components/analyticsScripts/microsoftClarity/Mic
 import { BASE_URL } from "@/components/utils/baseURL";
 
 /**
- * PERF — origins the very first paint depends on, so the browser can do
- * DNS + TCP + TLS while it is still parsing the HTML instead of after the
- * first JS request fires. PageSpeed measured ~300 ms of LCP sitting in the
- * api-origin handshake alone; the image host is the LCP banner's origin.
- * Derived from env (never hardcoded) and capped at Chrome's useful limit
- * of ~4 preconnects. Bad/unset env just yields no hint.
+ * PERF — warm up the API origin so the browser does DNS + TCP + TLS while it is
+ * still parsing HTML, instead of after the first fetch fires. PageSpeed measured
+ * ~300 ms of LCP sitting in that handshake.
+ *
+ * A preconnect socket is only reused by a request in the SAME CORS mode, and we
+ * get one hint per origin. The app mixes both modes against the API:
+ *   - anonymous       — getSettingData / getTrendingProducts (plain fetch, no
+ *                       credentials). These drive the Navbar + first content, so
+ *                       they are the ones on the LCP path.
+ *   - use-credentials — useUserInfoQuery, cart sync (credentials: "include").
+ * We hint the anonymous mode because that is what the render-path fetches use.
+ *
+ * `crossorigin` (valueless) means anonymous. Writing crossorigin="use-credentials"
+ * here would open a socket the settings/trending fetches cannot reuse.
+ *
+ * The S3 image host is deliberately NOT preconnected: images are served through
+ * /_next/image, so the *server* fetches from S3 and the browser never opens a
+ * connection to it. PageSpeed correctly flagged that hint as unused.
+ *
+ * Derived from env, never hardcoded. Bad/unset env yields no hint rather than a
+ * broken one.
  */
-function preconnectOrigins() {
-  const origins = new Set();
+function apiOrigin() {
   try {
-    if (BASE_URL) origins.add(new URL(BASE_URL).origin);
+    return BASE_URL ? new URL(BASE_URL).origin : null;
   } catch {
-    /* malformed NEXT_PUBLIC_API_URL — skip the hint rather than crash render */
+    return null; // malformed NEXT_PUBLIC_API_URL — skip the hint, don't crash render
   }
-  origins.add("https://sin1.contabostorage.com"); // S3 image host (no CDN in front)
-  return [...origins];
 }
 
 export async function generateMetadata() {
@@ -127,12 +139,9 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="bn" className={sansFont.variable}>
       <head>
-        {/* Warm up the connections the first paint depends on — see
-            preconnectOrigins() above. crossOrigin is required for the API
-            (fetches run with credentials) and harmless for the image host. */}
-        {preconnectOrigins().map((origin) => (
-          <link key={origin} rel="preconnect" href={origin} crossOrigin="anonymous" />
-        ))}
+        {/* Warm up the API connection — see apiOrigin() above for why this is
+            anonymous mode and why the S3 host is intentionally absent. */}
+        {apiOrigin() && <link rel="preconnect" href={apiOrigin()} crossOrigin="" />}
         {seo.gtmId && <GoogleTagManager gtmId={seo.gtmId} />}
         {/* DB-driven favicon (Admin → Site Settings). This is the ONLY
             <link rel="icon"> on the page. The old static src/app/favicon.ico

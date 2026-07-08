@@ -1,7 +1,9 @@
-/* Theme fonts — the per-product theme can pick any of these (see
-   ThemeStyleInjector --brand-font). Loaded here so the chosen font actually
-   renders on the themed PDP and the admin theme preview. */
-@import url("https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Baloo+Da+2:wght@400;500;600;700&family=Mina:wght@400;700&family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap");
+/* Theme fonts (Hind Siliguri, Tiro Bangla, Poppins, Inter, …) used to be
+   @import-ed here. A CSS @import is render-blocking and serialised, so every
+   route — including the homepage, which never uses --brand-font — waited on it
+   (~750 ms per PageSpeed). They now load non-blockingly and only on the routes
+   that consume them, from components/theme/ThemeFonts.jsx, which is rendered by
+   ThemeStyleInjector. Keep the two font lists in sync. */
 
 @tailwind base;
 @tailwind components;

@@ -11,6 +11,13 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "@/redux/feature/cart/cartSlice";
 import QuickViewModal from "@/components/shared/quickViewModal/QuickViewModal";
 
+// Rendered width of a card image, matching the grids that use this component
+// (2-up on mobile, 3-up from sm, 4-to-6-up on lg/xl). Without this, `fill`
+// defaults to 100vw and next/image serves a phone a 750px file for a ~334px
+// slot. Kept as one constant so the base layer and the hover carousel agree.
+const PRODUCT_CARD_SIZES =
+  "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw";
+
 /**
  * Shared product card used across all sections.
  *
@@ -197,10 +204,16 @@ const ProductCard = ({ product, badge, activeFilters }) => {
               The fade-out is gated to lg+ (mouse) only: on touch, a tap fires a
               momentary :hover which would blank the base image while the hover
               frames (hidden md:block) aren't there — leaving a white card. */}
+          {/* `sizes` matters: with `fill` and no sizes, next/image assumes 100vw
+              and hands the browser a 750px-wide file for a card that renders
+              ~334px on a phone (PageSpeed: ~210 KiB wasted across the grid).
+              Every grid that uses this card is 2-up on mobile, 3-up from sm, and
+              4-to-6-up on large — so mirror that. */}
           <Image
             fill
             src={mainImage}
             alt={product?.product_name || "Product"}
+            sizes={PRODUCT_CARD_SIZES}
             className={`object-cover transition-all duration-500 ${
               (hasVideo || hasCarousel) ? "lg:group-hover:opacity-0" : "lg:group-hover:scale-105"
             }`}
@@ -229,6 +242,7 @@ const ProductCard = ({ product, badge, activeFilters }) => {
                 fill
                 src={src}
                 alt={product?.product_name || "Product"}
+                sizes={PRODUCT_CARD_SIZES}
                 className={`object-cover absolute inset-0 transition-opacity duration-500 hidden lg:block ${
                   hovered && carouselIdx === i ? "opacity-100" : "opacity-0"
                 }`}
