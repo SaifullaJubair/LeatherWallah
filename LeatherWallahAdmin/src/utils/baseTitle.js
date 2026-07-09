@@ -1,1 +1,1 @@
-export const BASE_TITLE = "Fashion For You";
+export const BASE_TITLE = "Leather Wallah";

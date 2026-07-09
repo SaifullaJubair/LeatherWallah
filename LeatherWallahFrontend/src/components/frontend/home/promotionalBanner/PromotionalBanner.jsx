@@ -27,7 +27,7 @@ const PromotionalBanner = () => {
                 <span className="text-accent-700">Genuine Leather</span>
               </h2>
               <p className="text-accent-300/60 text-sm md:text-base max-w-sm mb-8">
-                Premium quality leather wallets, crafted with precision and
+                Premium quality leather footwear, crafted with precision and
                 passion. Built to last a lifetime.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">

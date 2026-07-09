@@ -741,7 +741,7 @@ const SoftwareInformation = ({ refetch, getInitialCurrencyData: data }) => {
                 {...register("seo_description")}
                 rows={3}
                 disabled={editingSection !== "seo"}
-                placeholder="e.g. Bangladesh's best genuine leather wallet, bag & belt. High quality, affordable price. Cash on delivery nationwide."
+                placeholder="e.g. Bangladesh's best genuine leather footwear — Oxfords, loafers, sneakers & boots. High quality, affordable price. Cash on delivery nationwide."
                 className="w-full rounded-lg border-gray-200 shadow-sm text-sm p-2.5 border focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 resize-none"
               />
               <div className="mt-1 flex justify-between">
@@ -767,7 +767,7 @@ const SoftwareInformation = ({ refetch, getInitialCurrencyData: data }) => {
                 {...register("seo_keywords")}
                 type="text"
                 disabled={editingSection !== "seo"}
-                placeholder="e.g. leather wallet, genuine leather, leather bag bangladesh"
+                placeholder="e.g. leather shoes, genuine leather footwear, leather boots bangladesh"
                 className="w-full rounded-lg border-gray-200 shadow-sm text-sm p-2.5 border focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
               />
             </div>
