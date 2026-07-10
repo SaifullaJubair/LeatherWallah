@@ -3,6 +3,7 @@ import { verifyToken } from "../../middlewares/verify.token";
 import {
   findVariationsByProduct,
   patchVariation,
+  patchVariationsBulk,
 } from "./variation.controllers";
 
 const router = express.Router();
@@ -16,6 +17,12 @@ router.get(
   verifyToken("product_update"),
   findVariationsByProduct,
 );
+
+// MUST be declared before "/:id" — Express matches in declaration order, so
+// otherwise PATCH /variation/bulk resolves to patchVariation with id="bulk"
+// and dies in an ObjectId cast. Same hazard the /page-content route guards
+// against in product.routes.ts.
+router.patch("/bulk", verifyToken("product_update"), patchVariationsBulk);
 
 router.patch("/:id", verifyToken("product_update"), patchVariation);
 
