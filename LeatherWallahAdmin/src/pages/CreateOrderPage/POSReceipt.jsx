@@ -5,6 +5,29 @@ const POSReceipt = forwardRef(({ lines, customer, delivery, discount, shippingCo
   const subTotal = lines.reduce((s, l) => s + l.unit_price * l.product_quantity, 0);
 
   return (
+    <>
+      {/* Isolate the receipt when printing, the same way PrintLabel and
+          PrintableInvoice do. This used to be handled by a global
+          `body > * { display: none }` in index.css, which erased #root — and
+          therefore the receipt itself — so the sheet came out blank. That rule
+          is now scoped to elements outside #root, which means each printable
+          view has to hide the rest of the page itself.
+          This component only mounts on the POS page, so these rules can't
+          affect any other printer. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .receipt-print, .receipt-print * { visibility: visible; }
+          .receipt-print {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: max-content;
+            margin: 0;
+            background: #fff;
+          }
+        }
+      `}</style>
     <div ref={ref} className="receipt-print hidden print:block font-mono text-sm text-black bg-white p-4 w-80">
       <div className="text-center mb-3">
         <p className="text-base font-bold">{shopName || "Leather Wallah"}</p>
@@ -74,6 +97,7 @@ const POSReceipt = forwardRef(({ lines, customer, delivery, discount, shippingCo
       <div className="border-t border-dashed border-black my-2" />
       <p className="text-center text-xs">Thank you for your purchase!</p>
     </div>
+    </>
   );
 });
 

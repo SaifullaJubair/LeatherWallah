@@ -69,8 +69,20 @@
   outline: none !important;
 }
 
-/* POS receipt print — hide everything except the receipt */
+/* Print: hide anything the app renders OUTSIDE #root (stray portals, injected
+ * widgets). Each printable view isolates itself from there — see PrintLabel,
+ * PrintableInvoice and POSReceipt, which all use the same
+ * `body * { visibility: hidden }` + `#target { visibility: visible }` idiom.
+ *
+ * This rule used to be `body > * { display: none !important }`. #root is a
+ * direct child of <body>, so that erased the whole app from the printed
+ * layout. display:none removes a subtree outright — no descendant rule can
+ * undo it, not `visibility: visible`, not even `display: block !important` on
+ * the target. Every printer here came out as a blank sheet, including the POS
+ * receipt this rule was written for.
+ */
 @media print {
-  body > * { display: none !important; }
-  .receipt-print { display: block !important; }
+  body > *:not(#root) {
+    display: none !important;
+  }
 }
