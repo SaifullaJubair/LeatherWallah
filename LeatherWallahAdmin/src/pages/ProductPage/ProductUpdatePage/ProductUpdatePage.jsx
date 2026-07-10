@@ -13,7 +13,9 @@ const ProductUpdatePage = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: [`/api/v1/product/dashboard/${id}`],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/product/dashboard/${id}`);
+      const res = await fetch(`${BASE_URL}/product/dashboard/${id}`, {
+        credentials: "include",
+      });
       const data = await res.json();
       return data;
     },
