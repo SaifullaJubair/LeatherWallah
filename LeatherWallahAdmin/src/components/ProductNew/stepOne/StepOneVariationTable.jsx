@@ -170,8 +170,24 @@ const StepOneVariationTable = ({
   // because the Final column is computed at render time from basePrice +
   // delta.) Tracks the last-applied base values so unrelated row edits
   // don't trigger spurious overwrites.
-  const lastBuyingRef = useRef("");
-  const lastDiscountRef = useRef("");
+  //
+  // Seeded from the CURRENT props, not "": on an update form the base prices
+  // arrive already populated (RHF defaultValues ← initialData, and the parent
+  // won't mount this form until the product has loaded), so refs starting at ""
+  // made the very first effect run see a "change" and overwrite every row's
+  // saved buying/discount price with the base value.
+  const lastBuyingRef = useRef(String(baseBuyingPrice));
+  const lastDiscountRef = useRef(String(baseDiscountPrice));
+
+  // A blank base means "no opinion" — leave the rows alone (see the prop
+  // docblock). Number("") is 0, not NaN, so Number.isFinite alone would happily
+  // propagate a 0 into every row when the admin clears the field.
+  const propagatable = (raw) => {
+    if (raw === "" || raw === null || raw === undefined) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+
   useEffect(() => {
     const buyingChanged = String(baseBuyingPrice) !== lastBuyingRef.current;
     const discountChanged = String(baseDiscountPrice) !== lastDiscountRef.current;
@@ -179,15 +195,16 @@ const StepOneVariationTable = ({
     lastBuyingRef.current = String(baseBuyingPrice);
     lastDiscountRef.current = String(baseDiscountPrice);
     if (!Array.isArray(inputValueData) || inputValueData.length === 0) return;
-    const nextBuying = Number(baseBuyingPrice);
-    const nextDiscount = Number(baseDiscountPrice);
+    const nextBuying = propagatable(baseBuyingPrice);
+    const nextDiscount = propagatable(baseDiscountPrice);
+    if (nextBuying === null && nextDiscount === null) return;
     setFormData(
       inputValueData.map((row) => ({
         ...row,
-        ...(buyingChanged && Number.isFinite(nextBuying)
+        ...(buyingChanged && nextBuying !== null
           ? { variation_buying_price: nextBuying }
           : {}),
-        ...(discountChanged && Number.isFinite(nextDiscount)
+        ...(discountChanged && nextDiscount !== null
           ? { variation_discount_price: nextDiscount }
           : {}),
       })),

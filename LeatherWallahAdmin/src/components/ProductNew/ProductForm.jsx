@@ -1362,7 +1362,10 @@ const ProductForm = ({ mode = "add", initialData = null, onSaved }) => {
       fd.append("product_weight_grams", weightGrams);
     if (vatOverride !== "" && vatOverride !== null && vatOverride !== undefined)
       fd.append("vat_percentage_override", vatOverride);
-    if (warehouseId) fd.append("warehouse_id", warehouseId);
+    // Always send the key, empty when unassigned: the backend reads an absent
+    // key as "not managed by this form" and an empty value as "admin cleared
+    // it". Omitting it when falsy made clearing a warehouse a silent no-op.
+    fd.append("warehouse_id", warehouseId || "");
 
     fd.append("product_type", productType || "simple");
 
