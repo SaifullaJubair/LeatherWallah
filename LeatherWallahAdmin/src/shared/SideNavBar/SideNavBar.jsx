@@ -30,7 +30,6 @@ import {
   Tag,
   Ticket,
   Image as ImageIcon,
-  GalleryHorizontal,
   // customers children
   User,
   Heart,
@@ -314,14 +313,13 @@ const SideNavBar = () => {
                   isActive={isActive("/banner")}
                 />
               )}
-              {user?.role_id?.slider_show === true && (
-                <ChildMenuItem
-                  to="/slider"
-                  icon={GalleryHorizontal}
-                  label="Slider"
-                  isActive={isActive("/slider")}
-                />
-              )}
+              {/* Slider is deliberately not listed. Nothing on the storefront
+                  renders it — SliderAd exists but no page mounts it — so an
+                  admin could upload images, get a success toast, and find the
+                  site unchanged. Banner already covers the same ground: it is a
+                  Swiper, so several active banners auto-rotate in the hero and
+                  a single active one is a static image. The /slider route and
+                  its API are untouched; only the menu entry is gone. */}
             </DropdownMenu>
           )}
 

@@ -13,7 +13,11 @@ const UpdateBanner = ({
 }) => {
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit } = useForm();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
   //Image preview....
   const [imagePreview, setImagePreview] = useState(
@@ -199,12 +203,24 @@ const UpdateBanner = ({
                   </label>
 
                   <input
-                    {...register("banner_path")}
+                    {...register("banner_path", {
+                      // See AddBanner: a path with no leading slash resolves
+                      // relative to the current page and 404s. Existing rows may
+                      // still hold a full URL — the storefront normalises those.
+                      pattern: {
+                        value: /^\/[^\s]*$/,
+                        message:
+                          'Start with "/" — e.g. /shop or /products/your-product-slug',
+                      },
+                    })}
                     type="text"
                     defaultValue={getBannerUpdateData?.banner_path}
-                    placeholder="Banner Path"
+                    placeholder="/products/your-product-slug"
                     className="mt-2 w-full rounded-md border-gray-200 shadow-sm sm:text-sm p-2 border-2"
                   />
+                  {errors.banner_path && (
+                    <p className="text-red-600">{errors.banner_path?.message}</p>
+                  )}
                 </div>
               </div>
               <div className="mt-6">
@@ -256,8 +272,8 @@ const UpdateBanner = ({
                   onChange={handleImageChange}
                 />
                 <p className="text-xs text-[#C9CACA]  mt-1 text-end">
-                  Upload 300x300 pixel images in PNG, JPG, or WebP format (max 1
-                  MB).
+                  Wide hero image — around 1600x600 px works best. PNG, JPG,
+                  WebP, AVIF or HEIC (max 10 MB).
                 </p>
               </div>
 

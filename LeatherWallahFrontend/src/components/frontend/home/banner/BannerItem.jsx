@@ -9,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { images } from "@/components/utils/ImageImport";
 import Contain from "@/components/common/Contain";
+import { toInternalPath } from "@/components/utils/internalPath";
 
 const PLACEHOLDER_BANNERS = [
   {
@@ -50,7 +51,11 @@ const BannerItem = ({ bannerData }) => {
           slidesPerView={1}
           className="w-full rounded-3xl overflow-hidden shadow-sm"
         >
-        {items?.map((banner, i) => (
+        {items?.map((banner, i) => {
+          // Admin stores whatever was typed — often a full URL, sometimes a bare
+          // hostname (which would resolve relative to the current page and 404).
+          const href = toInternalPath(banner?.banner_path);
+          return (
           <SwiperSlide key={banner?._id || i}>
             <div className="relative w-full aspect-[16/10] sm:aspect-[16/6] overflow-hidden bg-gray-900">
               {/* PERF: slide 0 is the LCP element on the homepage. It gets
@@ -87,9 +92,9 @@ const BannerItem = ({ bannerData }) => {
                   <h2 className="text-white font-extrabold text-2xl sm:text-3xl md:text-5xl leading-tight max-w-xl mb-5 drop-shadow">
                     {banner.banner_title}
                   </h2>
-                  {banner?.banner_path && (
+                  {href && (
                     <Link
-                      href={banner.banner_path}
+                      href={href}
                       className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-6 sm:px-7 py-2.5 sm:py-3 rounded-full transition-all hover:scale-[1.03] w-fit shadow-lg shadow-primary-500/30"
                     >
                       Shop Now →
@@ -99,7 +104,8 @@ const BannerItem = ({ bannerData }) => {
               )}
             </div>
           </SwiperSlide>
-        ))}
+          );
+        })}
         </Swiper>
       </Contain>
     </div>

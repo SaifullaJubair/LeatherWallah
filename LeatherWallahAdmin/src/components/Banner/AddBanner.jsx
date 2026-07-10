@@ -182,9 +182,18 @@ const AddBanner = ({ setOpenBannerCreateModal, refetch }) => {
                   <input
                     {...register('banner_path', {
                       required: 'Banner Path is required',
+                      // A path without a leading slash is resolved RELATIVE to
+                      // the current page, so "leatherwallah.com/products/x"
+                      // becomes "/leatherwallah.com/products/x" — a 404. Ask
+                      // for the site-relative path and nothing else.
+                      pattern: {
+                        value: /^\/[^\s]*$/,
+                        message:
+                          'Start with "/" — e.g. /shop or /products/your-product-slug',
+                      },
                     })}
                     type='text'
-                    placeholder='Banner Path'
+                    placeholder='/products/your-product-slug'
                     className='mt-2 w-full rounded-md border-gray-200 shadow-sm sm:text-sm p-2 border-2'
                   />
                   {errors.banner_path && (
@@ -244,8 +253,8 @@ const AddBanner = ({ setOpenBannerCreateModal, refetch }) => {
                   onChange={handleImageChange}
                 />
                 <p className='text-xs text-[#C9CACA]  mt-1 text-end'>
-                  Upload 300x300 pixel images in PNG, JPG, or WebP format (max 1
-                  MB).
+                  Wide hero image — around 1600x600 px works best. PNG, JPG,
+                  WebP, AVIF or HEIC (max 10 MB).
                 </p>
 
                 {errors.banner_image && (

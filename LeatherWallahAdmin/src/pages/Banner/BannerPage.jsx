@@ -68,6 +68,13 @@ const BannerPage = () => {
           <div className="flex justify-between mt-6 bg-white rounded-lg p-4 shadow">
             <div>
               <h1 className="text-2xl">Banner</h1>
+              <p className="text-xs text-gray-500 mt-1 max-w-xl">
+                Shown at the top of the homepage. Keep{" "}
+                <strong>one banner active</strong> for a single fixed hero image
+                — or keep <strong>several active</strong> and they will
+                auto-rotate every few seconds. Set the rest to{" "}
+                <em>In-active</em>.
+              </p>
             </div>
             {user?.role_id?.banner_create === true && (
               <div>
