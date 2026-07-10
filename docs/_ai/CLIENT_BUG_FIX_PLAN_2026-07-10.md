@@ -15,9 +15,10 @@
 | # | Symptom (client's words) | Root cause | Apps to touch | Severity | Data loss? | Status |
 |---|---|---|---|---|---|---|
 | 1a | "variation discount price সব same হয়ে যায়" | `useRef("")` never seeded on edit → propagation effect fires on first render. *(Also: clearing a base field propagated `0`, since `Number("")` is `0`.)* | Admin | **Critical** | **Yes** — silently overwrites saved prices | ✅ Fixed 2026-07-10 |
-| 1b | "badge remove করলে দুই row-এ দেখায়" | Admin omits empty field; backend `updateOne` `$set` only merges present keys | Admin + Backend | **High** | No (stale value persists) | Open |
+| 1b | "badge remove করলে দুই row-এ দেখায়" | Admin omits empty field; backend `updateOne` `$set` only merges present keys | Admin + Backend | **High** | No (stale value persists) | ✅ Fixed 2026-07-10 |
 | 2 | "update product এ গেলেই theme default হয়ে যায়" | `theme_id` wrongly in `OPTIONAL_FK_FIELDS`, whose loop read an absent key as *cleared* → `$unset` | Backend + Admin | **Critical** | **Yes** — wipes theme assignment | ✅ Fixed 2026-07-10 |
-| 3 | "top save btn এ কাজ হয় না, row-wise save লাগে" | `VariationWeightEditor` is the only uncontrolled section; no bulk variation endpoint exists | Admin + Backend | Medium | No | Open |
+| 3 | "top save btn এ কাজ হয় না, row-wise save লাগে" | `VariationWeightEditor` is the only uncontrolled section; no bulk variation endpoint exists | Admin + Backend | Medium | No | ✅ Fixed 2026-07-10 |
+| — | *(found while fixing)* `GET /variation/by-product` unauthenticated → leaks cost price, stock, SKU | No auth on the route, no `.select()` | Backend | **High** | No (data exposure) | ✅ Fixed 2026-07-10 |
 | 4 | "icon না দিলে fallback icon দেখায়" | Live section rotates a hardcoded icon list **by row index**; the dead copy hardcodes `FaUtensils` and ignores `icon_key` | Frontend | Medium | No | ✅ Fixed 2026-07-10 |
 | 5 | "demo data delete করলেও theme এ 6 products দেখায়" | Query-level `deleteOne` never fires the document-only counter hook | Backend | **High** | No (counter drift) | ✅ Code fixed 2026-07-10 — **live data still needs `npm run fix:theme-usage -- --apply`** |
 
@@ -110,7 +111,15 @@ Same applies to `variation_badge_icon_key`.
 
 Prefer the first: it keeps the "absent means unchanged" contract intact for every other field, which the `updateOne` merge currently relies on.
 
-**Verify:** set a badge on variation 1 → save → remove it, add one to variation 2 → save → PDP shows exactly one badge, on variation 2.
+### ✅ FIXED 2026-07-10 — Backend `6eb1221`, Admin `7fd2eb4`
+
+Took the preferred route. `ProductForm` now **always** appends both badge keys (`""` when cleared), and `sanitizeVariationWeights` was widened to `sanitizeVariationOptionalFields`, which coerces `""` / `"null"` / `"undefined"` / whitespace-only → `null` for both badge fields, before the `toUpdate`/`toInsert` split. The coercion — not the Admin change — is what makes it correct; the client sending the right thing is now a hint, not a contract.
+
+It also clamps badge text to 20 chars server-side (`maxLength={20}` on the input is browser-only) and trims, so `"   "` clears rather than storing whitespace.
+
+**Verified** by driving the mechanism directly: with the key omitted, `updateOne` produces `$set: {variation_price: 500}` and the stale badge survives; with `""` sent and coerced, it produces `$set: {…, variation_badge_text: null}` and the badge clears. Sanitizer exercised across empty-string / `"null"` / whitespace / Bangla text / 60-char overflow / padded input.
+
+**Owner manual check:** set a badge on variation 1 → save → remove it, add one to variation 2 → save → PDP shows exactly one badge, on variation 2.
 
 ---
 
@@ -216,7 +225,27 @@ So the client is right to expect one Save. There is no product trade-off to weig
 
 > **Do Bug 3 and Bug 1b together.** Both touch the same two fields (`variation_badge_text`, `variation_badge_icon_key`). If the bulk endpoint is built without fixing 1b's clear semantics, the new path inherits the same `$set`-merge trap and an emptied badge still will not clear.
 
-**Verify:** change a row's badge, click only the top Save, reload → change persisted. Then clear a badge and save → it is actually gone.
+### ✅ FIXED 2026-07-10 — Backend `6eb1221`, Admin `7fd2eb4`
+
+Shipped `PATCH /variation/bulk`, **not** the "extend `/page-content`" option this doc preferred. `patchProductPageContent` runs a strict `PAGE_CONTENT_FIELDS` allow-list and only ever writes the product document; threading a separate collection through it would have meant special-casing that allow-list and giving one route two write targets. A separate endpoint keeps each route's blast radius legible.
+
+An `/edge-audit` before coding turned up three blockers the plan above missed:
+
+1. **`/bulk` must be registered before `/:id`.** Express matches in declaration order, so `PATCH /variation/bulk` would otherwise land in `patchVariation` with `id="bulk"` and die in an ObjectId cast. Proven with a live Express harness (`/:id` first → `patchVariation id=bulk`; `/bulk` first → `BULK`), and confirmed on production after deploy: the route returns `401` from its auth guard, not a `500`.
+2. **`express.json({ limit: "200kb" })`** vs the 500-variations-per-product cap. The bulk handler caps at 500 rows and keeps the row shape to the three editable fields; a wider shape would silently `413`, and Express answers a 413 with **HTML**, which the admin's `res.json()` would throw on. The client now guards that parse.
+3. **`""` is not `null`.** Rows are spread straight into `updateOne`, so an empty string would have been *stored* as `""` while the schema declares `default: null`. The PDP's truthiness check would have masked it — looking fixed while writing a third state nothing expects.
+
+**The bulk endpoint `$set`s only the three editable fields**, so unlike the full product-update path it structurally cannot clobber price, stock or SKU. `undefined` means "not sent, leave alone"; `null` means "clear". Verified by inspecting the generated ops: the only writable keys are `variation_weight_grams`, `variation_badge_text`, `variation_badge_icon_key`.
+
+**Silent weight corruption, caught by the audit and fixed.** `gramsToDisplay` used `toFixed(2)`, so `1234 g` → `"1.23" kg` → back to `1230 g`. Harmless while each row had its own Save; but with *one* Save covering every row, merely **opening the Variations tab and pressing Save** would have shaved grams off every kg-range variation — and that weight feeds the Pathao courier cost. Round-tripping was lossy in 4 of 10 sampled values (`1234→1230`, `1999→2000`, `2005→2000`, `12345→12350`). Two fixes: dropped the `toFixed(2)` (now exact), and the form sends **only rows whose values actually differ** from the server baseline. Verified: opening the tab and saving without touching anything sends **0 rows**.
+
+**Concurrent delete is all-or-nothing.** If any row's `_id` no longer exists (another admin deleted that variation while the form was open), the service writes **nothing** and returns `409`. A first draft detected the missing ids and then wrote the survivors anyway while reporting failure — a partial write dressed up as an error, which is worse than the bug being fixed. The admin's table is re-fetched on 409 so they see reality before retrying.
+
+**Bonus — a live cost-price leak, closed.** `GET /variation/by-product/:productId` had **no auth** and returned the whole document. Confirmed against production before the fix: an anonymous `curl` returned `variation_buying_price: 100` — the shop's margin — plus stock, SKU and barcode, for any guessable product id. Now `verifyToken("product_update")`, and the projection drops the fields the admin table never reads. Its only caller is that table (which already sent credentials); the storefront never touched it. **This hole exists in Leather Wallah too.**
+
+**Verified after deploy:** `GET /variation/by-product` → `401` (was leaking cost price); `PATCH /variation/bulk` → `401` from the auth guard (proving the route resolves to its own handler, not `/:id`); storefront and API both `200`.
+
+**Owner manual check:** change a row's badge, click only the top Save, reload → change persisted. Clear a badge → save → it is actually gone. Set a badge on variation 1, then move it to variation 2 → PDP shows exactly one badge. Open the Variations tab, touch nothing, Save → weights unchanged in the DB.
 
 ---
 
@@ -424,7 +453,7 @@ Grouped so each lands as one reviewable, independently shippable change.
 | ~~2~~ | ~~**Bug 1a**~~ — ✅ done: seeded the propagation refs from props; blank base no longer propagates `0` | Admin | Second data-loss bug; isolated to one component |
 | ~~3~~ | ~~**Bug 5**~~ — ✅ code done: `findOneAndDelete` + `if (result)` guard + `npm run fix:theme-usage`. **Still must run `--apply` on each prod DB.** | Backend | Blocks the LW handover; needs the paired controller edit |
 | ~~4~~ | ~~**Bug 4**~~ — ✅ done: `icon_url` → `icon_key` → nothing; badge collapses when empty | Frontend | Cosmetic, self-contained; safe to ship any time |
-| 5 | **Bugs 1b + 3 together** — bulk variation endpoint, controlled `VariationWeightEditor`, explicit badge clear | Admin + Backend | Both touch `variation_badge_text` / `variation_badge_icon_key`; splitting them means building the bulk path and immediately re-hitting the `$set`-merge trap |
+| ~~5~~ | ~~**Bugs 1b + 3**~~ — ✅ done: `PATCH /variation/bulk`, controlled `VariationWeightEditor` w/ dirty-tracking, explicit badge clear, + closed the cost-price leak | Admin + Backend | Both touch `variation_badge_text` / `variation_badge_icon_key`; splitting them means building the bulk path and immediately re-hitting the `$set`-merge trap |
 | 6 | *(optional)* `is_demo` on promo seeds + extend clear | Backend | Not client-reported; no live impact today |
 
 **Leather Wallah first for steps 1–3** given the 2026-07-13 launch; then port the identical fixes to FruitSnacks. Steps 4–5 can go to FruitSnacks first, since it has no imminent launch and just received a deploy.
