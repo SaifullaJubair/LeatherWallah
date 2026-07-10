@@ -15,7 +15,15 @@ import { BASE_URL } from "../../utils/baseURL";
 //
 // All writes go through /product/quick (whitelisted partial update) — never
 // the full-rebuild route. Tier prices are an array; we replace it entirely.
+//
+// Variation products: these fields are NOT what the customer pays. The
+// storefront reads the selected variation's price and only falls back to the
+// product-level one when no variation is usable. The list's price cell now
+// routes variation products to the variations modal instead, but the modal can
+// still be reached (e.g. every variation deactivated), so say so plainly rather
+// than let the admin edit a number that changes nothing on the PDP.
 const ProductPriceModal = ({ product, onClose, onSaved }) => {
+  const isVariation = !!product?.is_variation;
   const [busy, setBusy] = useState(false);
   const [sellingPrice, setSellingPrice] = useState(
     product?.product_price ?? "",
@@ -115,6 +123,15 @@ const ProductPriceModal = ({ product, onClose, onSaved }) => {
         </div>
 
         <div className="p-4 space-y-4">
+          {isVariation && (
+            <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <strong>This product has variations.</strong> Customers pay the
+              selected variation&apos;s price, not the one below. These fields
+              are only a fallback for when no variation is available. Edit the
+              real prices from the <strong>Variants</strong> column.
+            </div>
+          )}
+
           {/* Selling */}
           <div>
             <label className="block text-sm font-medium mb-1">

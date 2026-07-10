@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { FiX, FiCopy } from "react-icons/fi";
+import { FiX, FiCopy, FiPrinter } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useQuery } from "@tanstack/react-query";
 import { BASE_URL } from "../../utils/baseURL";
+import PrintLabel from "../common/printLabel/PrintLabel";
 
 // A2 — Variations Modal.
 //
@@ -10,9 +11,17 @@ import { BASE_URL } from "../../utils/baseURL";
 // editable; we save on blur via PATCH /variation/:id (whitelisted partial
 // update). The full attribute-axis editor still lives in the product update
 // page — this modal is for fast operational tweaks (price/stock/active/SKU/
-// weight/badge), not structural changes (axes, attribute_id, combination).
+// barcode/weight/badge), not structural changes (axes, attribute_id,
+// combination).
 //
 // Per-row save (not bulk) so a failed row doesn't poison the others.
+//
+// Barcodes live per variation, and this is the only screen that lists them.
+// The product edit page renders "— variation-only —" for a variable product's
+// barcode and then offers no way to reach the variations' codes, and the
+// existing PrintLabel component was only wired into the order detail page — so
+// you could print a label for something already sold, but never for stock
+// sitting in the warehouse. Each row now prints its own label.
 const EditableCell = ({ value, onSave, type = "text", className = "" }) => {
   const [draft, setDraft] = useState(value ?? "");
   const [busy, setBusy] = useState(false);
@@ -46,32 +55,33 @@ const EditableCell = ({ value, onSave, type = "text", className = "" }) => {
   );
 };
 
-// SKU is auto-generated (product slug + variation). Read-only here so an
-// accidental edit can't desync it from printed barcodes / inventory. Owners
+// SKU and barcode are auto-generated (SKU from the product slug + variation;
+// barcode is a unique number stamped at save time). Read-only here so an
+// accidental edit can't desync them from printed labels / inventory. Owners
 // can still set a custom SKU on the full product edit page if they truly need
 // to override it.
-const SkuDisplay = ({ value }) => {
-  const sku = value || "—";
+const CodeDisplay = ({ value, label }) => {
+  const shown = value || "—";
   const copy = () => {
     if (!value) return;
     navigator.clipboard
       ?.writeText(value)
-      .then(() => toast.success("SKU copied", { autoClose: 700 }))
+      .then(() => toast.success(`${label} copied`, { autoClose: 700 }))
       .catch(() => {});
   };
   return (
     <div className="flex items-center gap-1">
       <span
         className="px-2 py-1 text-xs font-mono bg-gray-50 border rounded w-full truncate"
-        title={sku}
+        title={shown}
       >
-        {sku}
+        {shown}
       </span>
       <button
         type="button"
         onClick={copy}
         disabled={!value}
-        title="Copy SKU"
+        title={`Copy ${label}`}
         className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
       >
         <FiCopy size={13} />
@@ -81,6 +91,11 @@ const SkuDisplay = ({ value }) => {
 };
 
 const ProductVariationsModal = ({ product, onClose, onSaved }) => {
+  // The variation whose sticker label is being printed, in the shape PrintLabel
+  // expects. The ids let it lazily render + cache the barcode image, since
+  // variations save with only the barcode NUMBER.
+  const [labelLine, setLabelLine] = useState(null);
+
   const { data: detail, refetch } = useQuery({
     queryKey: [`/api/v1/product/dashboard/${product._id}`],
     queryFn: async () => {
@@ -157,9 +172,11 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
                     <th className="p-2 w-20">Stock</th>
                     <th className="p-2 w-20">Alert</th>
                     <th className="p-2 w-32">SKU</th>
+                    <th className="p-2 w-36">Barcode</th>
                     <th className="p-2 w-24">Weight (g)</th>
                     <th className="p-2 w-32">Badge</th>
                     <th className="p-2 w-16">Active</th>
+                    <th className="p-2 w-16">Label</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -209,11 +226,7 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
                             value={v.variation_discount_price}
                             type="number"
                             onSave={(val) =>
-                              saveField(
-                                v._id,
-                                "variation_discount_price",
-                                val,
-                              )
+                              saveField(v._id, "variation_discount_price", val)
                             }
                           />
                         </td>
@@ -232,16 +245,18 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
                             value={v.variation_alert_quantity}
                             type="number"
                             onSave={(val) =>
-                              saveField(
-                                v._id,
-                                "variation_alert_quantity",
-                                val,
-                              )
+                              saveField(v._id, "variation_alert_quantity", val)
                             }
                           />
                         </td>
                         <td className="p-2">
-                          <SkuDisplay value={v.variation_sku} />
+                          <CodeDisplay value={v.variation_sku} label="SKU" />
+                        </td>
+                        <td className="p-2">
+                          <CodeDisplay
+                            value={v.variation_barcode}
+                            label="Barcode"
+                          />
                         </td>
                         <td className="p-2">
                           <EditableCell
@@ -269,6 +284,35 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
                             }
                           />
                         </td>
+                        <td className="p-2 text-center">
+                          <button
+                            type="button"
+                            disabled={!v.variation_barcode}
+                            onClick={() =>
+                              setLabelLine({
+                                product_id: product._id,
+                                variation_id: v._id,
+                                product_name: product.product_name,
+                                variation_name: v.variation_name,
+                                product_sku: product.product_sku,
+                                variation_sku: v.variation_sku,
+                                barcode: product.barcode,
+                                barcode_image: product.barcode_image,
+                                variation_barcode: v.variation_barcode,
+                                variation_barcode_image:
+                                  v.variation_barcode_image,
+                              })
+                            }
+                            title={
+                              v.variation_barcode
+                                ? "Print sticker label"
+                                : "No barcode on this variation"
+                            }
+                            className="p-1.5 text-blue-600 rounded hover:bg-blue-50 disabled:opacity-30 disabled:hover:bg-transparent"
+                          >
+                            <FiPrinter size={14} />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -278,8 +322,11 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
           )}
 
           <div className="text-xs text-gray-500 mt-3">
-            Per-cell save on blur or Enter. To add/remove variations or change
-            attribute axes, use the full product edit page.
+            Per-cell save on blur or Enter. SKU and barcode are auto-generated
+            and read-only — use <FiCopy size={11} className="inline -mt-0.5" />{" "}
+            to copy one, or <FiPrinter size={11} className="inline -mt-0.5" />{" "}
+            to print that variation&apos;s sticker label. To add/remove
+            variations or change attribute axes, use the full product edit page.
           </div>
         </div>
 
@@ -293,6 +340,11 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
           </button>
         </div>
       </div>
+
+      {/* Sits above this modal (z-[60] vs z-50) and takes over printing. */}
+      {labelLine && (
+        <PrintLabel line={labelLine} onClose={() => setLabelLine(null)} />
+      )}
     </div>
   );
 };

@@ -22,10 +22,20 @@ const PrintLabel = ({ line, onClose }) => {
   const initialImage =
     line?.variation_barcode_image || line?.barcode_image || null;
   const [barcodeImage, setBarcodeImage] = useState(initialImage);
-  const [genState, setGenState] = useState(initialImage ? "ready" : "idle");
-  // idle → generating → ready | error
+  const [genState, setGenState] = useState(initialImage ? "ready" : "generating");
+  // generating → ready | error
   const [genError, setGenError] = useState(null);
   const autoPrintFiredRef = useRef(false);
+  // True while this component is on screen. Used instead of a per-run
+  // `cancelled` flag, so a StrictMode remount (which runs cleanup then re-runs
+  // the effect) can't leave the request orphaned.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // What we ask the backend to render. Variation wins if the line carries a
   // variation_id (the per-variation barcode is what should print on the box).
@@ -34,11 +44,21 @@ const PrintLabel = ({ line, onClose }) => {
 
   // Step 1 — if no image but we have a barcode number + an id, kick off the
   // lazy ensure. Skip when the line already has an image (most repeat prints).
+  //
+  // `genState` must NOT be a dependency, and this must not cancel on cleanup.
+  // It used to do both: the effect began with setGenState("generating"), which
+  // re-rendered, re-ran the effect (genState was a dep), and ran the previous
+  // run's cleanup — flipping `cancelled` to true. The request completed fine
+  // but its result was thrown away, so the modal sat on "Generating barcode
+  // image…" forever. It only ever appeared to work from the order page, where
+  // the image was already cached and this effect never ran at all.
   useEffect(() => {
-    let cancelled = false;
-    if (genState !== "idle") return;
-    if (!barcode || !ensureId) return; // can't render without these
-    setGenState("generating");
+    if (initialImage) return; // already have it
+    if (!barcode || !ensureId) {
+      setGenState("error");
+      setGenError("No barcode on this item");
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`${BASE_URL}/product/ensure-barcode-image`, {
@@ -48,7 +68,7 @@ const PrintLabel = ({ line, onClose }) => {
           body: JSON.stringify({ kind: ensureKind, id: ensureId }),
         });
         const json = await res.json();
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         if (json?.success && json?.data?.barcode_image) {
           setBarcodeImage(json.data.barcode_image);
           setGenState("ready");
@@ -57,15 +77,13 @@ const PrintLabel = ({ line, onClose }) => {
           setGenState("error");
         }
       } catch (err) {
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         setGenError(err?.message || "Network error");
         setGenState("error");
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [genState, barcode, ensureKind, ensureId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Step 2 — auto-fire print only when the image is ready (or unrecoverable).
   // Small delay so the image element paints first.
@@ -83,17 +101,31 @@ const PrintLabel = ({ line, onClose }) => {
         @media print {
           body * { visibility: hidden; }
           #print-label, #print-label * { visibility: visible; }
+
+          /* Pinned to the page origin. The ancestors are still laid out (only
+             invisible), so 'absolute' would resolve against whichever of them
+             is positioned — the modal overlay — instead of the page. 'fixed'
+             resolves against the page box. Width is intrinsic rather than
+             100%, which would inherit the app shell's width. */
           #print-label {
-            position: absolute;
+            position: fixed;
             left: 0;
             top: 0;
-            width: 100%;
+            width: max-content;
+            /* The p-4 is preview padding. On a 40mm sticker it costs 8.5mm of
+               the 32mm content box, which is what pushed the barcode off the
+               sheet. */
             margin: 0;
-            padding: 0;
+            padding: 0 !important;
             background: #fff;
           }
+          /* No border on the sticker itself — it's a preview affordance, and a
+             printed hairline just wastes the tiny margin. */
+          #print-label > div {
+            border: 0 !important;
+          }
           .no-print { display: none !important; }
-          @page { margin: 4mm; size: 60mm 40mm; }
+          @page { margin: 3mm; size: 60mm 40mm; }
         }
       `}</style>
 
@@ -147,12 +179,16 @@ const PrintLabel = ({ line, onClose }) => {
               </p>
             )}
             {barcodeImage ? (
+              // The number is baked INTO the image: the backend renders it with
+              // bwip-js `includetext: true` (helpers/code.images.ts). Don't
+              // repeat it below — that duplicate was what overflowed the 40mm
+              // page and got sliced in half.
               <img
                 src={barcodeImage}
-                alt="Barcode"
+                alt={`Barcode ${barcode || ""}`}
                 crossOrigin="anonymous"
                 className="mx-auto mt-1"
-                style={{ height: "16mm", objectFit: "contain" }}
+                style={{ height: "13mm", objectFit: "contain" }}
               />
             ) : genState === "error" ? (
               <p
@@ -176,14 +212,6 @@ const PrintLabel = ({ line, onClose }) => {
                 No barcode
               </p>
             ) : null}
-            {barcodeImage && barcode && (
-              <p
-                className="font-mono text-gray-700"
-                style={{ fontSize: "8pt", letterSpacing: "0.5px" }}
-              >
-                {barcode}
-              </p>
-            )}
           </div>
           {genState === "error" && (
             <p

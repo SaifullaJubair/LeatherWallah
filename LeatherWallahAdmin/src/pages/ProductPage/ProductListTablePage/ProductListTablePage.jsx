@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2-optimized";
-import { FiEdit } from "react-icons/fi";
+import { FiEdit, FiPrinter } from "react-icons/fi";
 import { MdDeleteForever } from "react-icons/md";
 import { BsStarFill, BsStar } from "react-icons/bs";
 
@@ -21,6 +21,7 @@ import ProductPriceModal from "../../../components/ProductList/ProductPriceModal
 import ProductStockModal from "../../../components/ProductList/ProductStockModal";
 import ProductVariationsModal from "../../../components/ProductList/ProductVariationsModal";
 import ProductAnalyticsSeedModal from "../../../components/ProductList/ProductAnalyticsSeedModal";
+import PrintLabel from "../../../components/common/printLabel/PrintLabel";
 
 // A2 (2026-06-04) — operational product list dashboard.
 // Backed by /product/dashboard-rich which returns each row pre-annotated with
@@ -82,6 +83,10 @@ const ProductListTablePage = () => {
 
   // Modal state — only one open at a time, single source of truth.
   const [modal, setModal] = useState(null); // { type, product }
+  // Sticker label for a SIMPLE product, printed straight from the list. A
+  // variation product's barcodes live on its variations, so its print button
+  // opens the variations modal, which prints per row.
+  const [labelLine, setLabelLine] = useState(null);
   // Per-row toggle in-flight guard (Set of product _ids currently in PATCH).
   // Prevents rapid-click double-fire where the 2nd click reads stale cached
   // status and sends the wrong target value.
@@ -391,6 +396,19 @@ const ProductListTablePage = () => {
                   p.product_discount_price &&
                   p.product_discount_price > 0 &&
                   p.product_discount_price !== p.product_price;
+                // A variation product's price lives on its variations — the
+                // product-level price is only a fallback the storefront uses
+                // when no variation is usable. Showing it here (and letting the
+                // price modal edit it) meant the admin changed a number the
+                // customer never sees. Same rule the stock column already
+                // follows: the variations are the truth.
+                const isVariation =
+                  p._variation_count > 0 && p._price_min != null;
+                const priceRange = isVariation
+                  ? p._price_min === p._price_max
+                    ? `৳${p._price_min}`
+                    : `৳${p._price_min} – ৳${p._price_max}`
+                  : null;
                 const stockClass = p._is_out_of_stock
                   ? "text-red-600 font-bold"
                   : p._is_low_stock
@@ -455,17 +473,36 @@ const ProductListTablePage = () => {
                     <td className="p-2 text-center">
                       <button
                         type="button"
-                        onClick={() => openModal("price", p)}
-                        title="Edit price"
+                        onClick={() =>
+                          openModal(isVariation ? "variations" : "price", p)
+                        }
+                        title={
+                          isVariation
+                            ? "Price is set per variation — open variations"
+                            : "Edit price"
+                        }
                         className="block w-full hover:bg-blue-50 rounded py-0.5"
                       >
-                        <div className="font-semibold text-gray-900">
-                          ৳{p.product_price ?? 0}
-                        </div>
-                        {hasDiscount && (
-                          <div className="text-[11px] text-gray-400 line-through">
-                            ৳{p.product_discount_price}
-                          </div>
+                        {isVariation ? (
+                          <>
+                            <div className="font-semibold text-gray-900 whitespace-nowrap">
+                              {priceRange}
+                            </div>
+                            <div className="text-[10px] text-purple-600">
+                              per variation
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-semibold text-gray-900">
+                              ৳{p.product_price ?? 0}
+                            </div>
+                            {hasDiscount && (
+                              <div className="text-[11px] text-gray-400 line-through">
+                                ৳{p.product_discount_price}
+                              </div>
+                            )}
+                          </>
                         )}
                       </button>
                     </td>
@@ -579,6 +616,42 @@ const ProductListTablePage = () => {
                             PG
                           </Link>
                         )}
+                        {/* Sticker label. A variation product's barcodes live
+                            on its variations, so send the admin there to pick
+                            which one to print; a simple product prints straight
+                            from its own barcode. Until now the only way to
+                            print a label was from an order — you could label
+                            what you'd sold, never what was in the warehouse.
+                            Gated on product_update because printing may have to
+                            render the barcode image first, and that endpoint
+                            requires it. */}
+                        {user?.role_id?.product_update && (
+                          <button
+                            type="button"
+                            disabled={!isVariation && !p.barcode}
+                            onClick={() =>
+                              isVariation
+                                ? openModal("variations", p)
+                                : setLabelLine({
+                                    product_id: p._id,
+                                    product_name: p.product_name,
+                                    product_sku: p.product_sku,
+                                    barcode: p.barcode,
+                                    barcode_image: p.barcode_image,
+                                  })
+                            }
+                            title={
+                              isVariation
+                                ? "Print label — pick a variation"
+                                : p.barcode
+                                  ? "Print sticker label"
+                                  : "No barcode on this product"
+                            }
+                            className="text-blue-500 hover:text-blue-700 disabled:opacity-30 disabled:hover:text-blue-500"
+                          >
+                            <FiPrinter size={16} />
+                          </button>
+                        )}
                         {user?.role_id?.product_delete && (
                           <MdDeleteForever
                             onClick={() => handleDelete(p)}
@@ -650,6 +723,10 @@ const ProductListTablePage = () => {
           onClose={closeModal}
           onSaved={refetch}
         />
+      )}
+
+      {labelLine && (
+        <PrintLabel line={labelLine} onClose={() => setLabelLine(null)} />
       )}
     </div>
   );
