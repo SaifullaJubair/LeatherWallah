@@ -90,13 +90,18 @@ export default function FaqSection({ product, theme }) {
           </div>
         </div>
 
-        {/* Right — image */}
+        {/* Right — image.
+            `object-contain`, not cover: this slot falls back to the product's
+            packshot (see `img` above), and cover was cropping ~34% off a square
+            2048×2048 shot to fill a 1.51:1 box — the bottom of the pack got cut.
+            Height is capped rather than fixed so a tall or wide custom
+            faq_side_image also fits whole. */}
         {img && (
           <div className="hidden lg:block sticky top-20">
             <img
               src={img}
               alt={product?.product_name || ""}
-              className="w-full h-[360px] object-cover rounded-2xl shadow-sm"
+              className="mx-auto max-w-full max-h-[440px] w-auto object-contain rounded-2xl"
             />
           </div>
         )}
