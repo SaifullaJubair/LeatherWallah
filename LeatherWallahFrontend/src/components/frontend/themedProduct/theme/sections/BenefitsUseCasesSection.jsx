@@ -3,11 +3,9 @@
 // theme mockup. Left: "উপকারিতা" checkmark list. Right: "কোথায় ব্যবহার করবেন?"
 // icon grid. Each is a soft white card with a fruit image accent. Either side
 // hides itself if its data is empty; if only one exists it spans full width.
-import { FaCheck, FaUtensils, FaBriefcase, FaChild, FaDumbbell, FaPlane } from "react-icons/fa6";
+import { FaCheck } from "react-icons/fa6";
 import FloatingAssets from "../FloatingAssets";
-import DynamicIcon from "@/lib/icons/DynamicIcon";
-
-const USE_ICONS = [FaBriefcase, FaChild, FaDumbbell, FaPlane];
+import DynamicIcon, { hasIcon } from "@/lib/icons/DynamicIcon";
 
 function Heading({ children }) {
   return (
@@ -67,8 +65,10 @@ export default function BenefitsUseCasesSection({ product, theme }) {
               <ul className="space-y-3 max-w-[60%]">
                 {benefits.map((b, i) => {
                   // Back-compat: legacy rows are plain strings; new rows are
-                  // { text, icon_url?, icon_key? }. Icon priority mirrors
-                  // use_cases: custom upload > picked icon > themed FaCheck.
+                  // { text, icon_url?, icon_key? }. Priority: custom upload >
+                  // picked icon > FaCheck. Unlike use_cases the fallback stays:
+                  // this is a checkmark bullet on a benefits list, not a
+                  // domain-specific glyph, so it's meaningful on any store.
                   const text = typeof b === "string" ? b : b?.text;
                   const iconUrl = typeof b === "string" ? null : b?.icon_url;
                   const iconKey = typeof b === "string" ? null : b?.icon_key;
@@ -80,7 +80,7 @@ export default function BenefitsUseCasesSection({ product, theme }) {
                       >
                         {iconUrl ? (
                           <img src={iconUrl} alt="" width={14} height={14} className="object-contain" />
-                        ) : iconKey ? (
+                        ) : hasIcon(iconKey) ? (
                           <DynamicIcon name={iconKey} size={12} />
                         ) : (
                           <FaCheck size={11} />
@@ -114,22 +114,28 @@ export default function BenefitsUseCasesSection({ product, theme }) {
             >
               <div className="grid grid-cols-1 gap-3 max-w-[60%]">
                 {useCases.map((u, i) => {
-                  const Icon = USE_ICONS[i % USE_ICONS.length];
+                  // Icon priority: custom upload > icon picked in admin > none.
+                  // No fallback glyph: this used to rotate through a hardcoded
+                  // [briefcase, child, dumbbell, plane] list keyed on the row
+                  // INDEX, so a use-case got an icon unrelated to its text — and
+                  // wrong outright on a store that doesn't sell food. When there
+                  // is no icon, the badge circle is dropped too, otherwise the
+                  // row keeps an empty coloured puck.
+                  const showBadge = Boolean(u.icon_url) || hasIcon(u.icon_key);
                   return (
                     <div key={i} className="flex items-center gap-2.5">
-                      <span
-                        className="flex items-center justify-center rounded-full shrink-0"
-                        style={{ width: 40, height: 40, background: "var(--brand-primary-light)", color: "var(--brand-primary-dark)" }}
-                      >
-                        {/* priority: custom upload > picked icon > themed fallback */}
-                        {u.icon_url ? (
-                          <img src={u.icon_url} alt="" width={22} height={22} className="object-contain" />
-                        ) : u.icon_key ? (
-                          <DynamicIcon name={u.icon_key} size={18} />
-                        ) : (
-                          <Icon size={17} />
-                        )}
-                      </span>
+                      {showBadge && (
+                        <span
+                          className="flex items-center justify-center rounded-full shrink-0"
+                          style={{ width: 40, height: 40, background: "var(--brand-primary-light)", color: "var(--brand-primary-dark)" }}
+                        >
+                          {u.icon_url ? (
+                            <img src={u.icon_url} alt="" width={22} height={22} className="object-contain" />
+                          ) : (
+                            <DynamicIcon name={u.icon_key} size={18} />
+                          )}
+                        </span>
+                      )}
                       <span className="text-sm font-medium leading-tight line-clamp-2" style={{ color: "var(--body-color)" }}>
                         {u.text}
                       </span>

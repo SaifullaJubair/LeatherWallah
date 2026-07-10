@@ -28,6 +28,12 @@ function resolveIcon(name) {
   return null;
 }
 
+// True when `name` maps to a real component — i.e. <DynamicIcon name={name} />
+// will render something rather than null. Callers that wrap the icon in its own
+// chrome (a badge circle, a coloured puck) need this: without it a key that no
+// longer resolves leaves an empty decoration behind.
+export const hasIcon = (name) => resolveIcon(name) !== null;
+
 export default function DynamicIcon({
   name,
   size = 18,
