@@ -13,6 +13,7 @@ import PasteTableButton from "./PasteTableButton";
 import FaqPickerModal from "./FaqPickerModal";
 import { buildProductPlaceholderContext } from "./faqPlaceholders";
 import VariationWeightEditor from "./VariationWeightEditor";
+import { gramsToDisplay, displayToGrams } from "./variationWeight";
 import PageContentLayout, { PageContentActions } from "./PageContentLayout";
 import ProductFloatingTab from "./ProductFloatingTab";
 import SizeGuideEditor from "./SizeGuideEditor";
@@ -155,6 +156,70 @@ const ProductPageContentForm = ({ product, refetch }) => {
   const [floatingOverrides, setFloatingOverrides] = useState(
     withLocalIds(product?.floating_overrides),
   );
+  // ── Variation rows (weight + PDP badge) ────────────────────────────────────
+  // Variations live in their own collection, so unlike every other section here
+  // they can't ride along on PATCH /product/page-content (that route runs a
+  // strict PAGE_CONTENT_FIELDS allow-list). We fetch them, hold them as normal
+  // controlled state like the other repeaters, and save them alongside the
+  // page content via PATCH /variation/bulk.
+  const [variations, setVariations] = useState([]);
+  const [variationsLoading, setVariationsLoading] = useState(true);
+  // Snapshot of what the server gave us, keyed by _id. Diffed on save so an
+  // admin who merely opens this tab doesn't rewrite rows they never touched.
+  const variationBaselineRef = useRef({});
+
+  const loadVariations = async (productId) => {
+    if (!productId) return;
+    setVariationsLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/variation/by-product/${productId}`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      const baseline = {};
+      const list = (data?.data || []).map((v) => {
+        const d = gramsToDisplay(v.variation_weight_grams);
+        baseline[v._id] = {
+          variation_weight_grams: v.variation_weight_grams ?? null,
+          variation_badge_text: v.variation_badge_text ?? null,
+          variation_badge_icon_key: v.variation_badge_icon_key ?? null,
+        };
+        return { ...v, _wValue: d.value, _wUnit: d.unit };
+      });
+      variationBaselineRef.current = baseline;
+      setVariations(list);
+    } catch {
+      toast.error("Failed to load variations");
+    } finally {
+      setVariationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadVariations(product?._id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?._id]);
+
+  // Rows whose editable fields actually differ from what the server sent.
+  const dirtyVariationRows = () => {
+    const out = [];
+    for (const v of variations) {
+      const base = variationBaselineRef.current[v._id];
+      if (!base) continue;
+      const next = {
+        variation_weight_grams: displayToGrams(v._wValue, v._wUnit),
+        variation_badge_text: (v.variation_badge_text || "").trim() || null,
+        variation_badge_icon_key: v.variation_badge_icon_key || null,
+      };
+      const changed =
+        next.variation_weight_grams !== base.variation_weight_grams ||
+        next.variation_badge_text !== base.variation_badge_text ||
+        next.variation_badge_icon_key !== base.variation_badge_icon_key;
+      if (changed) out.push({ _id: v._id, ...next });
+    }
+    return out;
+  };
+
   // Pending floating-image uploads, deferred until "Save Changes".
   // Picking a file no longer hits S3 immediately (that left orphaned uploads when
   // the admin never saved). Instead the raw File lives here (key → File) and is
@@ -396,6 +461,42 @@ const ProductPageContentForm = ({ product, refetch }) => {
         ),
       };
 
+      // ── Variation rows go first ─────────────────────────────────────────────
+      // Same reasoning as the floating-image uploads above: do the part that can
+      // fail on its own terms BEFORE the page-content PATCH, and abort the whole
+      // save if it fails. Otherwise the content persists, the variations don't,
+      // and the admin is told "saved". Only changed rows are sent (a 409 here
+      // means another admin deleted a variation while this form was open).
+      const dirtyRows = dirtyVariationRows();
+      if (dirtyRows.length) {
+        let vRes;
+        let vData;
+        try {
+          vRes = await fetch(`${BASE_URL}/variation/bulk`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ variations: dirtyRows }),
+          });
+          // A 413 (body too large) is answered by Express with HTML, so guard
+          // the parse rather than letting res.json() throw an opaque error.
+          vData = await vRes.json();
+        } catch {
+          toast.error("Variation save failed — nothing was saved");
+          setSubmitting(false);
+          return;
+        }
+        if (!vData?.success) {
+          toast.error(vData?.message || "Variation save failed — nothing was saved");
+          // 409 = a variation was deleted elsewhere while this form was open.
+          // The backend wrote nothing, but our table is stale — resync it so the
+          // admin sees reality before retrying.
+          if (vRes.status === 409) loadVariations(product?._id);
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const res = await fetch(`${BASE_URL}/product/page-content`, {
         method: "PATCH",
         credentials: "include",
@@ -411,6 +512,9 @@ const ProductPageContentForm = ({ product, refetch }) => {
           if (f?._previewUrl) URL.revokeObjectURL(f._previewUrl);
         });
         setPendingFloatUploads({});
+        // Re-seed from the server so the table (and the dirty baseline) reflect
+        // what was actually persisted; `refetch` only reloads the product doc.
+        if (dirtyRows.length) loadVariations(product?._id);
         refetch?.();
       } else {
         toast.error(data?.message || "Save failed");
@@ -1055,7 +1159,11 @@ const ProductPageContentForm = ({ product, refetch }) => {
             <p className="text-xs text-gray-500 mb-3">
               প্রতিটি variation এর জন্য weight (Pathao courier weight calc এ ব্যবহার হবে) + অপশনাল badge text।
             </p>
-            <VariationWeightEditor productId={product?._id} />
+            <VariationWeightEditor
+              value={variations}
+              onChange={setVariations}
+              loading={variationsLoading}
+            />
           </Card>
         </TabPane>
 
