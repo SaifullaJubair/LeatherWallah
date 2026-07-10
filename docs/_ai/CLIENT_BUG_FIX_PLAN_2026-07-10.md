@@ -18,7 +18,7 @@
 | 1b | "badge remove করলে দুই row-এ দেখায়" | Admin omits empty field; backend `updateOne` `$set` only merges present keys | Admin + Backend | **High** | No (stale value persists) | Open |
 | 2 | "update product এ গেলেই theme default হয়ে যায়" | `theme_id` wrongly in `OPTIONAL_FK_FIELDS`, whose loop read an absent key as *cleared* → `$unset` | Backend + Admin | **Critical** | **Yes** — wipes theme assignment | ✅ Fixed 2026-07-10 |
 | 3 | "top save btn এ কাজ হয় না, row-wise save লাগে" | `VariationWeightEditor` is the only uncontrolled section; no bulk variation endpoint exists | Admin + Backend | Medium | No | Open |
-| 4 | "icon না দিলে fallback icon দেখায়" | `FaUtensils` hardcoded fallback; `icon_key` ignored entirely | Frontend | Medium | No | Open |
+| 4 | "icon না দিলে fallback icon দেখায়" | Live section rotates a hardcoded icon list **by row index**; the dead copy hardcodes `FaUtensils` and ignores `icon_key` | Frontend | Medium | No | ✅ Fixed 2026-07-10 |
 | 5 | "demo data delete করলেও theme এ 6 products দেখায়" | Query-level `deleteOne` never fires the document-only counter hook | Backend | **High** | No (counter drift) | ✅ Code fixed 2026-07-10 — **live data still needs `npm run fix:theme-usage -- --apply`** |
 
 > **Bug 2 note:** the fix was the *opposite* of what this doc originally prescribed. See its section below — the planned "add a hidden `theme_id` field, don't touch `OPTIONAL_FK_FIELDS`" advice rested on an unchecked assumption.
@@ -241,9 +241,30 @@ Two problems, and the second is worse than what the client reported:
 
 For contrast, the sibling `BenefitsUseCasesSection.jsx` *does* honour `icon_key` (via `DynamicIcon`) but still falls back to `FaCheck` / `FaUtensils`. And the older, now-unused `components/theme/sections/UseCasesSection.jsx` gets it right: `{u.icon_url && (...)}` with no fallback.
 
-**Fix:** restore the priority chain the code comments already claim — `icon_url` → `icon_key` (via `DynamicIcon`) → **render nothing** (no icon, and collapse the badge circle so the layout doesn't leave a coloured empty puck). Apply the same to `BenefitsUseCasesSection`'s `FaCheck`/`FaUtensils` fallbacks. Remove the now-unused `react-icons/fa6` imports.
+### ✅ FIXED 2026-07-10 — Frontend `4ec8d64`
 
-**Verify:** a use-case with no icon renders text only, with no empty circle; one with `icon_key` renders the picked icon; one with `icon_url` renders the upload.
+**Important correction to the analysis above: `UseCasesSection.jsx` is not the file the client sees.** The PDP renders `frontend/themedProduct/theme/ProductThemedSections` → **`BenefitsUseCasesSection.jsx`**. The `components/theme/ProductThemedSections` copy that mounts `UseCasesSection` is dead code — nothing imports it.
+
+And the live file's defect is worse than a single hardcoded icon. It rotated a fallback **by row index**:
+
+```js
+const USE_ICONS = [FaBriefcase, FaChild, FaDumbbell, FaPlane];
+const Icon = USE_ICONS[i % USE_ICONS.length];   // ← keyed on position, not content
+```
+
+So use-case #5 always got a briefcase and #6 always got a child, regardless of their text.
+
+**Confirmed in a real browser, not just by reading.** On the live site, `premium-dried-apple-slices` renders all 6 use-cases with a coloured badge + `<svg>` icon — while *every* `use_cases` row in the production database has `icon_url: null, icon_key: null`. Same for all 7 products carrying use-cases.
+
+**Shipped:** priority is now `icon_url` → `icon_key` (via `DynamicIcon`) → **nothing**, and the badge circle is omitted when there's no icon (otherwise an empty coloured puck remains). Applied to both the live section and the dead one — leaving a worse copy of the bug next door invites it back.
+
+`DynamicIcon` now exports `hasIcon(name)`. Callers that draw their own chrome need it: `<DynamicIcon>` returns `null` for an unresolvable key, so testing `Boolean(icon_key)` alone would still leave an empty badge for a stale key.
+
+**Benefits keeps its `FaCheck` fallback on purpose** — that's a checkmark bullet on a list, not a domain-specific glyph, so it reads correctly on a leather store too. Verified the 10 benefit bullets still render their checkmarks after the change.
+
+**Verified after:** all 6 rows report `hasBadgeCircle: false, svgIcon: false, imgIcon: false`, text intact; benefits unchanged; `next build` clean.
+
+**Owner manual check:** a use-case with no icon renders text only, with no empty circle; one with `icon_key` renders the picked icon; one with `icon_url` renders the upload.
 
 ---
 
@@ -340,16 +361,18 @@ So the old code's hook could never fire and the new one's will.
 
 `adjustThemeUsage` is an aggregation-pipeline update clamped with `$max: [..., 0]`, and `is_deletable` is re-derived in a second `$set` stage from the already-updated count. So the counter cannot go negative and the flag cannot desync. It is also `try/catch`-wrapped, so a counter failure can never abort a product delete.
 
-### ⚠️ Still to do — repair the live data
+### Repairing the live data
 
-The code fix stops *new* drift. The existing drift is still in production until someone runs:
+The code fix stops *new* drift; it does not repair what already drifted. Run once per environment **after** the code fix is deployed:
 
 ```bash
 npm run fix:theme-usage            # inspect (writes nothing)
 npm run fix:theme-usage -- --apply # persist
 ```
 
-Needs to be run **once per environment** (FruitSnacks prod, Leather Wallah prod) after the code fix is deployed. Until then, Demo Fresh Food and Banana Yellow remain undeletable despite being unused.
+**✅ FruitSnacks production: done 2026-07-10.** All 4 drifted themes repaired; an independent `mongosh` query afterwards reported `drifted themes remaining: 0`, with `is_deletable: true` on exactly the two unused themes (Demo Fresh Food, Banana Yellow) — so the client can now delete them, which was the original complaint. A second `--apply` run reported `0 drifted, 0 updated`, confirming idempotency. API healthy throughout.
+
+**⏳ Leather Wallah production: not yet run.** Do it after porting the code fix there.
 
 ### Verify
 
@@ -400,7 +423,7 @@ Grouped so each lands as one reviewable, independently shippable change.
 | ~~1~~ | ~~**Bug 2**~~ — ✅ done: dropped `theme_id` from `OPTIONAL_FK_FIELDS`, absent-key now means "no change"; Admin always sends `warehouse_id` | Backend + Admin | Highest data-loss risk, smallest diff |
 | ~~2~~ | ~~**Bug 1a**~~ — ✅ done: seeded the propagation refs from props; blank base no longer propagates `0` | Admin | Second data-loss bug; isolated to one component |
 | ~~3~~ | ~~**Bug 5**~~ — ✅ code done: `findOneAndDelete` + `if (result)` guard + `npm run fix:theme-usage`. **Still must run `--apply` on each prod DB.** | Backend | Blocks the LW handover; needs the paired controller edit |
-| 4 | **Bug 4** — icon fallback chain | Frontend | Cosmetic, self-contained; safe to ship any time |
+| ~~4~~ | ~~**Bug 4**~~ — ✅ done: `icon_url` → `icon_key` → nothing; badge collapses when empty | Frontend | Cosmetic, self-contained; safe to ship any time |
 | 5 | **Bugs 1b + 3 together** — bulk variation endpoint, controlled `VariationWeightEditor`, explicit badge clear | Admin + Backend | Both touch `variation_badge_text` / `variation_badge_icon_key`; splitting them means building the bulk path and immediately re-hitting the `$set`-merge trap |
 | 6 | *(optional)* `is_demo` on promo seeds + extend clear | Backend | Not client-reported; no live impact today |
 
