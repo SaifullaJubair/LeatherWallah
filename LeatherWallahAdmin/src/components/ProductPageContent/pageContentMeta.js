@@ -8,6 +8,14 @@
 
 const has = (v) => typeof v === "string" && v.trim().length > 0;
 
+// Does this look like a link the storefront can actually embed? Mirrors the
+// providers accepted by the frontend's toEmbedUrl() (src/utils/videoEmbed.js) —
+// which is the real gate: an unrecognised link renders nothing, so it must not
+// earn a ✓ here either. Kept deliberately loose (provider match, not full URL
+// parsing); the frontend does the exact extraction.
+const isEmbeddableVideoLink = (v) =>
+  has(v) && /(?:youtu\.be|youtube\.com|vimeo\.com)/i.test(v);
+
 // Section order follows the PDP top-to-bottom flow so the sidebar reads the
 // same way the page renders: Theme (global) → Hero → Description → Spec →
 // Video → Benefits → Use Cases → Nutrition → FAQs → Floating → Variations → OG.
@@ -48,10 +56,18 @@ export const PAGE_CONTENT_SECTIONS = [
   {
     id: "video",
     label: "Video",
-    hint: "Video heading + process steps",
-    isComplete: ({ form, processSteps, product }) =>
-      has(form?.video_title) ||
-      (processSteps?.length || 0) > 0 ||
+    hint: "YouTube/Vimeo link or upload + process steps",
+    // Mirror what the storefront actually renders. VideoSection bails out with
+    // `if (!hasVideo) return null` where hasVideo = video_link || main_video —
+    // a title and process steps alone render nothing. So the badge tracks the
+    // video itself, not its trimmings.
+    //
+    // Read video_link from the live form (the admin may have just pasted it),
+    // falling back to the saved product. main_video is upload-only, so it can
+    // only come from the product.
+    isComplete: ({ form, product }) =>
+      isEmbeddableVideoLink(form?.video_link) ||
+      isEmbeddableVideoLink(product?.video_link) ||
       has(product?.main_video),
   },
   {
@@ -117,10 +133,10 @@ export const PAGE_CONTENT_SECTIONS = [
     id: "variations",
     label: "Variations",
     hint: "প্রতি variation-এর weight + badge",
-    // Weight/badge are saved via the section's own per-row endpoint (not this
-    // form's onSubmit), so we can't measure "filled" from form state. Instead
-    // gate on whether the product HAS variations at all — a variation product
-    // shows ✓, a simple (no-variation) product stays neutral.
+    // Weight and badge are both optional, so "filled" isn't a meaningful bar —
+    // a variation product with neither is still correctly configured. Gate on
+    // whether the product HAS variations at all: a variation product shows ✓,
+    // a simple (no-variation) product stays neutral.
     isComplete: ({ product }) => product?.is_variation === true,
   },
   {
