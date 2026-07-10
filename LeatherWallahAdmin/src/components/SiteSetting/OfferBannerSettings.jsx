@@ -43,8 +43,10 @@ const OfferBannerSettings = ({ getInitialCurrencyData, refetch }) => {
     }
     setSaving(true);
     try {
+      // PATCH, not POST — see AnnouncementBarSettings. setting.routes.ts only
+      // registers GET and PATCH on "/", so a POST 404'd on every save.
       const res = await fetch(`${BASE_URL}/setting`, {
-        method: "POST",
+        method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

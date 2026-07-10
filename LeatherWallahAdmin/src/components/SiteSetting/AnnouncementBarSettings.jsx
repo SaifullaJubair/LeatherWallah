@@ -71,8 +71,11 @@ const AnnouncementBarSettings = ({ getInitialCurrencyData, refetch }) => {
 
     setSaving(true);
     try {
+      // PATCH, not POST: setting.routes.ts only registers GET and PATCH on
+      // "/". A POST matched no route at all, so every save answered
+      // 404 "API Not Found" and the bar stayed empty on the storefront.
       const res = await fetch(`${BASE_URL}/setting`, {
-        method: "POST",
+        method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ _id: settingId, announcement_bar: cleaned }),
