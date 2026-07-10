@@ -14,12 +14,12 @@
 
 | # | Symptom (client's words) | Root cause | Apps to touch | Severity | Data loss? | Status |
 |---|---|---|---|---|---|---|
-| 1a | "variation discount price সব same হয়ে যায়" | `useRef("")` never seeded on edit → propagation effect fires on first render | Admin | **Critical** | **Yes** — silently overwrites saved prices | Open |
+| 1a | "variation discount price সব same হয়ে যায়" | `useRef("")` never seeded on edit → propagation effect fires on first render. *(Also: clearing a base field propagated `0`, since `Number("")` is `0`.)* | Admin | **Critical** | **Yes** — silently overwrites saved prices | ✅ Fixed 2026-07-10 |
 | 1b | "badge remove করলে দুই row-এ দেখায়" | Admin omits empty field; backend `updateOne` `$set` only merges present keys | Admin + Backend | **High** | No (stale value persists) | Open |
 | 2 | "update product এ গেলেই theme default হয়ে যায়" | `theme_id` wrongly in `OPTIONAL_FK_FIELDS`, whose loop read an absent key as *cleared* → `$unset` | Backend + Admin | **Critical** | **Yes** — wipes theme assignment | ✅ Fixed 2026-07-10 |
 | 3 | "top save btn এ কাজ হয় না, row-wise save লাগে" | `VariationWeightEditor` is the only uncontrolled section; no bulk variation endpoint exists | Admin + Backend | Medium | No | Open |
 | 4 | "icon না দিলে fallback icon দেখায়" | `FaUtensils` hardcoded fallback; `icon_key` ignored entirely | Frontend | Medium | No | Open |
-| 5 | "demo data delete করলেও theme এ 6 products দেখায়" | Query-level `deleteOne` never fires the document-only counter hook | Backend | **High** | No (counter drift) | Open |
+| 5 | "demo data delete করলেও theme এ 6 products দেখায়" | Query-level `deleteOne` never fires the document-only counter hook | Backend | **High** | No (counter drift) | ✅ Code fixed 2026-07-10 — **live data still needs `npm run fix:theme-usage -- --apply`** |
 
 > **Bug 2 note:** the fix was the *opposite* of what this doc originally prescribed. See its section below — the planned "add a hidden `theme_id` field, don't touch `OPTIONAL_FK_FIELDS`" advice rested on an unchecked assumption.
 
@@ -48,16 +48,30 @@ On **add**, propagating the base price to every row is intended behaviour. On **
 
 The refs are only ever written *inside* the effect. They are never seeded from the loaded product, and the component has no `mode` / `isEdit` prop to distinguish add from update.
 
-**Fix:** seed both refs with the initial base values on mount so the first render is a no-op, and only propagate on a genuine user edit.
+### ✅ FIXED 2026-07-10 — Admin `b8a2087`
+
+**Fix:** seed both refs from the current props on mount, so a mount with no user action is a no-op and only a genuine user edit propagates.
 
 ```js
-const lastBuyingRef   = useRef(String(baseBuyingPrice ?? ""));
-const lastDiscountRef = useRef(String(baseDiscountPrice ?? ""));
+const lastBuyingRef   = useRef(String(baseBuyingPrice));
+const lastDiscountRef = useRef(String(baseDiscountPrice));
 ```
 
-Guard against the case where `baseDiscountPrice` arrives asynchronously (react-hook-form `reset()` after fetch) — if the value is empty on mount and populated later, the same bug reappears. Safest shape: track a `hydratedRef` that flips true once `inputValueData` is first populated from the DB, and skip propagation until then.
+The `hydratedRef` complexity this doc originally proposed turned out to be unnecessary. The worry was that `baseDiscountPrice` might arrive asynchronously via a react-hook-form `reset()` after fetch, re-opening the bug. Checked: `ProductForm` has **no `reset()` call at all** — `useForm({ defaultValues })` reads `initialData` synchronously — and `UpdateProduct.jsx:9` does `if (!productData?._id) return null`, so the form never mounts before the product has loaded. Seeding from props is therefore both necessary and sufficient.
 
-**Verify:** load a product with two variations at different discounts, open edit, save without touching anything → both discounts unchanged in DB.
+**Second defect found while fixing, same effect.** Clearing a base price field propagated `0` into every row, silently zeroing per-row buying prices. The `Number.isFinite(next)` guard was written to prevent exactly this, but `Number("")` is `0`, not `NaN`, so it never fired. A blank base means "no opinion" per the prop docblock at line 54 — now enforced:
+
+```js
+const propagatable = (raw) => {
+  if (raw === "" || raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
+```
+
+**Verified** by simulating the effect across five prop sequences: mount-with-loaded-prices-and-no-user-action (rows untouched — was the bug), raise-buying, clear-one, clear-both, and the add-product blank→typed path. Admin `vite build` clean; the one eslint warning in the file (`VariationImageCellLegacy` unused, line 689) is pre-existing.
+
+**Owner manual check:** load a product with two variations at different discounts → open edit → save without touching anything → both discounts unchanged in DB. Then clear the base buying price → save → per-row buying prices must **not** become 0.
 
 ---
 
@@ -242,10 +256,10 @@ For contrast, the sibling `BenefitsUseCasesSection.jsx` *does* honour `icon_key`
 | **Demo Fresh Food** | **6** | **0** | **+6** | false |
 | **Apple Red** | 9 | 1 | +8 | false |
 | Orange Citrus | 2 | 2 | 0 | false |
-| Mango Gold | 1 | 1 | 0 | false |
+| **Mango Gold** | 3 | 2 | +1 | false |
 | **Banana Yellow** | 1 | 0 | +1 | false |
 
-(total products: 5; with a theme: 4)
+(re-read 2026-07-10; total products: 7. **Mango Gold drifted between the first audit and this one**, which is how we know the bug was still actively accumulating, not a one-off from an old demo wipe.)
 
 ### Root cause
 
@@ -307,9 +321,39 @@ for (const t of await ThemeModel.find({})) {
 
 Run it once per environment after deploying the code fix. Safe to re-run.
 
+### ✅ FIXED 2026-07-10 — Backend `c3aabd7`
+
+Both coordinated edits shipped, plus the backfill as `src/scripts/backfill-theme-usage.ts` (`npm run fix:theme-usage`). The false docblock in `demo.services.ts` was corrected too.
+
+The script is **dry-run by default**; pass `--apply` to persist. It recomputes each counter absolutely via `countDocuments` and writes only rows that actually differ, so it is safe to re-run.
+
+**Hook semantics proven, not assumed** — Mongoose's own hook registry, for a schema declared exactly like `productSchema`:
+
+```
+findOneAndDelete hook registered:      true
+query-level deleteOne hook registered: false   ← {document:true, query:false}
+```
+
+So the old code's hook could never fire and the new one's will.
+
+**The script was dry-run against the live production DB.** It reported the same four drifted themes as an independent `mongosh` query (`6→0`, `9→1`, `3→2`, `1→0`), correctly skipped Orange Citrus (already consistent at `2 = 2`), and left the database byte-for-byte unchanged — re-reading after the run showed identical values.
+
+`adjustThemeUsage` is an aggregation-pipeline update clamped with `$max: [..., 0]`, and `is_deletable` is re-derived in a second `$set` stage from the already-updated count. So the counter cannot go negative and the flag cannot desync. It is also `try/catch`-wrapped, so a counter failure can never abort a product delete.
+
+### ⚠️ Still to do — repair the live data
+
+The code fix stops *new* drift. The existing drift is still in production until someone runs:
+
+```bash
+npm run fix:theme-usage            # inspect (writes nothing)
+npm run fix:theme-usage -- --apply # persist
+```
+
+Needs to be run **once per environment** (FruitSnacks prod, Leather Wallah prod) after the code fix is deployed. Until then, Demo Fresh Food and Banana Yellow remain undeletable despite being unused.
+
 ### Verify
 
-Cannot be verified through the UI alone. Create a throwaway product with a theme on a **local** DB, note `used_in_products`, delete the product, confirm the counter decremented and `is_deletable` flipped. Do not test this against production.
+The counter path cannot be verified through the UI alone. On a **local** DB: create a throwaway product with a theme, note `used_in_products`, delete the product, confirm the counter decremented and `is_deletable` flipped. Do not test the delete path against production.
 
 ---
 
@@ -354,8 +398,8 @@ Grouped so each lands as one reviewable, independently shippable change.
 | Step | Change | Apps | Why this order |
 |---|---|---|---|
 | ~~1~~ | ~~**Bug 2**~~ — ✅ done: dropped `theme_id` from `OPTIONAL_FK_FIELDS`, absent-key now means "no change"; Admin always sends `warehouse_id` | Backend + Admin | Highest data-loss risk, smallest diff |
-| 2 | **Bug 1a** — seed the propagation refs | Admin | Second data-loss bug; isolated to one component |
-| 3 | **Bug 5** — `findOneAndDelete` + controller guard + backfill script | Backend | Blocks the LW handover; needs the paired controller edit |
+| ~~2~~ | ~~**Bug 1a**~~ — ✅ done: seeded the propagation refs from props; blank base no longer propagates `0` | Admin | Second data-loss bug; isolated to one component |
+| ~~3~~ | ~~**Bug 5**~~ — ✅ code done: `findOneAndDelete` + `if (result)` guard + `npm run fix:theme-usage`. **Still must run `--apply` on each prod DB.** | Backend | Blocks the LW handover; needs the paired controller edit |
 | 4 | **Bug 4** — icon fallback chain | Frontend | Cosmetic, self-contained; safe to ship any time |
 | 5 | **Bugs 1b + 3 together** — bulk variation endpoint, controlled `VariationWeightEditor`, explicit badge clear | Admin + Backend | Both touch `variation_badge_text` / `variation_badge_icon_key`; splitting them means building the bulk path and immediately re-hitting the `$set`-merge trap |
 | 6 | *(optional)* `is_demo` on promo seeds + extend clear | Backend | Not client-reported; no live impact today |
