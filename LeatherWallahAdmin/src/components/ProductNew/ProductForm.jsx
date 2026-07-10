@@ -1235,27 +1235,22 @@ const ProductForm = ({ mode = "add", initialData = null, onSaved }) => {
           );
         }
         // A4 (2026-06-04) — per-variation PDP badge. Text + IconPicker key,
-        // both optional. Matrix captures them but the submit loop wasn't
-        // appending them, so they never reached the backend → never showed
-        // on the PDP swatch. Skip-empty so multer doesn't get the string
-        // "null"/"undefined" (backend stores null for absent badges).
-        if (
-          row.variation_badge_text !== null &&
-          row.variation_badge_text !== undefined &&
-          row.variation_badge_text !== ""
-        ) {
-          fd.append(`${prefix}[variation_badge_text]`, row.variation_badge_text);
-        }
-        if (
-          row.variation_badge_icon_key !== null &&
-          row.variation_badge_icon_key !== undefined &&
-          row.variation_badge_icon_key !== ""
-        ) {
-          fd.append(
-            `${prefix}[variation_badge_icon_key]`,
-            row.variation_badge_icon_key,
-          );
-        }
+        // both optional.
+        //
+        // ALWAYS append, empty string when cleared. These used to be skipped
+        // when empty, to keep multer from receiving the literal strings
+        // "null"/"undefined". But the backend spreads each row straight into
+        // VariationModel.updateOne({_id}, row) — Mongoose wraps that in $set,
+        // which only merges keys that are PRESENT. So an omitted key could
+        // never clear a badge: removing it from row 1 and adding it to row 2
+        // left the PDP showing it on both. FormData has no null, so "" is the
+        // clear signal; the backend's sanitizeVariationOptionalFields coerces
+        // it (and "null"/"undefined"/whitespace) back to null before writing.
+        fd.append(`${prefix}[variation_badge_text]`, row.variation_badge_text ?? "");
+        fd.append(
+          `${prefix}[variation_badge_icon_key]`,
+          row.variation_badge_icon_key ?? "",
+        );
         fd.append(`${prefix}[is_active]`, row.is_active !== false);
         (row.combination || []).forEach((vid, ci) =>
           fd.append(`${prefix}[combination][${ci}]`, vid),
