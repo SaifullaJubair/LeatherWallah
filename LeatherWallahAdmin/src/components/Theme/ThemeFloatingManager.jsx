@@ -30,7 +30,10 @@ const SECTIONS = [
   { v: "order", label: "Order form" },
   { v: "benefits", label: "Benefits" },
   { v: "use_cases", label: "Use cases" },
-  { v: "nutrition", label: "Nutrition" },
+  // `v` is the stored section id — do NOT rename it (schema + PDP both key on
+  // it). Only the label is admin-facing. On a footwear catalogue this section
+  // renders the trust badges, not a nutrition table.
+  { v: "nutrition", label: "Trust / Details" },
   { v: "reviews", label: "Reviews" },
   { v: "faq", label: "FAQ" },
 ];

@@ -207,14 +207,14 @@ const ThemeForm = ({ initial = null, mode = "create" }) => {
         {/* ── LEFT: the form ── */}
         <div className="space-y-6 min-w-0">
       {/* Section 1 — Basic info */}
-      <Section title="1. Basic Info" subtitle="Theme এর নাম, কোন fruit এর জন্য, status">
+      <Section title="1. Basic Info" subtitle="Theme এর নাম, কোন product লাইনের জন্য, status">
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Theme Name *" error={errors.theme_name}>
             <input
               type="text"
               {...register("theme_name", { required: "Required" })}
               className="form-input"
-              placeholder="e.g. Apple Red Premium"
+              placeholder="e.g. Oxford Burgundy Premium"
             />
           </Field>
           <Field label="Slug *" error={errors.theme_slug}>
@@ -222,7 +222,7 @@ const ThemeForm = ({ initial = null, mode = "create" }) => {
               type="text"
               {...register("theme_slug", { required: "Required" })}
               className="form-input font-mono"
-              placeholder="apple-red-premium"
+              placeholder="oxford-burgundy-premium"
               disabled={mode === "update"}
             />
           </Field>
@@ -231,7 +231,7 @@ const ThemeForm = ({ initial = null, mode = "create" }) => {
               type="text"
               {...register("theme_for", { required: "Required" })}
               className="form-input"
-              placeholder="Apple / Mango / Lichu / default"
+              placeholder="Shoes / Boots / Wallets / default"
             />
           </Field>
           <Field label="Status">

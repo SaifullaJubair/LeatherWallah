@@ -23,7 +23,8 @@ const SECTIONS = [
   { v: "order", label: "Order form" },
   { v: "benefits", label: "Benefits" },
   { v: "use_cases", label: "Use cases" },
-  { v: "nutrition", label: "Nutrition" },
+  // `v` is the stored section id — schema, don't rename. Label only.
+  { v: "nutrition", label: "Trust / Details" },
   { v: "reviews", label: "Reviews" },
   { v: "faq", label: "FAQ" },
 ];
