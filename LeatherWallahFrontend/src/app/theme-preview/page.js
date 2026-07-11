@@ -89,98 +89,87 @@ const buildTheme = (sp) => {
 };
 
 const IMG =
-  "https://images.unsplash.com/photo-1605027990121-cbae9e0642df?w=600&q=80";
+  "https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=600&q=80";
 
 // Realistic dummy product WITH weight variations + full page content so every
 // themed section + the variation picker renders with content.
 const DUMMY_PRODUCT = {
-  product_name: "শুকনো আম (Sample Mango)",
+  product_name: "ক্লাসিক অক্সফোর্ড (Sample Oxford)",
   product_slug: "sample",
   main_image: IMG,
   main_video: "", // keep empty so VideoSection self-hides unless you want it
-  product_sku: "FS-MANGO-SAMPLE",
+  product_sku: "LW-OXFORD-SAMPLE",
   badge_text: "প্রিমিয়াম কোয়ালিটি",
   hero_corner_badge: "নতুন",
-  short_description: "১০০% প্রাকৃতিক — চিনি ছাড়া, প্রিজারভেটিভ ছাড়া।",
+  short_description: "১০০% আসল চামড়া — হাতে সেলাই, দীর্ঘস্থায়ী।",
   avarage_review_ratting: 4.7,
   total_review_ratting: 128,
   short_features: [
-    { icon_key: "lu:Leaf", text: "No Sugar" },
-    { icon_key: "lu:ShieldCheck", text: "No Preservative" },
-    { icon_key: "lu:Wheat", text: "Rich in Fiber" },
-    { icon_key: "fa:FaChild", text: "Kids Friendly" },
+    { icon_key: "lu:BadgeCheck", text: "Genuine Leather" },
+    { icon_key: "fa:FaHandSparkles", text: "Handcrafted" },
+    { icon_key: "lu:ShieldCheck", text: "1 Year Warranty" },
+    { icon_key: "lu:Footprints", text: "All-Day Comfort" },
   ],
   process_steps: [
-    { icon_key: "fa:FaHandHoldingHeart", text: "তাজা ফল বাছাই" },
-    { icon_key: "fa:FaSun", text: "প্রাকৃতিকভাবে শুকানো" },
-    { icon_key: "lu:Leaf", text: "পুষ্টিগুণ অক্ষুন্ন" },
-    { icon_key: "fa:FaBoxOpen", text: "পরীক্ষিত ও প্যাকেটজাত" },
+    { icon_key: "lu:Layers", text: "সেরা চামড়া বাছাই" },
+    { icon_key: "fa:FaHandSparkles", text: "হাতে কাটা ও সেলাই" },
+    { icon_key: "lu:Sparkles", text: "পলিশ ও ফিনিশিং" },
+    { icon_key: "fa:FaBoxOpen", text: "যাচাই ও প্যাকেজিং" },
   ],
   benefits: [
-    "রোগ প্রতিরোধ ক্ষমতা বাড়ায়",
-    "হজমে সাহায্য করে",
-    "ভিটামিনে ভরপুর",
-    "তাৎক্ষণিক এনার্জি দেয়",
+    "আসল চামড়া — বছরের পর বছর টেকে",
+    "হাতে সেলাই করা মজবুত গঠন",
+    "সারাদিন আরামদায়ক ফিট",
+    "যেকোনো পোশাকের সাথে মানানসই",
   ],
   use_cases: [
-    { icon_key: "fa:FaBriefcase", text: "অফিস স্ন্যাকস" },
-    { icon_key: "lu:GraduationCap", text: "স্কুল টিফিন" },
-    { icon_key: "fa:FaDumbbell", text: "জিম-পরবর্তী" },
-    { icon_key: "fa:FaPlane", text: "ভ্রমণসঙ্গী" },
+    { icon_key: "fa:FaBriefcase", text: "অফিস ও কর্মক্ষেত্র" },
+    { icon_key: "lu:PartyPopper", text: "বিয়ে ও অনুষ্ঠান" },
+    { icon_key: "lu:Users", text: "ইন্টারভিউ ও মিটিং" },
+    { icon_key: "fa:FaPlane", text: "ভ্রমণ ও দৈনন্দিন" },
   ],
   // Custom spec rows → DescriptionCard renders these as the spec table.
   description:
-    "<p>আমাদের <strong>শুকনো আম</strong> ১০০% প্রাকৃতিক প্রক্রিয়ায় তৈরি — কোনো চিনি, রং বা প্রিজারভেটিভ ছাড়াই। প্রতিটি টুকরো রোদে শুকানো, পুষ্টিগুণে ভরপুর।</p>",
+    "<p>আমাদের <strong>ক্লাসিক অক্সফোর্ড</strong> ১০০% আসল ফুল-গ্রেইন চামড়ায় তৈরি — হাতে সেলাই করা, দীর্ঘস্থায়ী ও আরামদায়ক। প্রতিটি জোড়া আলাদাভাবে ফিনিশ করা হয়, তাই সময়ের সাথে চামড়ার রঙ আরও গভীর হয়।</p>",
   custom_fields: [
-    { label: "উৎপত্তি", value: "রাজশাহী, বাংলাদেশ", icon_key: "lu:MapPin" },
-    { label: "ওজন", value: "২৫০g / ৫০০g / ১kg", icon_key: "lu:Weight" },
-    { label: "শেলফ লাইফ", value: "৬ মাস", icon_key: "lu:Calendar" },
-    { label: "উপাদান", value: "১০০% আম", icon_key: "lu:Leaf" },
+    { label: "ম্যাটেরিয়াল", value: "ফুল-গ্রেইন চামড়া", icon_key: "lu:Layers" },
+    { label: "সোল", value: "রাবার, নন-স্লিপ", icon_key: "lu:Footprints" },
+    { label: "সাইজ", value: "EU 40 – 45", icon_key: "lu:Ruler" },
+    { label: "ওয়ারেন্টি", value: "১ বছর", icon_key: "lu:ShieldCheck" },
   ],
-  nutrition: {
-    per_serving: "প্রতি ১০০g",
-    rows: [
-      { label: "ক্যালরি", value: "৩১০ kcal" },
-      { label: "প্রোটিন", value: "৩.৫ g" },
-      { label: "ফাইবার", value: "৭ g" },
-      { label: "চিনি", value: "৬৫ g" },
-    ],
-    info_tiles: [
-      { icon_key: "lu:Leaf", label: "উপাদান", value: "১০০% প্রাকৃতিক" },
-      { icon_key: "lu:Calendar", label: "শেলফ লাইফ", value: "৬ মাস" },
-    ],
-  },
+  // No `nutrition` — a footwear shop has nothing to put there, and
+  // NutritionSection hides its nutrition half when the field is absent.
   faqs: [
-    { question: "চিনি মেশানো আছে?", answer: "না, ১০০% প্রাকৃতিক।" },
-    { question: "কতদিন সংরক্ষণ করা যায়?", answer: "৬ মাস পর্যন্ত।" },
+    { question: "চামড়া কি আসল?", answer: "হ্যাঁ, ১০০% ফুল-গ্রেইন আসল চামড়া।" },
+    { question: "সাইজ না মিললে?", answer: "৭ দিনের মধ্যে বদলে নেওয়া যাবে।" },
     { question: "ডেলিভারি কত দিনে?", answer: "ঢাকায় ১-২ দিন, ঢাকার বাইরে ৩-৪ দিন।" },
   ],
 };
 
-// Weight variations for the interactive picker (price changes on click).
+// Size variations for the interactive picker (price changes on click).
 const DUMMY_VARIATIONS = [
-  { label: "২৫০ গ্রাম", price: 380, mrp: 450 },
-  { label: "৫০০ গ্রাম", price: 720, mrp: 850 },
-  { label: "১ কেজি", price: 1350, mrp: 1600 },
+  { label: "EU 41", price: 4200, mrp: 4800 },
+  { label: "EU 42", price: 4200, mrp: 4800 },
+  { label: "EU 43", price: 4500, mrp: 5200 },
 ];
 
 const DUMMY_TRUST = [
-  { icon_key: "lu:Leaf", title: "১০০% প্রাকৃতিক", subtitle: "কৃত্রিম কিছু নয়" },
-  { icon_key: "lu:ShieldCheck", title: "নিরাপদ", subtitle: "প্রিজারভেটিভ মুক্ত" },
+  { icon_key: "lu:BadgeCheck", title: "১০০% আসল চামড়া", subtitle: "কৃত্রিম কিছু নয়" },
+  { icon_key: "lu:ShieldCheck", title: "১ বছরের ওয়ারেন্টি", subtitle: "সেলাই ও সোলে" },
   { icon_key: "fa:FaTruckFast", title: "দ্রুত ডেলিভারি", subtitle: "সারাদেশে" },
 ];
 
 const DUMMY_REVIEWS = [
-  { name: "রিয়াদ হাসান", rating: 5, text: "অসাধারণ স্বাদ! একদম তাজা আর প্রাকৃতিক। আবার অর্ডার করবো।" },
-  { name: "নুসরাত জাহান", rating: 5, text: "বাচ্চারা খুব পছন্দ করেছে। চিনি ছাড়া হওয়ায় নিশ্চিন্তে দিতে পারি।" },
+  { name: "রিয়াদ হাসান", rating: 5, text: "চামড়ার মান অসাধারণ! ফিনিশিং একদম নিখুঁত। আবার অর্ডার করবো।" },
+  { name: "নুসরাত জাহান", rating: 5, text: "স্বামীর জন্য নিয়েছি, খুব পছন্দ করেছে। সারাদিন পরেও পা ব্যথা করে না।" },
   { name: "তানভীর আহমেদ", rating: 4, text: "মান ভালো, দ্রুত ডেলিভারি পেয়েছি। প্যাকেজিংও সুন্দর।" },
 ];
 
 const DUMMY_RELATED = [
-  { name: "শুকনো আনারস", price: 420, img: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=300&q=80" },
-  { name: "মিক্সড ড্রাই ফ্রুট", price: 650, img: "https://images.unsplash.com/photo-1606923829579-0cb981a83e2e?w=300&q=80" },
-  { name: "খেজুর প্রিমিয়াম", price: 540, img: "https://images.unsplash.com/photo-1593904308074-e1a3f1f0a673?w=300&q=80" },
-  { name: "কাজু বাদাম", price: 890, img: "https://images.unsplash.com/photo-1567892737950-30c4db37cd89?w=300&q=80" },
+  { name: "সুয়েড চেলসি বুট", price: 5200, img: "https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=300&q=80" },
+  { name: "লেদার লোফার", price: 3800, img: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=300&q=80" },
+  { name: "বাইফোল্ড ওয়ালেট", price: 1500, img: "https://images.unsplash.com/photo-1627123424574-724758594e93?w=300&q=80" },
+  { name: "জেনুইন লেদার বেল্ট", price: 1200, img: "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=300&q=80" },
 ];
 
 // ── Phase 2: real-product adapters (pure, no Redux) ──────────────────────────
