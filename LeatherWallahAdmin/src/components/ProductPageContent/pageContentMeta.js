@@ -18,7 +18,8 @@ const isEmbeddableVideoLink = (v) =>
 
 // Section order follows the PDP top-to-bottom flow so the sidebar reads the
 // same way the page renders: Theme (global) → Hero → Description → Spec →
-// Video → Benefits → Use Cases → Nutrition → FAQs → Floating → Variations → OG.
+// Video → Benefits → Use Cases → Size Guide → Product Details → Brand Promise →
+// FAQs → Floating → Variations → OG.
 export const PAGE_CONTENT_SECTIONS = [
   {
     id: "theme",
@@ -98,9 +99,13 @@ export const PAGE_CONTENT_SECTIONS = [
       (sizeGuideRows?.length || 0) > 0 || has(product?.size_chart),
   },
   {
+    // `id` is the stored section key — schema, keyed on by product.nutrition and
+    // the PDP. Don't rename it. The label is what the admin reads, and this
+    // shop uses the field for real spec rows (upper material, construction,
+    // card slots, RFID…), not a nutrition table.
     id: "nutrition",
-    label: "Nutrition",
-    hint: "পুষ্টি table + info tiles",
+    label: "Product Details",
+    hint: "spec table + info tiles",
     isComplete: ({ nutritionRows, nutritionTiles }) =>
       (nutritionRows?.length || 0) > 0 || (nutritionTiles?.length || 0) > 0,
   },
@@ -121,7 +126,7 @@ export const PAGE_CONTENT_SECTIONS = [
   {
     id: "floating",
     label: "Floating Images",
-    hint: "section অনুযায়ী ভাসমান fruit ছবি",
+    hint: "section অনুযায়ী ভাসমান ছবি",
     isComplete: ({ floatingOverrides, floatingImages }) =>
       (floatingOverrides?.extras?.length || 0) > 0 ||
       (floatingOverrides?.replacements?.length || 0) > 0 ||

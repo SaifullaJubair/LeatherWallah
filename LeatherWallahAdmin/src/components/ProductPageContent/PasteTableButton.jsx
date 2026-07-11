@@ -64,7 +64,7 @@ const PasteTableButton = ({ onAppend, onReplace, label = "টেবিল পে
         onChange={(e) => setText(e.target.value)}
         rows={6}
         placeholder={
-          "প্রতি লাইনে label ও value।\nTab / কোলন / | / কমা — যেকোনো separator চলবে।\nউদাহরণ:\nক্যালোরি\t৫২ kcal\nপ্রোটিন: ০.৩ গ্রাম\nফাইবার | ২.৪ গ্রাম"
+          "প্রতি লাইনে label ও value।\nTab / কোলন / | / কমা — যেকোনো separator চলবে।\nউদাহরণ:\nUpper Material\tFull-grain leather\nConstruction: Goodyear welted\nOutsole | Rubber (anti-slip)"
         }
         className="form-input w-full text-xs font-mono"
       />

@@ -1,4 +1,4 @@
-// Per-section info modal copy (Bangla + English mix, real fruit-shop examples).
+// Per-section info modal copy (Bangla + English mix, real leather-shop examples).
 // Each exported JSX is consumed by <SectionInfoModal> in ProductForm.jsx.
 //
 // Keep the tone conversational — owner reads these mid-form to quickly recall
@@ -40,15 +40,15 @@ export const logisticsInfo = (
       </li>
     </ul>
 
-    <h4>🍍 Example — Dried Pineapple Pack</h4>
+    <h4>👞 Example — Classic Oxford (EU 42)</h4>
     <table>
       <tbody>
-        <tr><th>Weight</th><td>250 grams</td></tr>
+        <tr><th>Weight</th><td>900 grams (with box)</td></tr>
         <tr><th>VAT override</th><td>(blank) — site default 5%</td></tr>
-        <tr><th>Dimensions</th><td>15 × 10 × 4 cm (resealable pouch)</td></tr>
+        <tr><th>Dimensions</th><td>33 × 22 × 12 cm (shoe box)</td></tr>
         <tr><th>Warehouse</th><td>Dhaka Main</td></tr>
-        <tr><th>Warranty note</th><td>Best before 6 months from packaging date</td></tr>
-        <tr><th>Return note</th><td>Damaged/leaked pack → free replacement within 3 days</td></tr>
+        <tr><th>Warranty note</th><td>6 months on stitching and sole</td></tr>
+        <tr><th>Return note</th><td>Size mismatch → free exchange within 7 days</td></tr>
       </tbody>
     </table>
 
@@ -74,16 +74,16 @@ export const bulkPricingInfo = (
       পারে — শুধু qty বাড়ালেই।
     </p>
 
-    <h4>🍋 Example — Dried Mango (regular ৳200/pack)</h4>
+    <h4>👔 Example — Genuine Leather Belt (regular ৳1200 each)</h4>
     <table>
       <thead>
         <tr><th>Min qty</th><th>Price at this tier</th><th>মানে</th></tr>
       </thead>
       <tbody>
-        <tr><td>(default)</td><td>৳200</td><td>১-৪ pack — full price</td></tr>
-        <tr><td>5</td><td>৳180</td><td>৫+ pack নিলে প্রতি pack ৳180</td></tr>
-        <tr><td>10</td><td>৳160</td><td>১০+ pack নিলে প্রতি pack ৳160</td></tr>
-        <tr><td>50</td><td>৳130</td><td>৫০+ pack নিলে প্রতি pack ৳130</td></tr>
+        <tr><td>(default)</td><td>৳1200</td><td>১-৪ টা — full price</td></tr>
+        <tr><td>5</td><td>৳1050</td><td>৫+ নিলে প্রতিটা ৳1050</td></tr>
+        <tr><td>10</td><td>৳950</td><td>১০+ নিলে প্রতিটা ৳950</td></tr>
+        <tr><td>50</td><td>৳820</td><td>৫০+ নিলে প্রতিটা ৳820 (bulk/corporate)</td></tr>
       </tbody>
     </table>
     <p>
@@ -156,15 +156,15 @@ export const customSpecRowsInfo = (
       এর মত variation নয়), কিন্তু customer-এর জানা দরকার।
     </p>
 
-    <h4>🍍 Example — Dried Pineapple-এর PDP-তে দেখাতে চান:</h4>
+    <h4>👞 Example — Classic Oxford-এর PDP-তে দেখাতে চান:</h4>
     <table>
       <thead><tr><th>Label</th><th>Value</th><th>Icon</th></tr></thead>
       <tbody>
-        <tr><td>Origin</td><td>Rajshahi, Bangladesh</td><td>📍 (lu:MapPin)</td></tr>
-        <tr><td>Shelf life</td><td>6 months</td><td>📅 (lu:Calendar)</td></tr>
-        <tr><td>Storage</td><td>Cool, dry place</td><td>🌡️ (lu:Thermometer)</td></tr>
-        <tr><td>Ingredients</td><td>100% natural, no preservatives</td><td>🍃 (lu:Leaf)</td></tr>
-        <tr><td>Certification</td><td>BSTI approved</td><td>✅ (lu:BadgeCheck)</td></tr>
+        <tr><td>Upper Material</td><td>Full-grain cow leather</td><td>🧱 (lu:Layers)</td></tr>
+        <tr><td>Construction</td><td>Goodyear welted</td><td>✅ (lu:BadgeCheck)</td></tr>
+        <tr><td>Outsole</td><td>Rubber (anti-slip)</td><td>👣 (lu:Footprints)</td></tr>
+        <tr><td>Warranty</td><td>6 months</td><td>🛡️ (lu:ShieldCheck)</td></tr>
+        <tr><td>Origin</td><td>Handmade in Bangladesh</td><td>📍 (lu:MapPin)</td></tr>
       </tbody>
     </table>
 
@@ -181,10 +181,10 @@ export const customSpecRowsInfo = (
 
     <h4>উদাহরণে পার্থক্য:</h4>
     <ul>
-      <li>"Size: 250g / 500g / 1kg" → <strong>Attribute + Variation axis</strong> (filterable, প্রতিটার আলাদা stock/price)</li>
-      <li>"Brand: ABC Snacks" → <strong>Attribute</strong> (filterable, কিন্তু no variation)</li>
-      <li>"Origin: Rajshahi" → <strong>Custom Spec Row</strong> (এই specific product-এর info)</li>
-      <li>"Shelf life: 6 months" → <strong>Custom Spec Row</strong> (free-form descriptive)</li>
+      <li>"Size: EU 41 / 42 / 43" → <strong>Attribute + Variation axis</strong> (filterable, প্রতিটার আলাদা stock/price)</li>
+      <li>"Brand: Leather Wallah" → <strong>Attribute</strong> (filterable, কিন্তু no variation)</li>
+      <li>"Origin: Handmade in BD" → <strong>Custom Spec Row</strong> (এই specific product-এর info)</li>
+      <li>"Construction: Goodyear welted" → <strong>Custom Spec Row</strong> (free-form descriptive)</li>
     </ul>
 
     <h4>🎨 Icon Key</h4>
@@ -241,17 +241,17 @@ export const pricingStockInfo = (
       </tbody>
     </table>
 
-    <h4>🍍 Example 1 — Dried Pineapple (3 sizes)</h4>
+    <h4>👞 Example 1 — Classic Oxford (3 sizes)</h4>
     <ul>
-      <li>Attributes: <strong>Size</strong>, <strong>Origin</strong></li>
-      <li>Size values: 250g, 500g, 1kg → axis <strong>ON</strong></li>
-      <li>Origin value: Rajshahi → axis <strong>OFF</strong> (sob pack-ই Rajshahi থেকে)</li>
-      <li>Matrix: 3 rows (250g, 500g, 1kg), প্রতিটার আলাদা price/stock</li>
-      <li>PDP spec table-এ দেখাবে "Origin: Rajshahi"</li>
-      <li>Filter sidebar-এ "Origin: Rajshahi" দিয়ে filter করা যাবে</li>
+      <li>Attributes: <strong>Size</strong>, <strong>Material</strong></li>
+      <li>Size values: EU 41, EU 42, EU 43 → axis <strong>ON</strong></li>
+      <li>Material value: Full-grain leather → axis <strong>OFF</strong> (সব সাইজই একই চামড়ার)</li>
+      <li>Matrix: 3 rows (EU 41, 42, 43), প্রতিটার আলাদা price/stock</li>
+      <li>PDP spec table-এ দেখাবে "Material: Full-grain leather"</li>
+      <li>Filter sidebar-এ "Material: Full-grain leather" দিয়ে filter করা যাবে</li>
     </ul>
 
-    <h4>👕 Example 2 — T-shirt (Size + Color, both axes)</h4>
+    <h4>👢 Example 2 — Chelsea Boot (Size + Color, both axes)</h4>
     <ul>
       <li>Size = [M, L, XL] axis ON</li>
       <li>Color = [Black, Navy] axis ON</li>
@@ -312,7 +312,7 @@ export const seoInfo = (
       </li>
     </ul>
 
-    <h4>🍋 Example — Dried Mango PDP</h4>
+    <h4>👞 Example — Leather Shoe PDP</h4>
     <table>
       <tbody>
         <tr>

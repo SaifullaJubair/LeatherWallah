@@ -563,7 +563,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
             Page Content: {product?.product_name}
           </h1>
           <p className="text-sm text-gray-500">
-            Theme, hero, benefits, FAQ, nutrition, OG meta এবং variation weight এখান থেকে edit করো।
+            Theme, hero, benefits, FAQ, product details, OG meta এবং variation weight এখান থেকে edit করো।
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -711,7 +711,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
                   <input
                     {...register("short_description")}
                     className="form-input pr-10"
-                    placeholder="স্বাস্থ্যকর স্ন্যাকস, প্রতিদিনের এনার্জি"
+                    placeholder="আসল চামড়া, হাতে সেলাই — দীর্ঘস্থায়ী"
                     maxLength={160}
                   />
                   <CharCounter value={watch("short_description")} max={160} />
@@ -724,7 +724,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
                 value={shortFeatures}
                 onChange={setShortFeatures}
                 label="Short Features (hero icons row)"
-                helper="No Sugar, No Preservative, Rich in Fiber, Kids Friendly"
+                helper="Full-Grain Leather, Handcrafted, 1 Year Warranty, Cash on Delivery"
                 max={4}
                 maxLen={30}
               />
@@ -763,7 +763,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
                 value={processSteps}
                 onChange={setProcessSteps}
                 label="Process Steps (how it's made)"
-                helper="তাজা ফল থেকে তৈরি / পানি বিয়োজন প্রসেস / পুষ্টিগুণ অক্ষুন্ন থাকে / পরীক্ষিত ও প্রাকৃতিক"
+                helper="সেরা চামড়া বাছাই / হাতে কাটা ও সেলাই / পলিশ ও ফিনিশিং / যাচাই ও প্যাকেজিং"
                 max={4}
                 maxLen={60}
               />
@@ -815,7 +815,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
               value={useCases}
               onChange={setUseCases}
               label="Use cases"
-              helper="অফিস স্ন্যাকস / স্কুল টিফিন / জিম-পরবর্তী / ভ্রমণ"
+              helper="অফিস ও কর্মক্ষেত্র / বিয়ে ও অনুষ্ঠান / দৈনন্দিন / ভ্রমণ"
               max={6}
               maxLen={70}
             />
@@ -890,23 +890,26 @@ const ProductPageContentForm = ({ product, refetch }) => {
         <TabPane id="nutrition" active={activeTab}>
           <Card>
             <p className="text-xs text-gray-500 mb-3">
-              পুষ্টি টেবিল + ইনফো টাইল — যা খুশি label/value যোগ করো। দুটোই খালি থাকলে
-              section দেখাবে না।
+              Spec টেবিল + ইনফো টাইল — যা খুশি label/value যোগ করো (upper material,
+              construction, outsole, card slots…)। দুটোই খালি থাকলে section দেখাবে না।
             </p>
             <div className="mb-5 max-w-sm">
-              <FieldBlock label="Per Serving" hint="heading-এর পাশে দেখাবে (e.g. প্রতি ১০০g)">
+              <FieldBlock
+                label="Section Heading"
+                hint="খালি রাখলে “Product Details” দেখাবে"
+              >
                 <input
                   {...register("nutrition_per_serving")}
                   className="form-input"
-                  placeholder="যেমন: প্রতি ১০০g"
+                  placeholder="যেমন: Specifications"
                 />
               </FieldBlock>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
               <LabelValueRepeater
-                title="Nutrient Rows (টেবিল)"
-                helper="ক্যালরি / প্রোটিন / ফাইবার ... (label + value)"
+                title="Spec Rows (টেবিল)"
+                helper="Upper Material / Construction / Outsole ... (label + value)"
                 value={nutritionRows}
                 onChange={setNutritionRows}
                 max={12}
@@ -1034,7 +1037,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
                   আমাদের প্রতিশ্রুতি (Brand Promise)
                 </p>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  এই section সব product-এর PDP-তে একই ভাবে দেখায় (পুষ্টি তথ্যের
+                  এই section সব product-এর PDP-তে একই ভাবে দেখায় (Product Details-এর
                   ডান পাশে) — তাই এটা একটা <strong>common / site-wide</strong> setting,
                   per-product নয়। এখান থেকে edit হয় না; নিচের বাটনে গিয়ে একবার সেট
                   করলে সব product-এ প্রযোজ্য হবে।
@@ -1140,7 +1143,7 @@ const ProductPageContentForm = ({ product, refetch }) => {
         <TabPane id="floating" active={activeTab}>
           <Card>
             <p className="text-xs text-gray-500 mb-3">
-              Floating fruit ছবি এখন <strong>section অনুযায়ী</strong> বসে। theme থেকে
+              Floating ছবি এখন <strong>section অনুযায়ী</strong> বসে। theme থেকে
               আসা global floating গুলো এখানে hide / replace করা যায়, আর এই product-এর
               জন্য বাড়তি floating যোগ করা যায়।
             </p>
@@ -1403,7 +1406,7 @@ const LabelValueRepeater = ({
                 type="text"
                 value={row.label || ""}
                 onChange={(e) => update(i, { label: e.target.value })}
-                placeholder="Label (যেমন: ক্যালরি)"
+                placeholder="Label (যেমন: Upper Material)"
                 maxLength={labelLen || undefined}
                 className="form-input w-full pr-7"
               />

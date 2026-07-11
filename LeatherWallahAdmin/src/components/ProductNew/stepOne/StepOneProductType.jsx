@@ -365,7 +365,7 @@ const StepOneProductType = ({
                       type="text"
                       value={r.label}
                       onChange={(e) => updateCustom(i, "label", e.target.value)}
-                      placeholder="e.g. Origin"
+                      placeholder="e.g. Upper Material"
                       className="w-full p-2 border border-gray-300 rounded text-sm"
                     />
                   </div>
@@ -377,7 +377,7 @@ const StepOneProductType = ({
                       type="text"
                       value={r.value}
                       onChange={(e) => updateCustom(i, "value", e.target.value)}
-                      placeholder="e.g. Rajshahi"
+                      placeholder="e.g. Full-grain leather"
                       className="w-full p-2 border border-gray-300 rounded text-sm"
                     />
                   </div>

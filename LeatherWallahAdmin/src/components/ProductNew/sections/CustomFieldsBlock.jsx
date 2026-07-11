@@ -93,7 +93,7 @@ const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
                   type="text"
                   value={r.label}
                   onChange={(e) => update(i, "label", e.target.value)}
-                  placeholder="e.g. Origin"
+                  placeholder="e.g. Upper Material"
                   maxLength={LABEL_LEN}
                   className="w-full p-2 pr-7 border border-gray-300 rounded text-sm"
                 />
@@ -109,7 +109,7 @@ const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
                   type="text"
                   value={r.value}
                   onChange={(e) => update(i, "value", e.target.value)}
-                  placeholder="e.g. Rajshahi"
+                  placeholder="e.g. Full-grain leather"
                   maxLength={VALUE_LEN}
                   className="w-full p-2 pr-7 border border-gray-300 rounded text-sm"
                 />
