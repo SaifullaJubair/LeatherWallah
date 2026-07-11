@@ -7,7 +7,9 @@ import { restockOrder } from "../order.stock";
 // (drift risk); import it instead so the two never diverge.
 import { pathaoStatusMap } from "../pathao.service";
 
-const PATHAO_WEBHOOK_SECRET = process.env.PATHAO_WEBHOOK_SECRET || "";
+// The secret lives in the settings doc (Admin → Settings → Courier), not in
+// process.env — the .env here still carries the PREVIOUS owner's Pathao keys.
+import { getWebhookSecrets } from "../courier.config";
 
 // ── Signature verify ──────────────────────────────────────────
 // Hashes the EXACT bytes Pathao sent (req.rawBody, captured by the express.json
@@ -39,14 +41,15 @@ const verifyPathaoSignature = (
 
 // ── Main webhook handler ──────────────────────────────────────
 export const pathaoWebhookController = async (req: Request, res: Response) => {
-  // Pathao requires 202 response
+  const { pathao: secret } = await getWebhookSecrets();
+
+  // Pathao requires a 202 — on accept AND on reject. It also expects its own
+  // integration secret echoed back in this header (that is their handshake, not
+  // a leak: only a merchant who knows the secret can produce it).
   const respond = () =>
     res
       .status(202)
-      .set(
-        "X-Pathao-Merchant-Webhook-Integration-Secret",
-        PATHAO_WEBHOOK_SECRET,
-      )
+      .set("X-Pathao-Merchant-Webhook-Integration-Secret", secret)
       .json({ status: "success", message: "Webhook received." });
 
   try {
@@ -54,25 +57,30 @@ export const pathaoWebhookController = async (req: Request, res: Response) => {
     const rawBody: Buffer | undefined = (req as any).rawBody;
 
     // ── Signature verify (F008 — fail CLOSED) ─────────────────
-    // When a secret is configured, every webhook MUST carry a valid signature.
-    // Previously an invalid/missing signature was logged but still processed,
-    // letting anyone spoof a delivery status / cancel an order. Now we reject.
-    // Secret unset (local dev) = check skipped so dev isn't blocked.
-    if (PATHAO_WEBHOOK_SECRET) {
-      // No rawBody means the express.json `verify` hook in index.ts did not run
-      // for this path — the signature cannot be checked, so refuse rather than
-      // process an unverifiable payload.
-      if (!rawBody) {
-        console.warn("Pathao webhook: rejected — raw body unavailable");
-        return respond(); // 202 (Pathao requirement) but DO NOT process
-      }
-      const isValid =
-        !!signature &&
-        verifyPathaoSignature(rawBody, signature, PATHAO_WEBHOOK_SECRET);
-      if (!isValid) {
-        console.warn("Pathao webhook: rejected — invalid/missing signature");
-        return respond(); // 202 (Pathao requirement) but DO NOT process
-      }
+    // Every webhook MUST carry a valid HMAC signature over the RAW bytes.
+    //
+    // No secret configured = we cannot verify the caller, so we refuse. This
+    // used to skip the check entirely when the secret was unset, which meant a
+    // shop that had not configured Pathao yet would happily accept a forged
+    // "cancelled" status from anyone and restock the order.
+    if (!secret) {
+      console.warn(
+        "Pathao webhook: rejected — no webhook secret configured (Admin → Settings → Courier)",
+      );
+      return respond(); // 202 (Pathao requirement) but DO NOT process
+    }
+    // No rawBody means the express.json `verify` hook in index.ts did not run
+    // for this path — the signature cannot be checked, so refuse rather than
+    // process an unverifiable payload.
+    if (!rawBody) {
+      console.warn("Pathao webhook: rejected — raw body unavailable");
+      return respond();
+    }
+    const isValid =
+      !!signature && verifyPathaoSignature(rawBody, signature, secret);
+    if (!isValid) {
+      console.warn("Pathao webhook: rejected — invalid/missing signature");
+      return respond(); // 202 (Pathao requirement) but DO NOT process
     }
 
     const payload = req.body;

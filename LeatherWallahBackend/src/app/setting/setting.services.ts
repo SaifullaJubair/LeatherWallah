@@ -27,6 +27,16 @@ export const SETTING_SECRET_FIELDS = [
   "pathao_client_secret",
   "steadfast_api_secret",
   "redx_api_key",
+  // Courier webhook secrets. These are the ONLY thing standing between a
+  // stranger and "POST a cancelled status, cancel + restock any order", so they
+  // must never reach the browser through the public /setting response.
+  "steadfast_webhook_secret",
+  "pathao_webhook_secret",
+  // The Steadfast API key and Pathao client id / username are credentials too —
+  // they were public before only because nothing read them from the DB.
+  "steadfast_api_key",
+  "pathao_client_id",
+  "pathao_username",
   // NOTE: chat_livechat_embed_code used to live here as "secret", but a
   // live-chat widget (Tawk.to/Crisp) is client-side JS that MUST reach the
   // browser to render — keeping it in the secret-strip meant the storefront
