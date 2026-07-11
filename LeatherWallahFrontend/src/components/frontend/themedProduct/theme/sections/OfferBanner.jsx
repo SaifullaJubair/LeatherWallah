@@ -5,7 +5,6 @@
 //   setting.offer_end_at   — countdown target (ISO). Banner hides once passed.
 // Themed via brand vars: full-bleed brand-primary background.
 import { useEffect, useState } from "react";
-import { FaTruckFast, FaMoneyBillWave, FaArrowRotateLeft } from "react-icons/fa6";
 
 // Counts down to a fixed ISO target. `expired` flips true when time runs out.
 function useCountdownTo(endAt) {
@@ -59,15 +58,15 @@ export default function OfferBanner({ product, setting }) {
     </div>
   );
 
-  const perks = [
-    { icon: <FaTruckFast size={15} />, text: "Free Delivery" },
-    { icon: <FaMoneyBillWave size={15} />, text: "Cash on Delivery" },
-    { icon: <FaArrowRotateLeft size={15} />, text: "Easy Return Policy" },
-  ];
-
   return (
     <section style={{ background: "var(--brand-primary)" }}>
-      <div className="max-w-6xl mx-auto px-4 py-7 md:py-9 grid md:grid-cols-3 gap-6 items-center">
+      {/* Two columns: the offer + timer on the left, the product on the right.
+          There used to be a third column of hardcoded perks (Free Delivery /
+          Cash on Delivery / Easy Return Policy) — the admin could not edit them,
+          so they were a promise the shop had not actually made from here. The
+          same three claims already live in the site-wide Brand Promise section,
+          which IS admin-driven. */}
+      <div className="max-w-6xl mx-auto px-4 py-7 md:py-9 grid md:grid-cols-2 gap-6 items-center">
         {/* Left — offer + timer */}
         <div className="text-center md:text-left">
           <p
@@ -97,36 +96,17 @@ export default function OfferBanner({ product, setting }) {
           </div>
         </div>
 
-        {/* Center — product image */}
-        <div className="flex justify-center">
-          {image && (
+        {/* Right — product image */}
+        {image && (
+          <div className="flex justify-center md:justify-end">
             <img
               src={image}
               alt={product?.product_name || ""}
-              className="w-40 h-40 object-cover rounded-2xl shadow-lg ring-4"
+              className="w-40 h-40 md:w-48 md:h-48 object-cover rounded-2xl shadow-lg ring-4"
               style={{ "--tw-ring-color": "rgba(255,255,255,0.25)" }}
             />
-          )}
-        </div>
-
-        {/* Right — perks */}
-        <div className="space-y-2.5 justify-self-center md:justify-self-end">
-          {perks.map((p, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2.5 text-sm font-medium"
-              style={{ color: "var(--button-text, #fff)" }}
-            >
-              <span
-                className="flex items-center justify-center rounded-full"
-                style={{ width: 30, height: 30, background: "rgba(255,255,255,0.18)" }}
-              >
-                {p.icon}
-              </span>
-              {p.text}
-            </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
