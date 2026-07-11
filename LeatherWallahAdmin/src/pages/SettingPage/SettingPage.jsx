@@ -35,7 +35,13 @@ const TAB_GROUPS = [
     icon: "📢",
     tabs: [
       { id: "home-layout", label: "Home Layout" },
-      { id: "feature-cards", label: "Feature Cards" },
+      // "Feature Cards" hidden — nothing reads card_one_title / card_one_logo
+      // (and the other six). The storefront's FeatureService.jsx renders a
+      // HARDCODED list (Built to Last / Genuine Leather / Easy Return / Cash on
+      // Delivery); its DB-driven version is commented out in that file. So the
+      // tab saved happily and changed nothing on the site. Restore this entry if
+      // FeatureService is ever wired back to the settings doc.
+      // { id: "feature-cards", label: "Feature Cards" },
       { id: "announcement-bar", label: "Announcement Bar" },
       { id: "offer-banner", label: "Offer Banner" },
       { id: "storefront-behaviour", label: "Storefront Behaviour" },
