@@ -11,6 +11,7 @@ import CurrencySymbol from "./CurrencySymbol";
 import ShippingConFiguration from "./ShippingConFiguration";
 import AnalyticsSettings from "./AnalyticsSettings";
 import AnnouncementBarSettings from "./AnnouncementBarSettings";
+import CourierSettings from "./CourierSettings";
 import OfferBannerSettings from "./OfferBannerSettings";
 import PaymentMethodsSettings from "./PaymentMethodsSettings";
 import VatSettings from "./VatSettings";
@@ -140,6 +141,14 @@ const SettingS = () => {
         );
 
       // ✅ নতুন analytics tab
+      case "courier":
+        return (
+          <CourierSettings
+            refetch={currencyRefetch}
+            getInitialCurrencyData={getInitialCurrencyData?.data[0]}
+          />
+        );
+
       case "analytics":
         return (
           <AnalyticsSettings

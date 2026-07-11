@@ -53,6 +53,7 @@ const TAB_GROUPS = [
     tabs: [
       { id: "phone-credential", label: "Phone Credential" },
       { id: "sms", label: "SMS Provider" },
+      { id: "courier", label: "Courier" },
       { id: "email", label: "Email Provider" },
       { id: "analytics", label: "Analytics & Pixels" },
     ],
