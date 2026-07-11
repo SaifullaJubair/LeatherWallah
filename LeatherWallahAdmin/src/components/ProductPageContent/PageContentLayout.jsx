@@ -116,17 +116,17 @@ export function PageContentActions({ livePath, saving, formId }) {
           href={livePath}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blueColor-700 hover:bg-gray-100 rounded"
-          title="Open the live product page in a new tab"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:text-blueColor-700"
+          title="Open this product's page on the storefront, in a new tab"
         >
-          <FaExternalLinkAlt size={11} /> Open live page
+          <FaExternalLinkAlt size={11} /> View on site
         </a>
       )}
       <button
         type="submit"
         form={formId}
         disabled={saving}
-        className="inline-flex items-center gap-2 px-5 py-2 bg-blueColor-600 text-white rounded hover:bg-blueColor-700 disabled:opacity-60 text-sm font-semibold"
+        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-blueColor-600 rounded hover:bg-blueColor-700 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {saving ? <MiniSpinner /> : <FaSave />} Save Page Content
       </button>
