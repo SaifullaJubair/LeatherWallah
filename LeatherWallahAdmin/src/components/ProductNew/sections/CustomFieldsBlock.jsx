@@ -1,6 +1,7 @@
 import { FaPlus, FaTrash } from "react-icons/fa";
 import IconPicker from "../../common/IconPicker/IconPicker";
 import PasteTableButton from "../../ProductPageContent/PasteTableButton";
+import ExampleButton from "../../ProductPageContent/ExampleButton";
 
 // Free-form spec rows for the PDP (label + value + optional icon).
 // Icon is picked via the curated IconPicker (saves an icon_key string like
@@ -28,7 +29,11 @@ const Counter = ({ value, max }) => {
   );
 };
 
-const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
+// `example` — optional { prompt, sample[], note }. When given, an "Example"
+// button appears beside Paste / Add with a worked sample and a copyable ChatGPT
+// prompt for this product. Omitted on the Add Product form (no product name to
+// build a prompt around yet), so the button simply doesn't render there.
+const CustomFieldsBlock = ({ customFields, setCustomFields, example }) => {
   const capRows = (rows) => rows.slice(0, MAX_ROWS);
   const add = () => {
     if ((customFields || []).length >= MAX_ROWS) return;
@@ -51,6 +56,14 @@ const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {example && (
+            <ExampleButton
+              title="Custom spec rows"
+              prompt={example.prompt}
+              sample={example.sample}
+              note={example.note}
+            />
+          )}
           <PasteTableButton
             onAppend={(rows) =>
               setCustomFields(
@@ -67,7 +80,7 @@ const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
           <button
             type="button"
             onClick={add}
-            className="px-3 py-1.5 text-xs bg-primaryColor text-white rounded-lg hover:bg-blue-500 flex items-center gap-1.5"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-blueColor-600 text-white rounded hover:bg-blueColor-700"
           >
             <FaPlus size={10} /> Add row
           </button>
@@ -84,6 +97,17 @@ const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
             key={i}
             className="grid grid-cols-12 gap-3 items-start bg-white p-3 rounded border border-gray-200"
           >
+            {/* Icon first, then Label, then Value — the order the row reads on
+                the PDP, and the order every repeater in Page Content uses. */}
+            <div className="col-span-2">
+              <label className="text-[11px] font-medium text-gray-600 mb-1 block">
+                Icon
+              </label>
+              <IconPicker
+                value={r.icon_key || null}
+                onChange={(key) => update(i, "icon_key", key || "")}
+              />
+            </div>
             <div className="col-span-4">
               <label className="text-[11px] font-medium text-gray-600 mb-1 block">
                 Label
@@ -115,15 +139,6 @@ const CustomFieldsBlock = ({ customFields, setCustomFields }) => {
                 />
                 <Counter value={r.value} max={VALUE_LEN} />
               </div>
-            </div>
-            <div className="col-span-2">
-              <label className="text-[11px] font-medium text-gray-600 mb-1 block">
-                Icon
-              </label>
-              <IconPicker
-                value={r.icon_key || null}
-                onChange={(key) => update(i, "icon_key", key || "")}
-              />
             </div>
             <div className="col-span-1 flex items-center justify-end pt-6">
               <button

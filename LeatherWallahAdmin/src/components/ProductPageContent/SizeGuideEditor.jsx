@@ -1,12 +1,19 @@
 import { useState } from "react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash, FaClipboardList, FaTimes, FaRetweet } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { parsePastedGrid } from "../../utils/parsePastedGrid";
+import ExampleButton from "./ExampleButton";
 
 // Multi-column size-guide grid editor (niche-agnostic). Admin defines the
 // column headers (Size / EU / UK / CM, or Size / Chest / Waist / Length, …),
 // then fills rows whose cells line up with those columns. A "paste grid" button
 // turns a ChatGPT markdown table / Excel copy into the grid in one shot.
+//
+// The paste panel is a MODAL, matching PasteTableButton / PasteListButton. It
+// used to be an inline block that pushed the grid down and carried its own
+// button styling, so this section looked like it belonged to a different app.
+// It keeps its own parser (parsePastedGrid) because this is a 2-D grid — the
+// other two produce label/value pairs and single-column lists respectively.
 //
 // Props:
 //   columns      string[]                    — header cells
@@ -15,7 +22,12 @@ import { parsePastedGrid } from "../../utils/parsePastedGrid";
 const MAX_COLS = 8;
 const MAX_ROWS = 30;
 
-export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
+export default function SizeGuideEditor({
+  columns = [],
+  rows = [],
+  onChange,
+  example,
+}) {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
 
@@ -31,7 +43,7 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
 
   const addColumn = () => {
     if (columns.length >= MAX_COLS) {
-      toast.info(`সর্বোচ্চ ${MAX_COLS} কলাম`);
+      toast.info(`Max ${MAX_COLS} columns`);
       return;
     }
     const nextCols = [...columns, ""];
@@ -57,7 +69,7 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
 
   const addRow = () => {
     if (rows.length >= MAX_ROWS) {
-      toast.info(`সর্বোচ্চ ${MAX_ROWS} সারি`);
+      toast.info(`Max ${MAX_ROWS} rows`);
       return;
     }
     const width = Math.max(columns.length, 1);
@@ -78,27 +90,35 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
       ),
     );
 
+  // Live preview of what the paste would produce, so the counts below the box
+  // (and the caps) are honest before the admin commits.
+  const preview = pasteOpen ? parsePastedGrid(pasteText) : { columns: [], rows: [] };
+  const canApply = preview.columns.length > 0 || preview.rows.length > 0;
+
+  const closePaste = () => {
+    setPasteText("");
+    setPasteOpen(false);
+  };
+
   const applyPaste = (mode) => {
-    const parsed = parsePastedGrid(pasteText);
-    if (!parsed.columns.length && !parsed.rows.length) {
-      toast.error("টেবিল পড়া গেল না — ChatGPT/Excel থেকে কপি করে দিন");
+    if (!canApply) {
+      toast.error("Could not read a table — copy one from ChatGPT / Excel");
       return;
     }
     if (mode === "replace") {
-      emit(parsed.columns.slice(0, MAX_COLS), parsed.rows.slice(0, MAX_ROWS));
+      emit(preview.columns.slice(0, MAX_COLS), preview.rows.slice(0, MAX_ROWS));
     } else {
       // append: keep existing columns, append rows fitted to current width.
-      const width = columns.length || parsed.columns.length;
-      const cols = columns.length ? columns : parsed.columns.slice(0, MAX_COLS);
+      const width = columns.length || preview.columns.length;
+      const cols = columns.length ? columns : preview.columns.slice(0, MAX_COLS);
       const merged = [
         ...rows,
-        ...parsed.rows.map((r) => fitRow(r, width)),
+        ...preview.rows.map((r) => fitRow(r, width)),
       ].slice(0, MAX_ROWS);
       emit(cols, merged);
     }
-    setPasteText("");
-    setPasteOpen(false);
-    toast.success("সাইজ চার্ট বসানো হয়েছে");
+    closePaste();
+    toast.success("Size chart applied");
   };
 
   const hasGrid = columns.length > 0 || rows.length > 0;
@@ -107,48 +127,41 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-sm font-semibold text-gray-700">
-          সাইজ চার্ট (কলাম + সারি)
+          Size chart{" "}
+          <span className="text-xs font-normal text-gray-400">
+            ({columns.length} columns · {rows.length} rows)
+          </span>
         </label>
-        <button
-          type="button"
-          onClick={() => setPasteOpen((v) => !v)}
-          className="text-xs font-medium text-blue-600 hover:underline"
-        >
-          📋 টেবিল পেস্ট করুন
-        </button>
+        <div className="flex items-center gap-2">
+          {example && (
+            <ExampleButton
+              title="Size chart"
+              prompt={example.prompt}
+              sample={example.sample}
+              note={example.note}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setPasteOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded hover:bg-purple-100"
+          >
+            <FaClipboardList size={12} /> Paste table
+          </button>
+          <button
+            type="button"
+            onClick={addColumn}
+            disabled={columns.length >= MAX_COLS}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-blueColor-600 text-white rounded hover:bg-blueColor-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <FaPlus size={10} /> Add column
+          </button>
+        </div>
       </div>
       <p className="text-xs text-gray-400">
-        আগে কলামের নাম দিন (যেমন Size / EU / UK / CM বা Size / বুক / কোমর / লম্বা),
-        তারপর সারি যোগ করুন। খালি রাখলে PDP-তে দেখাবে না।
+        Name the columns first (e.g. Size / EU / UK / CM), then add rows. Leave
+        empty and the section is hidden on the PDP.
       </p>
-
-      {pasteOpen && (
-        <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3 space-y-2">
-          <textarea
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-            rows={5}
-            placeholder={"ChatGPT/Excel থেকে টেবিল কপি করে এখানে পেস্ট করুন…\n| Size | EU | UK | CM |\n| M | 40 | 6 | 25 |"}
-            className="form-input w-full text-xs font-mono"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => applyPaste("replace")}
-              className="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white"
-            >
-              প্রতিস্থাপন করুন
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPaste("append")}
-              className="rounded border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700"
-            >
-              সারি যোগ করুন
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Column headers */}
       <div className="flex flex-wrap items-center gap-2">
@@ -157,26 +170,24 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
             <input
               value={c}
               onChange={(e) => setColumn(ci, e.target.value)}
-              placeholder={`কলাম ${ci + 1}`}
+              placeholder={`Column ${ci + 1}`}
               className="form-input w-28 text-xs font-semibold"
             />
             <button
               type="button"
               onClick={() => removeColumn(ci)}
               className="text-red-500 hover:text-red-700"
-              title="কলাম মুছুন"
+              title="Remove column"
             >
               <FaTrash size={11} />
             </button>
           </div>
         ))}
-        <button
-          type="button"
-          onClick={addColumn}
-          className="inline-flex items-center gap-1 rounded border border-dashed border-gray-300 px-2.5 py-1.5 text-xs text-gray-600 hover:border-gray-400"
-        >
-          <FaPlus size={10} /> কলাম
-        </button>
+        {columns.length === 0 && (
+          <p className="text-xs text-gray-400 italic">
+            No columns yet — add one, or paste a table.
+          </p>
+        )}
       </div>
 
       {/* Rows */}
@@ -196,7 +207,7 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
                 type="button"
                 onClick={() => removeRow(ri)}
                 className="text-red-500 hover:text-red-700"
-                title="সারি মুছুন"
+                title="Remove row"
               >
                 <FaTrash size={11} />
               </button>
@@ -205,10 +216,95 @@ export default function SizeGuideEditor({ columns = [], rows = [], onChange }) {
           <button
             type="button"
             onClick={addRow}
-            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+            disabled={rows.length >= MAX_ROWS}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-blueColor-600 text-white rounded hover:bg-blueColor-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <FaPlus size={10} /> সারি যোগ করুন
+            <FaPlus size={10} /> Add row
           </button>
+        </div>
+      )}
+
+      {pasteOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={closePaste}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h3 className="text-sm font-semibold text-gray-800">
+                Paste a size chart from ChatGPT / Excel / Sheets
+              </h3>
+              <button
+                type="button"
+                onClick={closePaste}
+                className="text-gray-400 hover:text-gray-700"
+                title="Close"
+              >
+                <FaTimes size={14} />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-2">
+              <textarea
+                autoFocus
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={8}
+                placeholder={
+                  "First line = the column headers, then one line per row.\nTab / pipe / comma — any separator works.\n\nExample:\n| Size | EU | UK | CM |\n| M    | 41 | 7  | 26 |\n| L    | 42 | 8  | 27 |"
+                }
+                className="form-input w-full text-xs font-mono"
+              />
+              {!canApply ? (
+                <p className="text-xs text-gray-400">Nothing pasted yet</p>
+              ) : (
+                <p className="text-xs">
+                  <span className="text-green-600 font-medium">
+                    {preview.columns.length} column
+                    {preview.columns.length === 1 ? "" : "s"} ·{" "}
+                    {preview.rows.length} row
+                    {preview.rows.length === 1 ? "" : "s"} detected
+                  </span>
+                  {(preview.columns.length > MAX_COLS ||
+                    preview.rows.length > MAX_ROWS) && (
+                    <span className="text-amber-600 font-medium">
+                      {" "}
+                      — capped at {MAX_COLS} columns / {MAX_ROWS} rows
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 px-4 py-3 border-t bg-gray-50 rounded-b-lg">
+              <button
+                type="button"
+                onClick={closePaste}
+                className="px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!canApply}
+                onClick={() => applyPaste("replace")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-100 rounded hover:bg-amber-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FaRetweet size={12} /> Replace chart
+              </button>
+              <button
+                type="button"
+                disabled={!canApply}
+                onClick={() => applyPaste("append")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blueColor-600 rounded hover:bg-blueColor-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FaPlus size={11} /> Add rows
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

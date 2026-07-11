@@ -4,6 +4,8 @@ import { FiUpload, FiX } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { BASE_URL } from "../../utils/baseURL";
 import IconPicker from "../common/IconPicker/IconPicker";
+import PasteListButton from "./PasteListButton";
+import ExampleButton from "./ExampleButton";
 
 // Reusable repeater for arrays of {icon_url, icon_key, text}
 // Used for: short_features, process_steps, use_cases
@@ -15,7 +17,17 @@ import IconPicker from "../common/IconPicker/IconPicker";
 // uploading clears any picked key and vice-versa to avoid ambiguity.
 // maxLen — optional per-row character cap on the text input (0 = no cap). Keeps
 // PDP cards from breaking when an admin pastes a paragraph into a one-line item.
-const IconTextRepeater = ({ value = [], onChange, label, max = 4, helper, maxLen = 0 }) => {
+const IconTextRepeater = ({
+  value = [],
+  onChange,
+  label,
+  max = 4,
+  helper,
+  maxLen = 0,
+  // { prompt, sample[], note } — powers the "Example" button, which shows a
+  // worked sample and a copyable ChatGPT prompt for THIS product.
+  example,
+}) => {
   const [uploading, setUploading] = useState(false);
 
   const addRow = () => {
@@ -32,6 +44,33 @@ const IconTextRepeater = ({ value = [], onChange, label, max = 4, helper, maxLen
 
   const removeRow = (i) => {
     onChange(value.filter((_, idx) => idx !== i));
+  };
+
+  // Bulk paste. `max` is enforced here too, not just in addRow — the modal
+  // already trims what it hands us and says so, but the cap is this component's
+  // invariant and must not depend on the caller getting it right.
+  const asRows = (texts) =>
+    texts.map((t) => ({ icon_url: "", icon_key: "", text: t }));
+
+  const pasteAppend = (texts) => {
+    const room = Math.max(0, max - value.length);
+    if (room === 0) {
+      toast.info(`Max ${max} items allowed`);
+      return;
+    }
+    const kept = texts.slice(0, room);
+    onChange([...value, ...asRows(kept)]);
+    if (texts.length > kept.length) {
+      toast.info(`Added ${kept.length} — max ${max} items allowed`);
+    }
+  };
+
+  const pasteReplace = (texts) => {
+    const kept = texts.slice(0, max);
+    onChange(asRows(kept));
+    if (texts.length > kept.length) {
+      toast.info(`Kept the first ${max} — max ${max} items allowed`);
+    }
   };
 
   const handleIconUpload = async (i, file) => {
@@ -67,21 +106,43 @@ const IconTextRepeater = ({ value = [], onChange, label, max = 4, helper, maxLen
       <div className="flex items-center justify-between">
         <label className="text-sm font-semibold text-gray-700">
           {label}{" "}
-          <span className="text-xs font-normal text-gray-400">
-            (max {max})
+          <span
+            className={`text-xs font-normal ${
+              value.length >= max ? "text-amber-600 font-medium" : "text-gray-400"
+            }`}
+          >
+            ({value.length}/{max})
           </span>
         </label>
-        <button
-          type="button"
-          onClick={addRow}
-          className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-blueColor-50 text-blueColor-600 rounded hover:bg-blueColor-100"
-        >
-          <FaPlus /> Add
-        </button>
+        <div className="flex items-center gap-2">
+          {example && (
+            <ExampleButton
+              title={label}
+              prompt={example.prompt}
+              sample={example.sample}
+              note={example.note}
+            />
+          )}
+          <PasteListButton
+            onAppend={pasteAppend}
+            onReplace={pasteReplace}
+            max={max}
+            current={value.length}
+          />
+          <button
+            type="button"
+            onClick={addRow}
+            disabled={value.length >= max}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-blueColor-600 text-white rounded hover:bg-blueColor-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={value.length >= max ? `Max ${max} items` : undefined}
+          >
+            <FaPlus size={10} /> Add
+          </button>
+        </div>
       </div>
       {helper && <p className="text-xs text-gray-400 -mt-1">{helper}</p>}
       {value.length === 0 ? (
-        <p className="text-xs text-gray-400 italic">কিছু যোগ করা হয়নি।</p>
+        <p className="text-xs text-gray-400 italic">Nothing added yet.</p>
       ) : (
         value.map((row, i) => (
           <div
