@@ -239,8 +239,7 @@ const SideNavBar = () => {
           {(user?.role_id?.offer_show === true ||
             user?.role_id?.campaign_show === true ||
             user?.role_id?.coupon_show === true ||
-            user?.role_id?.banner_show === true ||
-            user?.role_id?.slider_show === true) && (
+            user?.role_id?.banner_show === true) && (
             <DropdownMenu
               label="Marketing"
               icon={Megaphone}

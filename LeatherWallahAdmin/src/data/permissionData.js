@@ -18,8 +18,11 @@
 // sits behind them: customer_* (the Customers page reads /user, guarded by
 // user_*), offer_order_* (offer orders merged into the orders module),
 // specification_* (module retired for the attribute engine), payment_withdraw_*
-// (no admin page exists). The flags stay in the role schema for back-compat, so
-// existing roles are unaffected — they simply stop being offered as checkboxes.
+// (no admin page exists), and slider_* (SliderAd is never rendered on the
+// storefront, so the screen edited content no visitor could see — the menu entry
+// and route are gone too; the rows already in the database are left alone). The
+// flags stay in the role schema for back-compat, so existing roles are
+// unaffected — they simply stop being offered as checkboxes.
 const permissionsData = [
   // ── Dashboard ──────────────────────────────────────────────────────────────
   {
@@ -129,17 +132,6 @@ const permissionsData = [
       { type_name: "Banner Delete", type_value: "banner_delete" },
     ],
   },
-  {
-    section: "Marketing",
-    Name: "Slider",
-    Type: [
-      { type_name: "Slider Show", type_value: "slider_show" },
-      { type_name: "Slider Create", type_value: "slider_create" },
-      { type_name: "Slider Update", type_value: "slider_update" },
-      { type_name: "Slider Delete", type_value: "slider_delete" },
-    ],
-  },
-
   // ── Customers ──────────────────────────────────────────────────────────────
   // The Customers page reads and writes /user, which the backend guards with the
   // user_* flags — so those are the ones that decide what a staff member can do

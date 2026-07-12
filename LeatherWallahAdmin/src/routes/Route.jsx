@@ -24,7 +24,6 @@ import YourCoupon from "../pages/CouponPage/YourCouponPage.jsx/YourCoupon";
 
 import BannerPage from "../pages/Banner/BannerPage";
 import SettingPage from "../pages/SettingPage/SettingPage";
-import SliderPage from "../pages/SliderPage/SliderPage";
 
 import PrivateRoute from "./privateRoute/PrivateRoute";
 
@@ -191,11 +190,11 @@ const route = createBrowserRouter([
         path: "/banner",
         element: <BannerPage />,
       },
-      //....Slider Page Start....//
-      {
-        path: "/slider",
-        element: <SliderPage />,
-      },
+      // Slider retired — SliderAd is never rendered on the storefront, so this
+      // screen edited content no visitor could see. The menu entry went earlier;
+      // the route and the slider_* permission checkboxes go now. Backend routes
+      // and the two rows already in the database are untouched, in case the
+      // section is revived.
       //....Site Settings Page....//
       {
         path: "/settings",
