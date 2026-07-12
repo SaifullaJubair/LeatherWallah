@@ -30,6 +30,9 @@ const SECRET_FIELDS = [
   "steadfast_api_key",
   "steadfast_api_secret",
   "steadfast_webhook_secret",
+  // FraudBD sits here rather than in its own tab: it is an order-side integration
+  // like the couriers, and it was the last secret still stuck in .env.
+  "fraud_api_key",
 ];
 
 const PUBLIC_FIELDS = [
@@ -37,6 +40,7 @@ const PUBLIC_FIELDS = [
   "pathao_sandbox",
   "pathao_store_id",
   "steadfast_enabled",
+  "fraud_check_enabled",
 ];
 
 const genSecret = () =>
@@ -147,6 +151,7 @@ const CourierSettings = ({ refetch, getInitialCurrencyData: d }) => {
     pathao_sandbox: false,
     pathao_store_id: "",
     steadfast_enabled: false,
+    fraud_check_enabled: false,
   });
   const [secrets, setSecrets] = useState(
     Object.fromEntries(SECRET_FIELDS.map((k) => [k, ""])),
@@ -162,6 +167,7 @@ const CourierSettings = ({ refetch, getInitialCurrencyData: d }) => {
       pathao_sandbox: !!d.pathao_sandbox,
       pathao_store_id: d.pathao_store_id || "",
       steadfast_enabled: !!d.steadfast_enabled,
+      fraud_check_enabled: !!d.fraud_check_enabled,
     });
   }, [d]);
 
@@ -452,6 +458,39 @@ const CourierSettings = ({ refetch, getInitialCurrencyData: d }) => {
               </p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ── Fraud check ────────────────────────────────────────── */}
+      <div className="rounded-lg border border-gray-200">
+        <div className="border-b bg-gray-50 px-4 py-3">
+          <h4 className="font-semibold text-gray-800">Fraud Check (FraudBD)</h4>
+          <p className="text-[11px] text-gray-500">
+            Looks a customer&apos;s phone number up against courier delivery
+            history before you ship. Your own FraudBD account — the key is billed
+            to whoever owns it.
+          </p>
+        </div>
+        <div className="space-y-4 p-4">
+          <Toggle
+            checked={form.fraud_check_enabled}
+            onChange={(v) => setForm((p) => ({ ...p, fraud_check_enabled: v }))}
+            label="Enable fraud check"
+            hint="Off = the Fraud Check page still shows this shop's own order history for the number, just not FraudBD's courier data."
+          />
+          {canEditSecrets && (
+            <Field
+              label="FraudBD API Key"
+              hint="fraudbd.com → your account → API key."
+            >
+              <SecretInput
+                value={secrets.fraud_api_key}
+                onChange={(v) => setSecrets((p) => ({ ...p, fraud_api_key: v }))}
+                lastFour={lastFour.fraud_api_key}
+                placeholder="From your FraudBD account"
+              />
+            </Field>
+          )}
         </div>
       </div>
 
