@@ -17,6 +17,31 @@ import { applyCartLayers } from "./applyCartLayers";
 //   }
 // };
 
+/**
+ * The strike-through price, or null when there is nothing to strike through.
+ *
+ * Every PDP and the quick-view modal keep the struck-out price in local state,
+ * and each one used to assign `variation_price` straight from the API. That
+ * field is 0 for delta-model variations and for rows an admin saved before
+ * typing a base price, and 0 is the one falsy value React still renders — so
+ * `{lineThrough && <s>{lineThrough}</s>}` printed a bare "0" beside the price,
+ * `0 != null` slipped past the subtotal guard and zeroed the order summary, and
+ * the percent-off maths divided by zero into -Infinity. Route every assignment
+ * through this so a missing price is null, which React and the guards both
+ * already handle.
+ *
+ * Returns null unless the regular price is real AND above what the buyer pays —
+ * an equal or higher "discount" is not a discount, and striking through an
+ * identical number just looks broken.
+ */
+export const strikeThroughPrice = (regular, finalPrice) => {
+  const r = Number(regular);
+  const f = Number(finalPrice);
+  if (!Number.isFinite(r) || r <= 0) return null;
+  if (!Number.isFinite(f) || f <= 0) return null;
+  return r > f ? r : null;
+};
+
 export const productPrice = (product) => {
   // variations is always an array — use first entry for card-level display
   const v0 = Array.isArray(product?.variations)
@@ -71,37 +96,30 @@ export const lineThroughPrice = (product) => {
     ? product.variations[0]
     : product?.variations;
 
-  // Flash sale or campaign — always show original as line-through
-  if (product?.flash_sale_details?.flash_sale_product)
-    return v0?.variation_price || product?.product_price || null;
-  if (product?.campaign_details?.campaign_product)
-    return v0?.variation_price || product?.product_price || null;
+  // Every branch below is routed through strikeThroughPrice, which returns null
+  // unless the regular price is real AND above what the buyer pays. The old code
+  // asked only "is there a discount?", so a product whose discount equalled its
+  // price struck through the very number next to it — ৳210 beside a crossed-out
+  // ৳210, with no saving to show for it.
+  const regular =
+    product?.is_variation && v0
+      ? Number(v0.variation_price) > 0
+        ? v0.variation_price
+        : product?.product_price
+      : product?.product_price;
 
-  // Normal discount
-  if (v0?.variation_discount_price) return v0.variation_price || null;
-  if (product?.product_discount_price) return product?.product_price || null;
-
-  return null;
+  return strikeThroughPrice(regular, productPrice(product));
 };
 
-// এই function টা replace করো
 export const singleProductLineThroughPrice = (product) => {
-  // Flash sale active থাকলে
-  if (product?.flash_sale_details?.flash_sale_product) {
-    return product?.variations?.[0]?.variation_price || product?.product_price;
-  }
-  // Campaign active থাকলে
-  if (product?.campaign_details?.campaign_product) {
-    return product?.variations?.[0]?.variation_price || product?.product_price;
-  }
-  // Normal discount থাকলে
-  if (
-    product?.variations?.[0]?.variation_discount_price ||
-    product?.product_discount_price
-  ) {
-    return product?.variations?.[0]?.variation_price || product?.product_price;
-  }
-  return null;
+  const v0 = product?.variations?.[0];
+  // Same guard as lineThroughPrice: strikeThroughPrice returns null unless the
+  // regular price is real and above what the buyer pays, so a discount equal to
+  // the price no longer strikes through the number beside it.
+  const regular =
+    Number(v0?.variation_price) > 0 ? v0.variation_price : product?.product_price;
+
+  return strikeThroughPrice(regular, singleProductPrice(product));
 };
 export const calculatePrice = (originalPrice, discount, type) => {
   if (type === "percent") {

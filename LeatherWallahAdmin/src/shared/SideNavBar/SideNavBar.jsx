@@ -324,8 +324,12 @@ const SideNavBar = () => {
           )}
 
           {/* ── Customers ────────────────────────────────────────────────── */}
-          {(user?.role_id?.customer_show === true ||
-            user?.role_id?.user_show === true ||
+          {/* The Customer page reads and writes /user, which the backend guards with
+              user_show. It used to be gated here on a separate customer_show flag
+              that nothing on the server enforced — so the menu could appear for
+              someone whose API calls then 401'd, and stay hidden from someone who
+              actually had access. Gate on the flag that decides the outcome. */}
+          {(user?.role_id?.user_show === true ||
             user?.role_id?.review_show === true ||
             user?.role_id?.review_seed_bulk === true ||
             user?.role_id?.review_seed_manual === true ||
@@ -336,7 +340,7 @@ const SideNavBar = () => {
               isOpen={activeDropdown === "customers"}
               onClick={() => toggleDropdown("customers")}
             >
-              {user?.role_id?.customer_show === true && (
+              {user?.role_id?.user_show === true && (
                 <ChildMenuItem
                   to="/customer"
                   icon={User}

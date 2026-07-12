@@ -22,7 +22,18 @@ import PrintLabel from "../common/printLabel/PrintLabel";
 // existing PrintLabel component was only wired into the order detail page — so
 // you could print a label for something already sold, but never for stock
 // sitting in the warehouse. Each row now prints its own label.
-const EditableCell = ({ value, onSave, type = "text", className = "" }) => {
+// `min` applies to number cells that cannot legitimately hold the value: a
+// price of 0 is not "free", it is a missing price, and it used to save happily
+// because `Number("") || 0` turns a cleared field into a 0. Stock leaves `min`
+// unset — 0 there is a real, meaningful value (sold out).
+const EditableCell = ({
+  value,
+  onSave,
+  type = "text",
+  className = "",
+  min,
+  minMessage,
+}) => {
   const [draft, setDraft] = useState(value ?? "");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -31,6 +42,13 @@ const EditableCell = ({ value, onSave, type = "text", className = "" }) => {
   const commit = async () => {
     const next = type === "number" ? Number(draft) || 0 : draft;
     if (next === value) return;
+    if (type === "number" && min !== undefined && next < min) {
+      toast.error(minMessage || `Value must be at least ${min}`, {
+        autoClose: 2000,
+      });
+      setDraft(value ?? ""); // revert — never leave the bad value on screen
+      return;
+    }
     setBusy(true);
     try {
       await onSave(next);
@@ -41,6 +59,7 @@ const EditableCell = ({ value, onSave, type = "text", className = "" }) => {
   return (
     <input
       type={type}
+      min={min}
       value={draft}
       disabled={busy}
       onChange={(e) => setDraft(e.target.value)}
@@ -107,14 +126,24 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
   });
 
   const variations = detail?.data?.variations || [];
+  const productBasePrice = Number(detail?.data?.product_price) || 0;
 
   const saveField = async (variation_id, field, value) => {
     try {
+      // The server resolver reads a variation's price from EITHER its absolute
+      // `variation_price` OR `product_price + variation_price_delta`, depending
+      // on which the row carries. This modal only ever wrote the absolute one,
+      // so editing a price here left a stale delta behind and the two fields
+      // disagreed about what the variation costs. Keep them in step.
+      const payload = { [field]: value };
+      if (field === "variation_price" && productBasePrice > 0) {
+        payload.variation_price_delta = Number(value) - productBasePrice;
+      }
       const res = await fetch(`${BASE_URL}/variation/${variation_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data?.statusCode === 200 && data?.success) {
@@ -216,6 +245,8 @@ const ProductVariationsModal = ({ product, onClose, onSaved }) => {
                           <EditableCell
                             value={v.variation_price}
                             type="number"
+                            min={1}
+                            minMessage="Variation price must be greater than 0"
                             onSave={(val) =>
                               saveField(v._id, "variation_price", val)
                             }

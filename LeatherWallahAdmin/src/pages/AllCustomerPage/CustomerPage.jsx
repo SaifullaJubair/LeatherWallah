@@ -64,13 +64,18 @@ const CustomerPage = () => {
 
   return (
     <>
-      {user?.role_id?.customer_show === true && (
+      {/* This page reads and writes /user, which the backend guards with the
+          user_* flags — so those are the ones that decide what happens here. It
+          used to check a parallel customer_* set that nothing on the server
+          enforced, which let the two disagree: the page could render for someone
+          whose fetch then 401'd, or hide from someone who did have access. */}
+      {user?.role_id?.user_show === true && (
         <div className="bg-white rounded-lg py-6 px-4 shadow">
           <div className="flex justify-between mt-6">
             <div>
               <h1 className="text-2xl">All Customers</h1>
             </div>
-            {user?.role_id?.customer_create === true && (
+            {user?.role_id?.user_create === true && (
               <div>
                 <button
                   className="h-[40px] rounded-[8px] py-[10px] px-[14px] bg-primaryColor hover:bg-blue-500 duration-200  text-white text-sm"

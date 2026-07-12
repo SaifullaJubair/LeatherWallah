@@ -70,17 +70,33 @@ const ProductPriceModal = ({ product, onClose, onSaved }) => {
 
   const handleSave = async () => {
     // Light validation
-    if (sellingPrice === "" || isNaN(Number(sellingPrice))) {
-      toast.error("Selling price required", { autoClose: 1500 });
+    // "0" is neither blank nor NaN, so the old check let it straight through and
+    // the product's list price became 0 — which reads as free everywhere it is
+    // shown, and drops the product out of the storefront's price filter.
+    const price = Number(sellingPrice);
+    if (sellingPrice === "" || !Number.isFinite(price) || price <= 0) {
+      toast.error("Selling price must be greater than 0", { autoClose: 2000 });
+      return;
+    }
+    // A discount at or above the price is not a discount — it would strike
+    // through a number equal to (or lower than) what the buyer actually pays.
+    const discount = discountPrice === "" ? 0 : Number(discountPrice);
+    if (!Number.isFinite(discount) || discount < 0) {
+      toast.error("Discount price must be 0 or more", { autoClose: 2000 });
+      return;
+    }
+    if (discount > 0 && discount >= price) {
+      toast.error("Discount price must be less than the selling price", {
+        autoClose: 2500,
+      });
       return;
     }
     setBusy(true);
     try {
       const body = {
         _id: product._id,
-        product_price: Number(sellingPrice),
-        product_discount_price:
-          discountPrice === "" ? 0 : Number(discountPrice),
+        product_price: price,
+        product_discount_price: discount,
         unit: unit || "",
         tier_prices: tierPrices
           .filter((t) => t.min_qty > 0 && t.price > 0)
@@ -139,7 +155,7 @@ const ProductPriceModal = ({ product, onClose, onSaved }) => {
             </label>
             <input
               type="number"
-              min="0"
+              min="1"
               value={sellingPrice}
               onChange={(e) => setSellingPrice(e.target.value)}
               className="w-full px-3 py-1.5 border rounded text-sm"

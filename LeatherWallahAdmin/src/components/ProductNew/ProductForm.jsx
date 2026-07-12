@@ -1065,7 +1065,13 @@ const ProductForm = ({ mode = "add", initialData = null, onSaved }) => {
     const price = parseFloat(form.product_price);
     const discount = parseFloat(form.product_discount_price);
     const qty = parseFloat(form.product_quantity);
-    if (!Number.isNaN(discount) && price <= discount) {
+    // A product always has a regular price — it is what the discount is measured
+    // against and what a variation's price falls back to. 0 is not a price.
+    if (Number.isNaN(price) || price <= 0) {
+      toast.error("Product price is required and must be greater than 0.");
+      return false;
+    }
+    if (!Number.isNaN(discount) && discount > 0 && price <= discount) {
       toast.error("Product price must be greater than the discount price.");
       return false;
     }
@@ -1089,7 +1095,17 @@ const ProductForm = ({ mode = "add", initialData = null, onSaved }) => {
       const price = Number(r.variation_price);
       const discount = Number(r.variation_discount_price);
       const qty = Number(r.variation_quantity);
-      if (price > 0 && discount > 0 && price <= discount) {
+      // The price-vs-discount check below was gated on `price > 0`, so a row with
+      // no price at all skipped every check and saved as 0. That is how a product
+      // ends up showing a bare "0" beside the price, a ৳0 subtotal, and vanishing
+      // from the storefront's price filter. Every row needs a price.
+      if (!Number.isFinite(price) || price <= 0) {
+        toast.error(
+          `Row ${i + 1}: price is required and must be greater than 0. Set the product price first — the rows fill in from it.`,
+        );
+        return false;
+      }
+      if (discount > 0 && price <= discount) {
         toast.error(`Row ${i + 1}: price must be greater than discount.`);
         return false;
       }

@@ -178,6 +178,7 @@ const StepOneVariationTable = ({
   // saved buying/discount price with the base value.
   const lastBuyingRef = useRef(String(baseBuyingPrice));
   const lastDiscountRef = useRef(String(baseDiscountPrice));
+  const lastBaseRef = useRef(String(basePrice));
 
   // A blank base means "no opinion" — leave the rows alone (see the prop
   // docblock). Number("") is 0, not NaN, so Number.isFinite alone would happily
@@ -191,13 +192,23 @@ const StepOneVariationTable = ({
   useEffect(() => {
     const buyingChanged = String(baseBuyingPrice) !== lastBuyingRef.current;
     const discountChanged = String(baseDiscountPrice) !== lastDiscountRef.current;
-    if (!buyingChanged && !discountChanged) return;
+    // `variation_price` used to be written once, at row-seed time, from whatever
+    // basePrice happened to hold. An admin who added the variation rows before
+    // typing the product price therefore saved variation_price = 0 + delta, and
+    // no later edit to the price ever corrected it — the Final column recomputes
+    // from basePrice at render, so the form looked right while the stored value
+    // stayed 0. Re-sync it here, in the same place the other base fields
+    // propagate from.
+    const baseChanged = String(basePrice) !== lastBaseRef.current;
+    if (!buyingChanged && !discountChanged && !baseChanged) return;
     lastBuyingRef.current = String(baseBuyingPrice);
     lastDiscountRef.current = String(baseDiscountPrice);
+    lastBaseRef.current = String(basePrice);
     if (!Array.isArray(inputValueData) || inputValueData.length === 0) return;
     const nextBuying = propagatable(baseBuyingPrice);
     const nextDiscount = propagatable(baseDiscountPrice);
-    if (nextBuying === null && nextDiscount === null) return;
+    const nextBase = basePrice > 0 ? basePrice : null;
+    if (nextBuying === null && nextDiscount === null && nextBase === null) return;
     setFormData(
       inputValueData.map((row) => ({
         ...row,
@@ -207,10 +218,16 @@ const StepOneVariationTable = ({
         ...(discountChanged && nextDiscount !== null
           ? { variation_discount_price: nextDiscount }
           : {}),
+        ...(baseChanged && nextBase !== null
+          ? {
+              variation_price:
+                nextBase + (Number(row.variation_price_delta) || 0),
+            }
+          : {}),
       })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseBuyingPrice, baseDiscountPrice]);
+  }, [basePrice, baseBuyingPrice, baseDiscountPrice]);
 
   const updateRow = (idx, field, value) => {
     const next = [...inputValueData];
@@ -267,6 +284,22 @@ const StepOneVariationTable = ({
 
   return (
     <>
+      {/* Every row's price is the base price plus that row's delta, so with no
+          base price they all save as 0 — which reads as "free" everywhere it is
+          shown and drops the product out of the storefront's price filter. Say
+          so before the admin fills in the rest of the matrix. */}
+      {basePrice <= 0 && rowCount > 0 && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-900 flex items-start gap-2">
+          <span className="text-base">🚨</span>
+          <div>
+            <strong>Set the product price first.</strong> Every variation&apos;s
+            price is calculated from it, so these rows would all be saved at ৳0.
+            Scroll up, enter the Product Price, and the prices below will fill in
+            automatically.
+          </div>
+        </div>
+      )}
+
       {/* Matrix summary — tells admin what they're looking at + warns about
           out-of-stock rows before publish. Shopify-style "review generated
           variants" pattern. */}

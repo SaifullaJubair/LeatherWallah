@@ -22,7 +22,12 @@ import "swiper/css/thumbs";
 
 import { BASE_URL } from "@/components/utils/baseURL";
 import { addToCart, replaceCartItem } from "@/redux/feature/cart/cartSlice";
-import { calculatePrice, isHexColor, singleProductPrice } from "@/utils/helper";
+import {
+  calculatePrice,
+  isHexColor,
+  singleProductPrice,
+  strikeThroughPrice,
+} from "@/utils/helper";
 import useGetSettingData from "@/components/lib/getSettingData";
 import { useUserInfoQuery } from "@/redux/feature/auth/authApi";
 
@@ -148,12 +153,14 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
 
           setVariationProduct(targetVariation);
           setStock(targetVariation.variation_quantity);
+          const targetRegular =
+            Number(targetVariation.variation_price) > 0
+              ? Number(targetVariation.variation_price)
+              : Number(p?.product_price) || 0;
           const price =
-            targetVariation.variation_discount_price ||
-            targetVariation.variation_price;
+            targetVariation.variation_discount_price || targetRegular;
           setProductPrice(price);
-          if (targetVariation.variation_discount_price)
-            setLineThoughPrice(targetVariation.variation_price);
+          setLineThoughPrice(strikeThroughPrice(targetRegular, price));
           const targetImg = targetVariation.variation_image || p.main_image;
           setActiveImage(targetImg);
           // Use finalImages (not galleryImages state — that's async) to find index
@@ -190,10 +197,11 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
             setSelectedVariations(initial);
           }
         } else {
+          const simplePrice = singleProductPrice(p);
           setStock(p?.product_quantity || 0);
-          setProductPrice(singleProductPrice(p));
+          setProductPrice(simplePrice);
           setActiveImage(p?.main_image);
-          if (p?.product_discount_price) setLineThoughPrice(p.product_price);
+          setLineThoughPrice(strikeThroughPrice(p?.product_price, simplePrice));
         }
 
         // Wishlist status
@@ -258,7 +266,13 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
           mainSwiperRef.current?.slideTo(imageIndex);
         }
 
-        let price = found.variation_discount_price || found.variation_price;
+        // A variation with no absolute price of its own falls back to the
+        // product's — the server's resolver does the same, so the two agree.
+        const variationRegular =
+          Number(found.variation_price) > 0
+            ? Number(found.variation_price)
+            : Number(product?.product_price) || 0;
+        let price = found.variation_discount_price || variationRegular;
         if (product?.flash_sale_details?.flash_sale_product) {
           const fp = product.flash_sale_details.flash_sale_product;
           if (fp?.flash_price_type)
@@ -267,7 +281,6 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
               fp.flash_sale_product_price,
               fp.flash_price_type,
             );
-          setLineThoughPrice(found.variation_price);
         } else if (product?.campaign_details?.campaign_product) {
           const cp = product.campaign_details.campaign_product;
           if (cp?.campaign_price_type)
@@ -276,12 +289,8 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
               cp.campaign_product_price,
               cp.campaign_price_type,
             );
-          setLineThoughPrice(found.variation_price);
-        } else {
-          setLineThoughPrice(
-            found.variation_discount_price ? found.variation_price : null,
-          );
         }
+        setLineThoughPrice(strikeThroughPrice(variationRegular, price));
         setProductPrice(price);
 
         try {
@@ -560,7 +569,7 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
                       </SwiperSlide>
                     ))}
                   </Swiper>
-                  {lineThoughPrice && (
+                  {lineThoughPrice > 0 && lineThoughPrice > productPrice && (
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -647,7 +656,7 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
                       {currencySymbol}
                       {productPrice}
                     </motion.span>
-                    {lineThoughPrice && (
+                    {lineThoughPrice > 0 && lineThoughPrice > productPrice && (
                       <span className="text-sm sm:text-base line-through text-gray-400">
                         {currencySymbol}
                         {lineThoughPrice}

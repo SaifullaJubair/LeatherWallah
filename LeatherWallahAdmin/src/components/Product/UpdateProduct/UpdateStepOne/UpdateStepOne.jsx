@@ -261,6 +261,7 @@ const UpdateStepOne = ({
         }
 
         if (item.variation_alert_quantity < 0) {
+          variationValidateError = true;
           toast.error(
             `Variation Alert Quantity is required at serial no ${index + 1}`,
             {
@@ -277,6 +278,7 @@ const UpdateStepOne = ({
           return;
         }
         if (item.variation_buying_price < 0) {
+          variationValidateError = true;
           toast.error(
             `Variation Buying Price is required at serial no ${index + 1}`,
             {
@@ -293,6 +295,7 @@ const UpdateStepOne = ({
           return;
         }
         if (item.variation_discount_price < 0) {
+          variationValidateError = true;
           toast.error(
             `Variation Discount Price is required at serial no ${index + 1}`,
             {
@@ -308,7 +311,11 @@ const UpdateStepOne = ({
           );
           return;
         }
-        if (item.variation_price < 1) {
+        // `return` inside a forEach only ends THIS iteration — it does not stop
+        // the submit. Without setting the flag the toast appeared and the product
+        // saved anyway, price and all. Same for the sibling checks above.
+        if (!(Number(item.variation_price) > 0)) {
+          variationValidateError = true;
           toast.error(
             `Variation Price  is required at serial no ${index + 1}`,
             {
@@ -325,6 +332,7 @@ const UpdateStepOne = ({
           return;
         }
         if (item.variation_quantity < 0) {
+          variationValidateError = true;
           toast.error(
             `Variation Quantity  is required at serial no ${index + 1}`,
             {

@@ -3,6 +3,7 @@ import { toast } from 'react-toastify'
 import { useState } from 'react'
 import { BASE_URL } from '../../utils/baseURL'
 import permissionsData from '../../data/permissionData'
+import PermissionSections from './PermissionSections'
 import MiniSpinner from '../../shared/MiniSpinner/MiniSpinner'
 import { useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
@@ -15,6 +16,7 @@ const CreateStaffRole = () => {
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm()
   // const { user } = useContext(AuthContext);
   // const token = getCookie(authKey);
@@ -108,49 +110,18 @@ const CreateStaffRole = () => {
           )}
         </div>
 
-        {/* Permissions */}
+        {/* Permissions — grouped by sidebar section (see PermissionSections) */}
         <div className="mt-4">
-          <h4 className="text-md font-semibold  mb-2">Permissions</h4>
-          <div className="">
-            {permissionsData?.map((section) => (
-              <div key={section?.Name} className="border rounded p-2 mb-4">
-                <p className="ml-1 font-semibold py-1 text-gray-700">
-                  {section?.Name}
-                </p>
-                <hr className="mb-2" />
-                <div className="flex flex-wrap md:flex-nowrap  md:justify-between items-center lg:gap-6 gap-3 py-2">
-                  {section?.Type?.map((permission) => {
-                    const isChecked = watchAllFields[permission?.type_value];
-                    return (
-                      <label
-                        key={permission?.type_value}
-                        htmlFor={permission?.type_value}
-                        className={`flex items-center max-w-lg border shadow cursor-pointer w-full p-2 rounded ${
-                          isChecked
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-100"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          id={permission?.type_value}
-                          {...register(permission?.type_value)}
-                          className="mr-2 outline-primaryVariant-600"
-                        />
-                        <span
-                          className={`text-sm ${
-                            isChecked ? "text-white" : "text-gray-700"
-                          }`}
-                        >
-                          {permission?.type_name}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+          <h4 className="text-md font-semibold mb-1">Permissions</h4>
+          <p className="text-xs text-gray-500 mb-3">
+            Grouped the same way the sidebar is. Give a staff member the sections
+            they work in — &quot;Select all&quot; grants a whole section at once.
+          </p>
+          <PermissionSections
+            register={register}
+            watchAllFields={watchAllFields}
+            setValue={setValue}
+          />
         </div>
 
         <div className="flex justify-end mt-6 gap-4">

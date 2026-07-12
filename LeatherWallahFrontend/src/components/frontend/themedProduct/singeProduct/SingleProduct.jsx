@@ -24,6 +24,7 @@ import {
   calculatePrice,
   singleProductPrice,
   variantAxisAttributes,
+  strikeThroughPrice,
 } from "@/utils/helper";
 import VariationPicker from "./VariationPicker";
 import { toast } from "react-toastify";
@@ -216,7 +217,13 @@ const SingleProduct = ({ product, theme }) => {
   const applyVariationPriceStock = (found) => {
     if (!found) return;
     setStock(found.variation_quantity);
-    let price = found.variation_discount_price || found.variation_price;
+    // A variation with no absolute price of its own falls back to the product's
+    // — the resolver on the server does exactly the same, so the two agree.
+    const variationRegular =
+      Number(found.variation_price) > 0
+        ? Number(found.variation_price)
+        : Number(product?.product_price) || 0;
+    let price = found.variation_discount_price || variationRegular;
     if (product?.flash_sale_details?.flash_sale_product) {
       const fp = product.flash_sale_details.flash_sale_product;
       if (fp?.flash_price_type)
@@ -225,7 +232,6 @@ const SingleProduct = ({ product, theme }) => {
           fp.flash_sale_product_price,
           fp.flash_price_type,
         );
-      setLineThoughPrice(found.variation_price);
     } else if (product?.campaign_details?.campaign_product) {
       const cp = product.campaign_details.campaign_product;
       if (cp?.campaign_price_type)
@@ -234,12 +240,8 @@ const SingleProduct = ({ product, theme }) => {
           cp.campaign_product_price,
           cp.campaign_price_type,
         );
-      setLineThoughPrice(found.variation_price);
-    } else {
-      setLineThoughPrice(
-        found.variation_discount_price > 0 ? found.variation_price : null,
-      );
     }
+    setLineThoughPrice(strikeThroughPrice(variationRegular, price));
     setProductPrice(price);
   };
 
@@ -252,12 +254,11 @@ const SingleProduct = ({ product, theme }) => {
   // flicker to base then back to variation in handleSelectVariation.
   useEffect(() => {
     if (!product?.is_variation) {
-      setProductPrice(singleProductPrice(product));
-      if (product?.product_discount_price) {
-        setLineThoughPrice(product?.product_price);
-      } else {
-        setLineThoughPrice(null);
-      }
+      const simplePrice = singleProductPrice(product);
+      setProductPrice(simplePrice);
+      setLineThoughPrice(
+        strikeThroughPrice(product?.product_price, simplePrice),
+      );
       setStock(product?.product_quantity);
       return;
     }
@@ -314,9 +315,10 @@ const SingleProduct = ({ product, theme }) => {
       applyVariationPriceStock(found);
     } else {
       // No usable variation at all — degrade to product-level pricing.
-      setProductPrice(singleProductPrice(product));
+      const fallbackPrice = singleProductPrice(product);
+      setProductPrice(fallbackPrice);
       setLineThoughPrice(
-        product?.product_discount_price ? product?.product_price : null,
+        strikeThroughPrice(product?.product_price, fallbackPrice),
       );
       setStock(0);
     }
@@ -497,8 +499,12 @@ const SingleProduct = ({ product, theme }) => {
   };
 
   useEffect(() => {
+    // Subtotal is the pre-discount line total, so it uses the struck-out price
+    // when there is one. `> 0` rather than `!= null`: a 0 is not a price, and
+    // multiplying it by the quantity used to show the buyer a ৳0 subtotal above
+    // a correct grand total.
     const subtotal =
-      (lineThoughPrice != null ? lineThoughPrice : productPrice) * quantity;
+      (lineThoughPrice > 0 ? lineThoughPrice : productPrice) * quantity;
     const total = productPrice * quantity;
     setShopSubtotals(subtotal || 0);
     setShopTotal(total || 0);
@@ -759,7 +765,7 @@ const SingleProduct = ({ product, theme }) => {
                   {currencySymbol}
                   {productPrice}
                 </span>
-                {lineThoughPrice && lineThoughPrice > productPrice && (
+                {lineThoughPrice > 0 && lineThoughPrice > productPrice && (
                   <span className="text-lg line-through text-gray-400">
                     {currencySymbol}
                     {lineThoughPrice}

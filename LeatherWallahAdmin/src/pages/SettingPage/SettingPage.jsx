@@ -25,7 +25,14 @@ const TAB_GROUPS = [
     icon: "🛒",
     tabs: [
       { id: "shipping", label: "Shipping" },
-      { id: "payment-methods", label: "Payment Methods" },
+      // The payment-method routes are guarded by payment_method_* on the server,
+      // but the tab was showing to anyone who could open Settings — so they saw
+      // the form and got a 401 on save. Gate the tab on the flag that gates the API.
+      {
+        id: "payment-methods",
+        label: "Payment Methods",
+        perm: "payment_method_show",
+      },
       { id: "vat", label: "Tax / VAT" },
       { id: "loyalty", label: "Loyalty" },
     ],

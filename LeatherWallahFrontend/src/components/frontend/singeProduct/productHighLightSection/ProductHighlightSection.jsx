@@ -173,7 +173,7 @@ const ProductHighlightSection = ({
           {currencySymbol}
           {productPrice}
         </span>
-        {lineThoughPrice && lineThoughPrice > productPrice && (
+        {lineThoughPrice > 0 && lineThoughPrice > productPrice && (
           <span className="text-base line-through text-gray-400">
             {currencySymbol}
             {lineThoughPrice}

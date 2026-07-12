@@ -57,9 +57,18 @@ const ProductTable = ({ defaultVariationData, setDefaultVariationData }) => {
                     {item?.variation_name}
                   </td>
                   <td className="whitespace-nowrap py-1.5 font-medium text-gray-700">
+                    {/* A price of 0 is a missing price, not a free product — the
+                        storefront prints a bare "0" beside it and the price
+                        filter drops the product. Flagged red here; the submit
+                        handler rejects it outright. */}
                     <input
                       type="number"
-                      className="p-2 border rounded-md mx-1.5 outline-primaryColor text-center"
+                      min="1"
+                      className={`p-2 border rounded-md mx-1.5 outline-primaryColor text-center ${
+                        Number(item?.variation_price) > 0
+                          ? ""
+                          : "border-red-400 bg-red-50"
+                      }`}
                       value={item?.variation_price}
                       onChange={(e) =>
                         handleInputChange(

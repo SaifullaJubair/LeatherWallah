@@ -3,18 +3,19 @@ import { toast } from "react-toastify";
 import { useState, useEffect, useContext } from "react";
 import { RxCross1 } from "react-icons/rx";
 import permissionsData from "../../data/permissionData";
+import PermissionSections from "./PermissionSections";
 import MiniSpinner from "../../shared/MiniSpinner/MiniSpinner";
 import { BASE_URL } from "../../utils/baseURL";
 import { AuthContext } from "./../../context/AuthProvider";
 
 const UpDateStaffRole = ({ setUpdateModal, updateModalValue, refetch }) => {
-  console.log(updateModalValue, "role value");
   const {
     register,
     reset,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm({
     defaultValues: updateModalValue, // Set default values here
   });
@@ -116,53 +117,21 @@ const UpDateStaffRole = ({ setUpdateModal, updateModalValue, refetch }) => {
             )}
           </div>
 
-          {/* Permissions */}
+          {/* Permissions — grouped by sidebar section (see PermissionSections).
+              The checkboxes get their state from useForm's defaultValues +
+              reset(updateModalValue) above, so no defaultChecked here; react-hook-form
+              owns the value and the two would fight over it. */}
           <div className="mt-4">
-            <h4 className="text-md font-semibold mb-2">Permissions</h4>
-            <div>
-              {permissionsData?.map((section) => (
-                <div key={section?.Name} className="border rounded p-2 mb-4">
-                  <p className="ml-1 font-semibold py-1 text-gray-700">
-                    {section?.Name}
-                  </p>
-                  <hr className="mb-2" />
-                  <div className="flex flex-wrap md:flex-nowrap md:justify-between items-center gap-3 py-2">
-                    {section?.Type?.map((permission) => {
-                      const isChecked = watchAllFields[permission?.type_value];
-                      return (
-                        <label
-                          key={permission?.type_value}
-                          htmlFor={permission?.type_value}
-                          className={`flex items-center max-w-lg cursor-pointer w-full p-2 rounded ${
-                            isChecked
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-100"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            id={permission?.type_value}
-                            {...register(permission?.type_value)}
-                            className="mr-2"
-                            defaultChecked={
-                              updateModalValue?.[permission?.type_value] ||
-                              false
-                            } // Set default checked
-                          />
-                          <span
-                            className={`text-sm ${
-                              isChecked ? "text-white" : "text-gray-700"
-                            }`}
-                          >
-                            {permission?.type_name}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h4 className="text-md font-semibold mb-1">Permissions</h4>
+            <p className="text-xs text-gray-500 mb-3">
+              Grouped the same way the sidebar is. Give a staff member the sections
+              they work in — &quot;Select all&quot; grants a whole section at once.
+            </p>
+            <PermissionSections
+              register={register}
+              watchAllFields={watchAllFields}
+              setValue={setValue}
+            />
           </div>
 
           <div className="flex gap-8 mt-6 justify-end">

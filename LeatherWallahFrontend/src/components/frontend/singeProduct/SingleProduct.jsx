@@ -21,6 +21,7 @@ import {
   singleProductPrice,
   variantAxisAttributes,
   buildVariationAvailabilityMap,
+  strikeThroughPrice,
 } from "@/utils/helper";
 import { toast } from "react-toastify";
 import { addToCart } from "@/redux/feature/cart/cartSlice";
@@ -180,7 +181,13 @@ const SingleProduct = ({ product }) => {
     if (!found) return;
     setStock(found.variation_quantity);
     setQuantity(1);
-    let price = found.variation_discount_price || found.variation_price;
+    // A variation with no absolute price of its own falls back to the product's
+    // — the resolver on the server does exactly the same, so the two agree.
+    const variationRegular =
+      Number(found.variation_price) > 0
+        ? Number(found.variation_price)
+        : Number(product?.product_price) || 0;
+    let price = found.variation_discount_price || variationRegular;
     if (product?.flash_sale_details?.flash_sale_product) {
       const fp = product.flash_sale_details.flash_sale_product;
       if (fp?.flash_price_type)
@@ -189,7 +196,6 @@ const SingleProduct = ({ product }) => {
           fp.flash_sale_product_price,
           fp.flash_price_type,
         );
-      setLineThoughPrice(found.variation_price);
     } else if (product?.campaign_details?.campaign_product) {
       const cp = product.campaign_details.campaign_product;
       if (cp?.campaign_price_type)
@@ -198,27 +204,28 @@ const SingleProduct = ({ product }) => {
           cp.campaign_product_price,
           cp.campaign_price_type,
         );
-      setLineThoughPrice(found.variation_price);
-    } else {
-      setLineThoughPrice(
-        found.variation_discount_price > 0 ? found.variation_price : null,
-      );
     }
+    setLineThoughPrice(strikeThroughPrice(variationRegular, price));
     setProductPrice(price);
   };
 
   // Product init — seed selections from URL params if present, else first
   // value of every axis. URL pattern: ?<axis_attribute_id>=<value_id>.
   useEffect(() => {
-    setProductPrice(singleProductPrice(product));
-    if (
-      product?.variations?.[0]?.variation_discount_price ||
-      product?.product_discount_price
-    ) {
-      setLineThoughPrice(
-        product?.variations?.[0]?.variation_price || product?.product_price,
-      );
-    }
+    const initialPrice = singleProductPrice(product);
+    setProductPrice(initialPrice);
+    // Always assign — the old code only set the struck-out price when a discount
+    // existed, so switching to a product without one left the previous product's
+    // value on screen. strikeThroughPrice returns null when there is nothing to
+    // strike through, which is exactly what the render guards expect.
+    setLineThoughPrice(
+      strikeThroughPrice(
+        Number(product?.variations?.[0]?.variation_price) > 0
+          ? product?.variations?.[0]?.variation_price
+          : product?.product_price,
+        initialPrice,
+      ),
+    );
     if (!product?.is_variation) {
       setStock(product?.product_quantity);
       return;
@@ -432,8 +439,10 @@ const SingleProduct = ({ product }) => {
   };
 
   useEffect(() => {
+    // `> 0` rather than `!= null`: a 0 is not a price, and multiplying it by the
+    // quantity used to show the buyer a ৳0 subtotal above a correct grand total.
     const subtotal =
-      (lineThoughPrice != null ? lineThoughPrice : productPrice) * quantity;
+      (lineThoughPrice > 0 ? lineThoughPrice : productPrice) * quantity;
     const total = productPrice * quantity;
     setShopSubtotals(subtotal || 0);
     setShopTotal(total || 0);

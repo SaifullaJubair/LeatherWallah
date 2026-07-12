@@ -211,7 +211,10 @@ const CustomerTable = ({
                         </td>
 
                         <td className="whitespace-nowrap px-4  py-1.5 text-gray-700">
-                          {user?.role_id?.customer_delete === true && (
+                          {/* user_* rather than customer_*: these buttons call
+                              /user, and user_delete / user_update are what the
+                              backend actually checks. */}
+                          {user?.role_id?.user_delete === true && (
                             <button className="ml-[8px]">
                               <MdDeleteForever
                                 className="cursor-pointer text-red-500 hover:text-red-300"
@@ -220,7 +223,7 @@ const CustomerTable = ({
                               />
                             </button>
                           )}
-                          {user?.role_id?.customer_update === true && (
+                          {user?.role_id?.user_update === true && (
                             <button
                               className="ml-[8px]"
                               onClick={() =>
