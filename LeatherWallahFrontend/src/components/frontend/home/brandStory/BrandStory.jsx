@@ -8,7 +8,10 @@ const BrandStory = ({ settings }) => {
   const text = settings?.brand_story_text || "";
   const imageUrl = settings?.brand_story_image_url || "";
   const ctaLabel = settings?.brand_story_cta_label || "Learn More";
-  const ctaUrl = settings?.brand_story_cta_url || "/about";
+  // "/about" is not a route — the About page lives at /about-us, and this default
+  // (mirrored by the schema default in setting.model.ts) is what seeded the live
+  // settings, so the homepage Brand Story button 404'd on both shops.
+  const ctaUrl = settings?.brand_story_cta_url || "/about-us";
   const imagePosition = settings?.brand_story_image_position || "right";
 
   if (!text && !imageUrl) return null;

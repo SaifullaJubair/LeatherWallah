@@ -13,8 +13,19 @@ import ProductCardSkeleton from "@/components/common/ProductCardSkeleton";
 import { BASE_URL } from "../utils/baseURL";
 import FilterSection from "./FilterSection";
 
+// The default price window must not exclude anything — it is what a visitor who
+// never touches the slider gets. DEFAULT_MAX used to be 5000 while the shop sold
+// boots at 5200, so two products were missing from /shop and nobody could reach
+// them by browsing. PriceRangeFilter already renders its track from the backend's
+// `maxPriceRange`, so the slider still ends at the real top price; this constant
+// only decides the query sent before the customer has expressed a preference, and
+// "no upper bound" is the honest answer to that.
+//
+// DEFAULT_MIN stays 1 rather than 0 deliberately: 0 is not a price, and a product
+// whose effective_price is 0 means an admin saved a variation without one. The
+// backend now falls back to product_price in that case, so nothing hides.
 const DEFAULT_MIN = 1;
-const DEFAULT_MAX = 5000;
+const DEFAULT_MAX = 10000000;
 
 const AVAILABILITY_SLUGS = { "in-stock": 1, "out-of-stock": 0 };
 const AVAILABILITY_TO_SLUG = { 1: "in-stock", 0: "out-of-stock" };
