@@ -52,20 +52,20 @@ const ProductCard = ({ product, badge, activeFilters }) => {
 
   // ── Card media model (owner request) ──────────────────────────────────
   // Default (no hover): ALWAYS main_image — so the grid is calm and consistent.
-  // On hover (desktop): if the product has a main_video file, play it; else
-  // rotate through the other_images as a carousel. Mobile has no hover, so it
-  // just shows main_image (avoids many autoplaying videos = heavy/data cost).
+  // On hover (desktop, lg+):
+  //   variation images (if any)  →  other_images  →  otherwise just zoom.
+  // Mobile has no hover, so it always shows main_image.
   //
-  // main_video is always an uploaded FILE here (pasted YouTube/Vimeo links live
-  // in `video_link`, used only on the PDP), so a plain <video> is safe.
+  // The card used to autoplay `main_video` on hover. It is gone: several
+  // <video> elements decoding at once made scrolling the grid feel heavy, and
+  // it pulled real video bytes over mobile data for a thumbnail. The video
+  // still plays where it belongs — on the product page.
   const mainImage = product?.main_image || "/assets/images/placeholder.jpg";
-  const hasVideo = Boolean(product?.main_video);
 
-  // Hover carousel frames (only used when there's no video). Merge the
-  // per-variation images (colours/sizes) FIRST — customers care most about
-  // seeing the variants — then the generic other_images. De-dupe and drop the
-  // main_image (already the base layer), then cap so a product with many
-  // variations doesn't make the hover loop endlessly.
+  // Hover carousel frames. Merge the per-variation images (colours/sizes) FIRST
+  // — customers care most about seeing the variants — then the generic
+  // other_images. De-dupe and drop the main_image (already the base layer), then
+  // cap so a product with many variations doesn't make the hover loop endlessly.
   const HOVER_FRAME_CAP = 6;
   const toArr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
   // The list/grid API (filter_product) ships a ready-merged `card_hover_images`
@@ -90,11 +90,10 @@ const ProductCard = ({ product, badge, activeFilters }) => {
     .filter((src) => src && src !== mainImage)
     .filter((src, i, arr) => arr.indexOf(src) === i) // de-dupe
     .slice(0, HOVER_FRAME_CAP);
-  const hasCarousel = !hasVideo && carouselImages.length > 0;
+  const hasCarousel = carouselImages.length > 0;
 
   const [hovered, setHovered] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
-  const videoRef = useRef(null);
   const carouselTimer = useRef(null);
 
   // Drive the hover carousel: on enter, step through other_images; on leave,
@@ -110,18 +109,6 @@ const ProductCard = ({ product, badge, activeFilters }) => {
     }
     return () => clearInterval(carouselTimer.current);
   }, [hovered, hasCarousel, carouselImages.length]);
-
-  // Play/pause the hover video so it doesn't keep buffering when not hovered.
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (hovered) {
-      v.play().catch(() => {});
-    } else {
-      v.pause();
-      v.currentTime = 0;
-    }
-  }, [hovered]);
 
   // Build PDP href — category page can pass activeFilters to pre-select a variant
   const buildHref = () => {
@@ -215,26 +202,13 @@ const ProductCard = ({ product, badge, activeFilters }) => {
             alt={product?.product_name || "Product"}
             sizes={PRODUCT_CARD_SIZES}
             className={`object-cover transition-all duration-500 ${
-              (hasVideo || hasCarousel) ? "lg:group-hover:opacity-0" : "lg:group-hover:scale-105"
+              hasCarousel ? "lg:group-hover:opacity-0" : "lg:group-hover:scale-105"
             }`}
           />
 
-          {/* Hover video (desktop only — hidden on touch where there's no hover).
-              Fades in over the base image while hovering. */}
-          {hasVideo && (
-            <video
-              ref={videoRef}
-              src={product.main_video}
-              loop
-              muted
-              playsInline
-              preload="none"
-              className="hidden lg:block absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-            />
-          )}
-
-          {/* Hover carousel (no video) — rotates variation + other images on
-              hover. The active frame fades in; off-hover it resets to frame 0. */}
+          {/* Hover carousel — rotates the variation images and other_images on
+              hover. The active frame fades in; off-hover it resets to frame 0.
+              A product with no extra images just gets the zoom above. */}
           {hasCarousel &&
             carouselImages.map((src, i) => (
               <Image

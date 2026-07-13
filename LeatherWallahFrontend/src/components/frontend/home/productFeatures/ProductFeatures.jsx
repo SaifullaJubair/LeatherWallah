@@ -22,20 +22,22 @@ import useBoutiqueProductActions from "../boutique/useBoutiqueProductActions";
 // (edge-audit M2). The spotlight already shows products[0], so we start at 1.
 const MAX_ROWS = 6;
 
-// A small media carousel for the row: product main image + other images + (when
-// a variation is selected) that variation's image/video on top. Square aspect
-// so every row looks consistent (owner feedback: cashew was too tall).
+// A small media carousel for the row: the selected variation's image first, then
+// the main image, then the rest of the gallery. Square aspect so every row looks
+// consistent (owner feedback: cashew was too tall).
+//
+// Videos used to autoplay here (variation_video). They are gone — several rows
+// decoding video at once made the page feel laggy while scrolling, and it spent
+// real mobile data on what is essentially a thumbnail. Video belongs on the
+// product page, not in a listing.
 function RowMedia({ product, activeVariation, alt }) {
   const slides = useMemo(() => {
     const list = [];
-    // Selected variation media wins as the first slide.
-    if (activeVariation?.variation_video) {
-      list.push({ type: "video", src: activeVariation.variation_video });
-    }
+    // Selected variation image wins as the first slide.
     if (activeVariation?.variation_image) {
-      list.push({ type: "image", src: activeVariation.variation_image });
+      list.push(activeVariation.variation_image);
     }
-    if (product?.main_image) list.push({ type: "image", src: product.main_image });
+    if (product?.main_image) list.push(product.main_image);
     // gallery_images = full other-image list (boutique field, works for
     // variation products too); fall back to the first-only other_images.
     const gallery = Array.isArray(product?.gallery_images)
@@ -46,11 +48,11 @@ function RowMedia({ product, activeVariation, alt }) {
           : [product.other_images]
         : [];
     gallery.forEach((o) => {
-      if (o?.other_image) list.push({ type: "image", src: o.other_image });
+      if (o?.other_image) list.push(o.other_image);
     });
-    // De-dup by src, keep order.
+    // De-dup, keep order.
     const seen = new Set();
-    return list.filter((s) => s.src && !seen.has(s.src) && seen.add(s.src));
+    return list.filter((src) => src && !seen.has(src) && seen.add(src));
   }, [product, activeVariation]);
 
   if (!slides.length) {
@@ -58,15 +60,17 @@ function RowMedia({ product, activeVariation, alt }) {
       <div className="relative aspect-square w-full rounded-2xl bg-gray-100" />
     );
   }
+  // A single image needs no carousel — just the image, with a gentle zoom.
   if (slides.length === 1) {
-    const s = slides[0];
     return (
       <div className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-md">
-        {s.type === "video" ? (
-          <video src={s.src} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <Image src={s.src} alt={alt} fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="(max-width:768px) 92vw, 46vw" />
-        )}
+        <Image
+          src={slides[0]}
+          alt={alt}
+          fill
+          className="object-cover hover:scale-105 transition-transform duration-700"
+          sizes="(max-width:768px) 92vw, 46vw"
+        />
       </div>
     );
   }
@@ -80,14 +84,16 @@ function RowMedia({ product, activeVariation, alt }) {
       pagination={{ clickable: true }}
       className="rounded-2xl overflow-hidden shadow-md aspect-square w-full boutique-media-swiper"
     >
-      {slides.map((s, i) => (
-        <SwiperSlide key={i}>
+      {slides.map((src) => (
+        <SwiperSlide key={src}>
           <div className="relative aspect-square w-full">
-            {s.type === "video" ? (
-              <video src={s.src} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
-            ) : (
-              <Image src={s.src} alt={alt} fill className="object-cover" sizes="(max-width:768px) 92vw, 46vw" />
-            )}
+            <Image
+              src={src}
+              alt={alt}
+              fill
+              className="object-cover"
+              sizes="(max-width:768px) 92vw, 46vw"
+            />
           </div>
         </SwiperSlide>
       ))}
