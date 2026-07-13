@@ -51,7 +51,9 @@ const ProfileSetting = ({ setUserupdateModalOpen, user }) => {
     //setLoading(true);
     let user_logo;
     if (data?.user_logo) {
-      const logoUpload = await ImageUploader(data?.user_logo);
+      // An admin's own profile picture, not site branding — hence "avatar",
+      // not "logo".
+      const logoUpload = await ImageUploader(data?.user_logo, "avatar");
       user_logo = logoUpload[0];
     }
     const sendData = {

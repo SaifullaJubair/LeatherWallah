@@ -127,11 +127,17 @@ const SoftwareInformation = ({ refetch, getInitialCurrencyData: data }) => {
       let favicon = formData?.favicon;
 
       if (formData?.logo instanceof FileList && formData?.logo?.[0]) {
-        const logoUpload = await ImageUploader(formData?.logo?.[0]);
+        const logoUpload = await ImageUploader(formData?.logo?.[0], "logo");
         logo = logoUpload[0];
       }
       if (formData?.favicon instanceof FileList && formData?.favicon?.[0]) {
-        const faviconUpload = await ImageUploader(formData?.favicon?.[0]);
+        // "favicon" keeps it a PNG. Safari does not render WebP favicons, and
+        // this file is also the apple-touch-icon — a WebP one is a blank square
+        // on an iPhone home screen.
+        const faviconUpload = await ImageUploader(
+          formData?.favicon?.[0],
+          "favicon",
+        );
         favicon = faviconUpload[0];
       }
 

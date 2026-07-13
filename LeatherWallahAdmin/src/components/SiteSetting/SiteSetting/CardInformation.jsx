@@ -82,25 +82,29 @@ const CardInformation = ({ refetch, getInitialCurrencyData }) => {
       let card_four_logo;
       if (data?.card_one_logo?.[0]) {
         const card_one_logoUpload = await ImageUploader(
-          data?.card_one_logo?.[0]
+          data?.card_one_logo?.[0],
+          "logo"
         );
         card_one_logo = card_one_logoUpload[0];
       }
       if (data?.card_two_logo?.[0]) {
         const card_two_logoUpload = await ImageUploader(
-          data?.card_two_logo?.[0]
+          data?.card_two_logo?.[0],
+          "logo"
         );
         card_two_logo = card_two_logoUpload[0];
       }
       if (data?.card_three_logo?.[0]) {
         const card_three_logoUpload = await ImageUploader(
-          data?.card_three_logo?.[0]
+          data?.card_three_logo?.[0],
+          "logo"
         );
         card_three_logo = card_three_logoUpload[0];
       }
       if (data?.card_four_logo?.[0]) {
         const card_four_logoUpload = await ImageUploader(
-          data?.card_four_logo?.[0]
+          data?.card_four_logo?.[0],
+          "logo"
         );
         card_four_logo = card_four_logoUpload[0];
       }
