@@ -1,13 +1,20 @@
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
 const NotFound = () => {
   return (
     <div className="boxShadow px-10 w-full flex items-center flex-col justify-center py-20  min-h-screen bg-[#00543A]">
-      <img
-        src="https://i.ibb.co/LvLq6d3/Group-29.png"
-        alt="illustration"
-        className="w-full lg:w-[400px]"
+      {/* This illustration used to be hot-linked from i.ibb.co — a free image
+          host that can delete it at any time, leaving a broken 404 page, and one
+          that served it as a raw 75 KB PNG through a third-party connection.
+          It is local and WebP now (24 KB), served from our own origin. */}
+      <Image
+        src="/assets/404-illustration.webp"
+        alt="Page not found"
+        width={400}
+        height={300}
+        className="w-full lg:w-[400px] h-auto"
       />
       <p className="text-[#fff] text-[1.2rem] w-full lg:w-[55%] text-center">
         The page cannot be found. The requested URL was not found on this
