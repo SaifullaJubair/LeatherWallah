@@ -26,3 +26,20 @@ getting long/heavy, before switching.
    the mirror current.
 
 Confirm what you updated and summarize it. Keep the handoff TRUE — the next chat trusts it first.
+
+## ⚠️ Memory is per-folder — sync it
+
+Claude's auto-memory is keyed by folder path, so a memory written here is **invisible** from the
+other two folders (`LeatherWallah`, `FruitSnacks-port`, `ecommerce-core` each have their own).
+They run the same engine, and you move between them, so the memory has to be mirrored.
+
+After updating the memory, copy it to the other two:
+
+```bash
+for T in c--Coding-Perosnal-LeatherWallah c--Coding-Perosnal-FruitSnacks-port c--Coding-Perosnal-ecommerce-core; do
+  cp -f "$SRC"/*.md "C:/Users/sumiy/.claude/projects/$T/memory/"
+done
+```
+
+...then re-apply each `MEMORY.md`'s "📍 You are in ..." banner — the top block that says which
+folder this is and how it deploys. Do NOT let the copy overwrite a folder's banner with another's.
