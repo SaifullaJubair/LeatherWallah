@@ -6,14 +6,40 @@ import { sendTikTokServerEvent } from "./tiktokPixel/TiktokServerEvent";
 import useGetSettingData from "@/components/lib/getSettingData";
 import { generateEventId } from "./metaPixel/useMetaPixel";
 import { getCurrencyCode } from "@/utils/currency";
+import { calculatePrice } from "@/utils/helper";
 
 // ── helpers ────────────────────────────────────────────
+// The Meta/TikTok pixel <Script>s can still be loading (afterInteractive /
+// lazyOnload) when settings resolve via a fast, cached react-query call —
+// so a bare `if (window.fbq)` check silently drops the call: the CAPI
+// (server) leg still fires, but the browser leg never does, breaking dedup.
+// Meta's own shim solves this for calls made after fbq() exists, by queuing
+// them internally — the gap is only the window before fbq/ttq exist AT ALL.
+// Retry briefly (idle-CPU heartbeats are ~100ms) instead of dropping.
+const waitFor = (check, run, args, attempts = 20) => {
+  if (typeof window === "undefined") return;
+  if (check()) {
+    run(...args);
+    return;
+  }
+  if (attempts <= 0) return;
+  setTimeout(() => waitFor(check, run, args, attempts - 1), 100);
+};
+
 const fbq = (...args) => {
-  if (typeof window !== "undefined" && window.fbq) window.fbq(...args);
+  waitFor(
+    () => typeof window.fbq === "function",
+    (...a) => window.fbq(...a),
+    args,
+  );
 };
 
 const ttq = (...args) => {
-  if (typeof window !== "undefined" && window.ttq) window.ttq.track(...args);
+  waitFor(
+    () => typeof window.ttq?.track === "function",
+    (...a) => window.ttq.track(...a),
+    args,
+  );
 };
 
 // ── GTM dataLayer push ─────────────────────────────────
@@ -32,9 +58,46 @@ const toStringIds = (ids) => {
 
 const toNumber = (val) => parseFloat(val) || 0;
 
+// Mirrors helper.js `productPrice()` — flash sale, then campaign, then
+// variation/product discount — but takes the CALLER'S variation (the one
+// the buyer actually picked) instead of always reading variations[0].
+// `productPrice()` can't be reused as-is: it hardcodes variations[0] for
+// card-level display, which is wrong once a non-default variation is in
+// the cart. Keeping this in sync with helper.js's branch order matters —
+// the BE resolver (product.price.resolver.ts) is the real authority.
+const resolveEventPrice = (product, variation) => {
+  const v0 = variation || (Array.isArray(product?.variations)
+    ? product.variations[0]
+    : product?.variations);
+
+  if (product?.flash_sale_details?.flash_sale_product) {
+    const fp = product.flash_sale_details.flash_sale_product;
+    const flashBase = product?.is_variation && v0
+      ? v0.variation_discount_price || v0.variation_price
+      : product?.product_discount_price || product?.product_price;
+    if (fp?.flash_price_type === "percent" && flashBase)
+      return toNumber(calculatePrice(flashBase, fp.flash_sale_product_price, "percent"));
+    return toNumber(fp.flash_sale_product_price);
+  }
+
+  if (product?.campaign_details?.campaign_product) {
+    const cp = product.campaign_details.campaign_product;
+    const campaignBase =
+      product?.is_variation && v0 ? v0.variation_price : product?.product_price;
+    if (cp?.campaign_price_type && campaignBase)
+      return toNumber(calculatePrice(campaignBase, cp.campaign_product_price, cp.campaign_price_type));
+    return toNumber(cp.campaign_product_price);
+  }
+
+  if (product?.is_variation && v0)
+    return toNumber(v0.variation_discount_price || v0.variation_price);
+
+  return toNumber(product?.product_discount_price || product?.product_price);
+};
+
 // ── Main Hook ──────────────────────────────────────────
 const useAnalytics = () => {
-  const { data: settingsData } = useGetSettingData();
+  const { data: settingsData, isSuccess: settingsReady } = useGetSettingData();
   const settings = settingsData?.data?.[0];
 
   const metaEnabled = !!settings?.meta_pixel_enabled;
@@ -51,9 +114,9 @@ const useAnalytics = () => {
   const trackViewContent = useCallback(
     async (product, userData = {}) => {
       const eventId = generateEventId();
-      const price = toNumber(
-        product?.product_discount_price || product?.product_price,
-      );
+      // Flash sale / campaign / variation aware — matches what the buyer
+      // actually sees on the PDP, not just the bare product price.
+      const price = resolveEventPrice(product);
 
       if (metaEnabled) {
         fbq(
@@ -142,12 +205,9 @@ const useAnalytics = () => {
   const trackAddToCart = useCallback(
     async (product, variationProduct, quantity, userData = {}) => {
       const eventId = generateEventId();
-      const price = toNumber(
-        variationProduct
-          ? variationProduct?.variation_discount_price ||
-              variationProduct?.variation_price
-          : product?.product_discount_price || product?.product_price,
-      );
+      // Flash sale / campaign aware, and uses the SELECTED variation (not
+      // variations[0]) — matches what's actually added to the cart.
+      const price = resolveEventPrice(product, variationProduct);
       const itemId = String(variationProduct?._id || product?._id);
       const totalValue = price * quantity;
 
@@ -513,12 +573,7 @@ const useAnalytics = () => {
   const trackAddToWishlist = useCallback(
     (product, variationProduct) => {
       const eventId = generateEventId();
-      const price = toNumber(
-        variationProduct
-          ? variationProduct?.variation_discount_price ||
-              variationProduct?.variation_price
-          : product?.product_discount_price || product?.product_price,
-      );
+      const price = resolveEventPrice(product, variationProduct);
       const itemId = String(variationProduct?._id || product?._id);
 
       if (metaEnabled) {
@@ -566,6 +621,7 @@ const useAnalytics = () => {
   );
 
   return {
+    settingsReady,
     trackViewContent,
     trackAddToCart,
     trackPurchase,

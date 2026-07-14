@@ -63,7 +63,7 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
   const modalRef = useRef(null);
 
   // ✅ একটাই hook
-  const { trackViewContent, trackAddToCart, trackAddToWishlist } =
+  const { settingsReady, trackViewContent, trackAddToCart, trackAddToWishlist } =
     useAnalytics();
 
   const [product, setProduct] = useState(null);
@@ -140,9 +140,6 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
         }
         const finalImages = images.filter(Boolean);
         setGalleryImages(finalImages);
-
-        // ✅ ViewContent — Phase 1B EMQ user_data via shared helper.
-        trackViewContent(p, buildAnalyticsUserData(userInfo));
 
         // Initial price & stock
         if (p?.is_variation && p?.variations?.length > 0) {
@@ -235,6 +232,15 @@ const QuickViewModal = ({ product: listProduct, onClose, mode = "view", initialV
       })
       .finally(() => setFetchLoading(false));
   }, [listProduct?.product_slug, userInfo]);
+
+  // ✅ ViewContent — separated from the fetch .then() so it only fires once
+  // analytics settings (meta_pixel_enabled etc.) have actually loaded. Firing
+  // it inside the fetch callback raced settings load: if the modal opened
+  // before useGetSettingData() resolved, trackViewContent no-op'd silently.
+  useEffect(() => {
+    if (!product?._id || !settingsReady) return;
+    trackViewContent(product, buildAnalyticsUserData(userInfo));
+  }, [product?._id, settingsReady]);
 
   // Variation select
   const handleSelectVariation = useCallback(

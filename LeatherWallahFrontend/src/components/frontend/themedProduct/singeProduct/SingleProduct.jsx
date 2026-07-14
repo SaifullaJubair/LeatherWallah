@@ -63,6 +63,7 @@ const SingleProduct = ({ product, theme }) => {
   const initiateCheckoutFired = useRef(false);
 
   const {
+    settingsReady,
     trackViewContent,
     trackAddToCart,
     trackPurchase,
@@ -71,10 +72,15 @@ const SingleProduct = ({ product, theme }) => {
   } = useAnalytics();
 
   // ✅ ViewContent — Phase 1B EMQ user_data via shared helper.
+  // settingsReady in the deps: analytics settings (meta_pixel_enabled etc.)
+  // load async, and product._id is usually already set by the time they
+  // resolve. Without this, the effect fires once while settingsReady is
+  // still false, trackViewContent no-ops, and it never re-runs — ViewContent
+  // silently never fires for that page visit.
   useEffect(() => {
-    if (!product?._id) return;
+    if (!product?._id || !settingsReady) return;
     trackViewContent(product, buildAnalyticsUserData(userInfo));
-  }, [product?._id]);
+  }, [product?._id, settingsReady]);
 
   const {
     register,
