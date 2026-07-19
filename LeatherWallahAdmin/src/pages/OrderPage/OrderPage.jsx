@@ -226,7 +226,7 @@ const OrderPage = () => {
 
   const handlePrintClick = async (order) => {
     try {
-      const res = await fetch(`${BASE_URL}/order/${order._id}`, {
+      const res = await fetch(`${BASE_URL}/order/admin/${order._id}`, {
         credentials: "include",
       });
       const result = await res.json();

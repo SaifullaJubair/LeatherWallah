@@ -336,9 +336,9 @@ const ViewAllOrderInfo = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [`/api/v1/order/${id}`],
+    queryKey: [`/api/v1/order/admin/${id}`],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/order/${id}`, {
+      const res = await fetch(`${BASE_URL}/order/admin/${id}`, {
         credentials: "include",
       });
       return res.json();

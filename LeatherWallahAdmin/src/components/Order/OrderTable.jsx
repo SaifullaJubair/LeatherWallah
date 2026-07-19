@@ -33,7 +33,7 @@ const OrderTable = ({
 
   const handlePrintClick = async (order) => {
     try {
-      const response = await fetch(`${BASE_URL}/order/${order._id}`, {
+      const response = await fetch(`${BASE_URL}/order/admin/${order._id}`, {
         credentials: "include",
       });
       const result = await response.json();
