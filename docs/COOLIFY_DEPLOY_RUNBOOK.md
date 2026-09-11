@@ -415,6 +415,222 @@ bucket is already LeatherWallah's own as of §7f; only the S3 **credentials** st
 
 ---
 
+## 11. ✅ EXECUTED: migration to the dedicated server (2026-09-11)
+
+LeatherWallah now runs **alone on its own Contabo VPS** with its **own 250 GB object storage**.
+This is the §7 "Future: Contabo → dedicated server" step, done. The old shared box
+(`217.216.34.155`) still runs Artisan + FruitSnacks and was **left untouched** — LW's old
+containers are still there as a rollback path.
+
+| Thing | Old (shared) | New (dedicated) |
+|-------|--------------|-----------------|
+| VPS | `217.216.34.155` (vmi3130701) | **`217.216.109.239`** (vmi3569392) |
+| Specs | 4 CPU / 8 GB / 72 GB, 3 projects | 4 CPU / 7.8 GB / **96 GB, LW only** |
+| Coolify | v4.1.2 | **v4.3.18** |
+| Object storage | previous owner's, tenant `20ef049d…` | **own, tenant `f80089f26e9f4584adb8d989fa6ca49f`** |
+| Image bucket | `leather-wallah` (old tenant) | `leather-wallah` (**new tenant**, public-read) |
+| Backup bucket | `artisan-leather` (**shared** with 2 other clients) | **`leatherwallah-backup`** (private, LW only) |
+| SSH key | `~/.ssh/coolify_vps` | **`~/.ssh/lw_newvps`** |
+
+**What differed from the v4.1.2 procedure (gotchas for next time):**
+
+1. **`/databases/<uuid>/start` and `/deploy` are now POST**, not GET — a GET returns
+   `{"message":"This endpoint has changed to a POST request."}`.
+2. **Do NOT pass `is_literal:true` on env bulk-create.** In 4.3.18 it wraps every value in
+   single quotes, so `S3_BUCKET` becomes `'leather-wallah'` literally. Send only
+   `{key,value,is_preview:false}`. (The API's `real_value` field *displays* quotes either way —
+   check `is_literal` in the DB, not the JSON, before panicking.)
+3. **`envs/bulk` writes each var twice** — one `is_preview=f` row and one `is_preview=t` row.
+   Harmless for production, but to keep it clean:
+   `DELETE FROM environment_variables WHERE resourceable_type='App\Models\Application' AND is_preview=true;`
+4. **The persistent-storage table is `local_file_volumes`** and the column is `resourceable_type`
+   (not `resource_type`). The keyfile row that survives redeploys (§7a-bis step 3) can be inserted
+   directly instead of via the UI — it accepts `chown`/`chmod`:
+   `INSERT INTO local_file_volumes (uuid, fs_path, mount_path, resource_type…, chown, chmod…)`
+   with `'999:999'` and `'400'`.
+5. **Contabo public image URLs need the tenant id**, in the form
+   `<endpoint>/<tenant-id>:<bucket>/<key>` — note the **colon**. Neither `<endpoint>/<bucket>/…`
+   (401) nor `<endpoint>/<tenant>/<bucket>/…` (404) works. Get the tenant id from
+   `list_buckets()['Owner']['ID']` → `f80089f2…$15154403`, take the part **before** the `$`.
+   `S3_PUBLIC_URL` = `<endpoint>/<tenant-id>` only; the code appends `:<bucket>/<key>`.
+6. **Let's Encrypt fails until DNS points at the new box** (`403 … Invalid response … 404` naming
+   the OLD ip). That is expected — issue certs *after* the DNS switch, then
+   `docker restart coolify-proxy` to force an immediate retry instead of waiting for Traefik's
+   backoff. All 4 certs landed within ~1 min of the restart.
+7. **`concurrent_builds=1`**: `UPDATE server_settings SET concurrent_builds=1;` (no `WHERE server_id=0`
+   needed on a fresh box — there is only one server row).
+
+**Data migration:** `mongodump`/`mongorestore` (BSON — see the §7b warning), 37 collections /
+172 documents, ObjectIds verified intact (`category_id` and `theme_id` both `ObjectId`, and
+`top_selling`/`trending_product` return items, which is the real proof the `$lookup`s still match).
+The old DB was only **read** — never modified.
+
+**Image migration:** 74 objects (8 MB) copied old-tenant → new-tenant with boto3 `get_object` +
+`put_object` (a plain `CopyObject` cannot cross credentials), then 41 DB documents rewritten from
+the old tenant id to the new one. Verified: **0** old-tenant refs remain, and a real product image
+fetches anonymously with HTTP 200 / `image/jpeg`.
+
+> ### ⚠️⚠️ The S3 URL rewrite RE-BROKE every ObjectId — §7b's trap, from a new direction
+>
+> The mongorestore was clean (ObjectIds intact, verified). **The damage came afterwards, from the
+> §7f-style tenant-id rewrite itself.** That one-liner does
+> `JSON.parse(JSON.stringify(doc).split(old).join(new))` — and **JSON has no ObjectId type**, so
+> every document it touched had *all* of its `*_id` reference fields silently downgraded to plain
+> 24-hex strings. 41 documents went through it.
+>
+> Symptom: exactly §7b's — `search_product` (plain find) showed all 15 products, but the home page's
+> `new_arrival` / `top_selling` returned **0**, because their `$lookup` from `products.category_id`
+> to `categories._id` can never match a String against an ObjectId.
+>
+> **Verifying right after `mongorestore` is not enough** — re-verify *after* any JSON-roundtrip
+> rewrite. And the repo's `src/scripts/fix-stringified-objectids.ts` **was not sufficient here**: it
+> only covers 5 known fields, while the rewrite had damaged **16** paths across 34 docs / 167 fields,
+> including `categories.parent_id` (the category tree), all of `orderproducts.*` (order history),
+> `reviews.review_product_id`, and ids nested inside arrays
+> (`products.attributes_details[].attribute_id`, `products.other_images[]._id`, …).
+>
+> **Do this instead of a JSON round-trip**, when rewriting a string that appears inside documents:
+> walk the document and only touch the specific string fields, leaving BSON types alone — or, if a
+> round-trip already happened, repair *every* id-shaped field at any depth:
+> ```js
+> // mongosh — idempotent; converts any 24-hex STRING in a key named _id / id / *_id
+> const HEX24=/^[0-9a-fA-F]{24}$/, isId=k=>k==="_id"||k==="id"||k.endsWith("_id");
+> function fix(o,cn){let ch=false;if(!o||typeof o!=="object")return false;
+>   Object.keys(o).forEach(k=>{const v=o[k];
+>     if(typeof v==="string"&&HEX24.test(v)&&isId(k)){o[k]=new ObjectId(v);ch=true;}
+>     else if(Array.isArray(v)){v.forEach(x=>{if(fix(x,cn))ch=true;});}
+>     else if(v&&typeof v==="object"&&v.constructor.name==="Object"){if(fix(v,cn))ch=true;}});
+>   return ch;}
+> db.getCollectionNames().forEach(cn=>db.getCollection(cn).find({}).forEach(d=>{
+>   const id=d._id, b=Object.assign({},d); delete b._id;
+>   if(fix(b,cn)) db.getCollection(cn).replaceOne({_id:id},Object.assign({_id:id},b));}));
+> ```
+> Then re-check the pipeline itself, which is the honest test:
+> `{$match:{product_status:"active"}}` → 17, `+ $lookup/$unwind categories` → 17 (was **0**),
+> `+ category_status:"active"` → 15 — matching the old server's 15 exactly.
+
+**Backups:** daily `0 2 * * *` → `leatherwallah-backup`, retention 3 local / 30 S3. A manual run was
+dispatched (`dispatch_sync(new App\Jobs\DatabaseBackupJob($b))` via `php artisan tinker` inside the
+`coolify` container — there is still no API for "backup now") and the resulting `.tar.gz` was
+**confirmed present in S3**. Configured-but-never-run is not a backup.
+
+### Live verification actually performed (2026-09-11, via Playwright)
+
+Not "looks fine" — each of these was driven in a real browser against the live domains:
+
+- [x] Storefront home renders **all** sections — New Arrival / Best Sellers / Trending / Shop by
+      Category — with products, prices and images (this is what caught the ObjectId regression above;
+      the first run showed three empty sections).
+- [x] PDP (`/products/slim-leather-card-holder`) — gallery, ৳650 from ৳800, 19% off, 4.7 rating.
+- [x] Admin login (`+8801700000000`) → dashboard counters match the DB exactly
+      (2 orders · 3 customers · 17 products · 56 reviews · 10 categories).
+- [x] Admin product list — images, category names (proves the `$lookup` works here too), variants.
+- [x] **Full checkout, end to end** — district/thana dropdowns populated **from Pathao's live API**
+      (so the copied courier credentials authenticate), delivery charge auto-applied (৳100 →
+      grand total ৳750), order submitted → `order-success` + invoice `0TWZUY`, and the row appeared
+      in Admin → Orders. **This is the real replica-set proof** — checkout runs a transaction.
+      The test order (and its `orderproducts` row) was then **deleted**; counts back to 2 / 2.
+- [x] All 15 product images fetch anonymously with HTTP 200 from the new tenant.
+- [x] S3 upload path: `PutObject` through the backend container → anonymous public read → delete.
+
+> Two gotchas while testing, neither a site bug: Contabo **throttles** rapid sequential image
+> fetches (space them ~1 s or you get a wall of `000`), and a `curl` loop over a file written on
+> Windows appends `\r` to every URL — `tr -d '\r'` first. Also note two pre-existing 1286-byte
+> `chelsea-main-v2 (1).webp` uploads (real images are 21–25 KB) that are equally broken on the old
+> server — **not** a migration artifact, left alone.
+
+### Rotating the object-storage secret
+
+Done on 2026-09-11. Two things to know:
+
+1. **Contabo regenerates only the SECRET key** — the access key is permanent, so only
+   `S3_SECRET_KEY` changes.
+2. **The secret lives in TWO places in Coolify**, and it is easy to update one and think you are
+   finished:
+   - the **backend app's** `S3_SECRET_KEY` env var (image uploads), and
+   - the **S3 Storage** entry `contabo-lw-backup` (database backups).
+
+   Then **redeploy the backend** — a restart keeps the old env (§7c). Before redeploying, sanity-check
+   the new secret out-of-band (`list_buckets` with it) so you do not deploy a broken credential.
+
+```bash
+# update the backup storage's secret without the UI
+docker exec coolify php artisan tinker --execute='$s=App\Models\S3Storage::first();$s->secret="<NEW>";$s->save();'
+
+# redeploy the backend (no API token needed)
+docker exec coolify php artisan tinker --execute='
+$a=App\Models\Application::where("uuid","uodnzbdlzftafqkdtzzyodfy")->first();
+queue_application_deployment(application:$a, deployment_uuid:(string) new Visus\Cuid2\Cuid2(), is_api:true);'
+```
+
+Verify all three afterwards: running container's `S3_SECRET_KEY`, an actual `PutObject` + anonymous
+read, and a `DatabaseBackupJob` that lands a fresh `.tar.gz` in the bucket.
+
+> **Do NOT turn on Contabo's "Make public" toggle for a bucket.** It shows *Inactive* for
+> `leather-wallah` even though images serve fine — because the public access here comes from the
+> **bucket policy** (`s3:GetObject` only), which that UI toggle does not reflect. The toggle
+> additionally allows **listing** the bucket. Correct end state, verified: image read → 200,
+> bucket listing → 403, `leatherwallah-backup` → 403.
+
+### Decommissioning LW on the old shared box (done 2026-09-11)
+
+Owner chose not to wait out the rollback window: the old data was demo/test only (2 test orders,
+"test product" ×2, seeded reviews, no activity after 2026-07-10) and the code is in GitHub.
+
+```bash
+# 0) final safety dump FIRST (kept on the old box, locally, and on the new server)
+docker run --rm --network coolify --user 0:0 -v /root/lw_final:/dump mongo:7 \
+  mongodump --uri="mongodb://root:<PW>@b10b3ibsklonpuq8mursgq8p:27017/?authSource=admin&directConnection=true" \
+  --db=leatherwallah --out=/dump
+
+# 1) confirm from the DB which containers are actually LW's — never guess from names
+docker exec coolify-db psql -U coolify -c "SELECT p.name AS project, a.name AS app, a.uuid
+  FROM applications a JOIN environments e ON a.environment_id=e.id
+  JOIN projects p ON e.project_id=p.id ORDER BY p.name;"
+
+# 2) delete resources, THEN the project (see gotcha below)
+docker exec coolify php artisan tinker --execute='
+$p = App\Models\Project::where("name","Leather Wallah")->first();
+foreach ($p->environments as $e) {
+  foreach ($e->applications as $a) dispatch_sync(new App\Jobs\DeleteResourceJob($a, deleteVolumes:true, deleteConnectedNetworks:true, deleteConfigurations:true, dockerCleanup:false));
+  foreach ($e->mongodbs as $d)     dispatch_sync(new App\Jobs\DeleteResourceJob($d, deleteVolumes:true, deleteConnectedNetworks:true, deleteConfigurations:true, dockerCleanup:false));
+}
+$p->delete();'
+```
+
+> ⚠️ **Coolify refuses to delete a project that still has resources** — the UI shows *"Project … has
+> resources defined, please delete them first"*. Delete the apps and the database first.
+> Also note v4.1.2 has **no** `App\Actions\Application\DeleteApplication`; the working path is
+> `App\Jobs\DeleteResourceJob`. (`dockerCleanup:false` on purpose — a global docker prune on a box
+> running two other live shops is not worth the risk.)
+
+**Post-delete verification (the part that matters on a shared box):** remaining projects are exactly
+`Artisan Leather` + `FruitSnacks`; FruitSnacks' three domains return 200; Artisan's containers still
+route (302 — its own domain is parked, so test with `curl -H 'Host: …' http://localhost`); n8n still
+up; no leftover LW docker volumes or `/data/coolify/{applications,databases}/<uuid>` dirs;
+`scheduled_database_backups` went 3 → 2.
+
+### Post-migration follow-ups (owner)
+
+- [x] ~~Rotate the object-storage secret~~ — done 2026-09-11 (see above).
+- [x] ~~Revoke the Coolify API token~~ — done; `personal_access_tokens` is empty and the old token
+      returns 401. Post-migration admin work is driven through `php artisan tinker` inside the
+      `coolify` container instead, so no long-lived root token sits on a live box.
+- [ ] Decide when to delete LW's old containers on `217.216.34.155` (suggest ~1 week after cutover).
+- [ ] Courier/SMS/pixel secrets are still the **previous owner's** (copied over deliberately). Pathao
+      parcels and COD money therefore still settle into their merchant account — the client needs
+      their own Pathao merchant account before real trading. `PATHAO_STORE_ID` cannot be worked around
+      in code; see the geo-module note below.
+- [ ] The old shared `artisan-leather` backup bucket still holds LW's historical backups.
+
+> **Note on the ecommerce-core geo module:** core's `src/app/geo` removes the dependency on Pathao's
+> *zone/city* API (checkout dropdowns are served from our own `geo_locations` collection, no HTTP
+> call). It does **not** remove the need for Pathao credentials to *post a parcel* —
+> `pathao.service.ts` still does an OAuth `grant_type=password` and needs `store_id`. Porting geo to
+> LW would not have removed the credential requirement, and LW/FS are frozen anyway.
+
+---
+
 ## Appendix — recorded UUIDs from the 2026-07-05 deploy
 
 | Thing | UUID |
@@ -433,3 +649,48 @@ bucket is already LeatherWallah's own as of §7f; only the S3 **credentials** st
 
 Secrets (mongo root password, API token, Atlas URI) are intentionally **not** in this file — pull them
 from `LeatherWallahBackend/.env`, Coolify env vars, and the DB container's `internal_db_url` at run time.
+
+### Appendix B — UUIDs on the DEDICATED server (2026-09-11, current production)
+
+| Thing | UUID |
+|-------|------|
+| Server (localhost) | `aqf1xh5h5byjzkhewlqo2iyj` |
+| GitHub App (leather-wallah, app_id 4901444) | `hfpyf3sybmzymhoz5ewt0wv7` |
+| Project (Leather Wallah) | `gr97zvmahitmtiknplmmydz2` |
+| Env (production) | `btwg4u8blel2goozno7fjdu0` |
+| App: backend | `uodnzbdlzftafqkdtzzyodfy` |
+| App: frontend | `1yajgznwbgmb39fy7tkod20w` |
+| App: admin | `tbxqvrzejxxi5xjq7pisfklb` |
+| DB: mongo container | `jyrwhoegfn5yphcwyuqottgw` |
+| S3 storage (contabo-lw-backup → `leatherwallah-backup`) | `tvcumbubezwm1yowppdgioz5` |
+| Backup schedule | `swhvjck7pjfccpknik35nkl9` |
+| Object-storage tenant id | `f80089f26e9f4584adb8d989fa6ca49f` |
+| Coolify panel | **`https://coolify.leatherwallah.com`** (also still on `:8000`) |
+| DB replica set | `rs0` (single member) |
+
+### Putting the Coolify panel on its own HTTPS domain
+
+The old panel domain (`coolify.artisenleather.com`) died when `artisenleather.com` moved to a parking
+service, so the panel ran on a bare IP over plain HTTP. Fixed by adding a `coolify` A record →
+`217.216.109.239` and then, **in this order**:
+
+```bash
+# 1) instance FQDN (the UI's Settings page does this; by hand it is two places)
+docker exec coolify-db psql -U coolify -c \
+  "UPDATE instance_settings SET fqdn='https://coolify.leatherwallah.com', instance_name='LeatherWallah' WHERE id=0;"
+
+# 2) APP_URL in Coolify's own .env, then recreate the container so it is picked up
+cp /data/coolify/source/.env /data/coolify/source/.env.bak-$(date +%s)
+echo 'APP_URL=https://coolify.leatherwallah.com' >> /data/coolify/source/.env
+cd /data/coolify/source && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate coolify
+
+# 3) THE STEP THAT ACTUALLY CREATES THE ROUTE
+docker exec coolify php artisan tinker --execute='App\Models\Server::find(0)->setupDynamicProxyConfiguration();'
+```
+
+> ⚠️ **The panel's route is NOT a docker label.** `docker inspect coolify` shows *zero* traefik labels
+> no matter what you set — Coolify routes its own panel through a generated
+> `/data/coolify/proxy/dynamic/coolify.yaml`. Setting `fqdn` in the DB does not write that file
+> (the UI's save handler does), so without step 3 you get a valid FQDN, a recreated container, and
+> still no cert. `StartProxy` / `SaveProxyConfiguration` do not write it either;
+> `setupDynamicProxyConfiguration()` is the one. The cert appeared ~1 min after the file was written.
