@@ -5,7 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { FaCheckCircle, FaFileInvoice, FaEnvelope } from "react-icons/fa";
-import { FiPackage, FiTruck, FiShield, FiLogIn, FiX, FiShoppingBag } from "react-icons/fi";
+import {
+  FiPackage,
+  FiTruck,
+  FiShield,
+  FiLogIn,
+  FiX,
+  FiShoppingBag,
+  FiCheck,
+  FiHome,
+} from "react-icons/fi";
 import Contain from "../common/Contain";
 import { BASE_URL } from "@/components/utils/baseURL";
 import { useUserInfoQuery } from "@/redux/feature/auth/authApi";
@@ -80,9 +89,7 @@ const OrderSuccessContent = () => {
       const url = isLoggedIn
         ? `${BASE_URL}/user/me/email`
         : `${BASE_URL}/order/${orderId}/email`;
-      const body = isLoggedIn
-        ? { user_email: val }
-        : { customer_email: val };
+      const body = isLoggedIn ? { user_email: val } : { customer_email: val };
       const res = await fetch(url, {
         method: "PATCH",
         credentials: "include",
@@ -121,215 +128,351 @@ const OrderSuccessContent = () => {
     sessionStorage.removeItem("banner_dismissed");
   };
 
+  // Right rail shows an account card (set-password / login / confirmed) —
+  // the email prompt sits under it so the two never stack into a tall column.
+  const showAccountCard = showSetPassword || showLoginPrompt || successState;
+
   return (
     <Contain>
-      <div className="flex flex-col items-center justify-center min-h-[80vh] py-12">
-        {/* Success Icon */}
-        <div className="relative mb-6">
-          <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center">
-            <FaCheckCircle className="text-green-500 text-5xl" />
-          </div>
-          <div className="absolute inset-0 rounded-full border-2 border-green-200 opacity-20" style={{ animation: "ping 1s cubic-bezier(0,0,0.2,1) 3" }} />
-        </div>
+      <div className="mx-auto w-full max-w-5xl py-6 sm:py-10">
+        {/* ── Receipt shell ─────────────────────────────────────────────
+            One card, two rails. The left rail is the confirmation + order
+            recap; the right rail carries every action. On mobile they stack
+            in that same reading order.                                   */}
+        <div className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.12)]">
+          <div className="grid md:grid-cols-[1.15fr_1fr]">
+            {/* ── Left rail — confirmation + recap ───────────────────── */}
+            <div className="relative p-6 sm:p-8">
+              {/* soft brand wash behind the checkmark, not a flat block */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-primary/[0.07] blur-2xl"
+              />
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 text-center">
-          Order Placed Successfully!
-        </h1>
-        <p className="text-gray-500 mb-5 text-center max-w-md text-sm">
-          Thank you for your purchase. We'll process your order shortly.
-        </p>
+              <div className="relative">
+                <div className="flex items-center gap-3.5">
+                  <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 ring-1 ring-inset ring-primary/20">
+                    <FiCheck
+                      size={22}
+                      strokeWidth={3}
+                      className="text-primary"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-full ring-2 ring-primary/25 motion-safe:animate-[ping_1.4s_cubic-bezier(0,0,0.2,1)_2] motion-reduce:hidden"
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <h1 className="text-[22px] font-bold leading-tight tracking-tight text-gray-900 sm:text-2xl">
+                      Order Placed Successfully!
+                    </h1>
+                    <p className="mt-0.5 text-[13px] text-gray-500">
+                      Thank you — we&apos;ll process your order shortly.
+                    </p>
+                  </div>
+                </div>
 
-        {invoiceId && (
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 mb-4">
-            <FiPackage size={15} className="text-gray-400" />
-            <span className="text-sm text-gray-500">Invoice ID:</span>
-            <span className="text-sm font-bold text-gray-800 font-mono">
-              {invoiceId}
-            </span>
-          </div>
-        )}
+                {/* Invoice — the one thing people screenshot, so it leads. */}
+                {invoiceId && (
+                  <div className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50/70 px-4 py-3">
+                    <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                      <FiPackage size={14} className="text-gray-400" />
+                      Invoice ID
+                    </span>
+                    <span className="font-mono text-[15px] font-bold tabular-nums text-gray-900">
+                      {invoiceId}
+                    </span>
+                  </div>
+                )}
 
-        {/* Order recap — total + item count + COD badge */}
-        {orderData && (
-          <div className="flex items-center gap-3 flex-wrap justify-center mb-7">
-            {orderProducts.length > 0 && (
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                <FiShoppingBag size={13} className="text-gray-400" />
-                <span className="text-sm text-gray-600 font-medium">
-                  {orderProducts.length} {orderProducts.length === 1 ? "item" : "items"}
-                </span>
+                {/* Order recap — a definition row reads faster than pills. */}
+                {orderData && (
+                  <dl className="mt-5 divide-y divide-gray-100 border-t border-gray-100">
+                    {orderProducts.length > 0 && (
+                      <div className="flex items-center justify-between gap-4 py-2.5">
+                        <dt className="flex items-center gap-2 text-[13px] text-gray-500">
+                          <FiShoppingBag size={14} className="text-gray-400" />
+                          Items
+                        </dt>
+                        <dd className="text-[13px] font-semibold text-gray-900">
+                          {orderProducts.length}{" "}
+                          {orderProducts.length === 1 ? "item" : "items"}
+                        </dd>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-4 py-2.5">
+                      <dt className="flex items-center gap-2 text-[13px] text-gray-500">
+                        <FiTruck size={14} className="text-gray-400" />
+                        Payment
+                      </dt>
+                      <dd>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          Cash on Delivery
+                        </span>
+                      </dd>
+                    </div>
+
+                    {orderData.shipping_location && (
+                      <div className="flex items-center justify-between gap-4 py-2.5">
+                        <dt className="text-[13px] text-gray-500">Delivery</dt>
+                        <dd className="text-right text-[13px] font-medium text-gray-700">
+                          {orderData.shipping_location}
+                        </dd>
+                      </div>
+                    )}
+
+                    {orderData.grand_total_amount != null && (
+                      <div className="flex items-baseline justify-between gap-4 py-3">
+                        <dt className="text-[13px] font-semibold text-gray-900">
+                          Total
+                        </dt>
+                        <dd className="text-xl font-extrabold tabular-nums tracking-tight text-primary">
+                          ৳{orderData.grand_total_amount}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+
+                {/* Reassurance line — fills the rail's tail instead of leaving
+                    dead space when the action rail runs longer. */}
+                {orderData && (
+                  <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-gray-500">
+                    <FiShield
+                      size={13}
+                      className="mt-0.5 shrink-0 text-gray-400"
+                    />
+                    <span>
+                      Keep your Invoice ID handy — you can track this order any
+                      time, no account needed.
+                    </span>
+                  </p>
+                )}
               </div>
-            )}
-            {orderData.grand_total_amount != null && (
-              <div className="flex items-center gap-1.5 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2">
-                <span className="text-sm font-bold text-primary">
-                  ৳{orderData.grand_total_amount}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-              <span className="text-xs font-semibold text-emerald-700">
-                Cash on Delivery
-              </span>
             </div>
-            {orderData.shipping_location && (
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                <FiTruck size={12} className="text-gray-400" />
-                <span className="text-xs text-gray-500">{orderData.shipping_location}</span>
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* ── Unverified guest: Set Password ─────────────────────────── */}
-        {showSetPassword && (
-          <div className="bg-gradient-to-br from-primary/5 via-white to-primary/5 border border-primary/15 rounded-2xl p-6 mb-7 max-w-sm w-full">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                <FiShield size={18} className="text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-gray-800 font-semibold text-sm mb-1">
-                  Your account has been created!
-                </p>
-                <p className="text-gray-500 text-xs mb-4 leading-relaxed">
-                  Set a password to track your orders and view invoices later.
-                </p>
-                <button
-                  onClick={() => {
-                    setModalMode("full");
-                    setModalOpen(true);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm shadow-primary/20"
+            {/* ── Right rail — actions ───────────────────────────────────
+                Perforated divider: vertical on desktop, horizontal on
+                mobile — the one detail that makes this read as a receipt. */}
+            <div className="relative border-t border-dashed border-gray-200 bg-gray-50/60 p-6 sm:p-8 md:border-l md:border-t-0">
+              {/* notches that punch the seam */}
+              <span
+                aria-hidden="true"
+                className="absolute -left-2.5 -top-2.5 h-5 w-5 rounded-full bg-white md:-top-2.5 md:left-[-11px]"
+              />
+              <span
+                aria-hidden="true"
+                className="absolute -right-2.5 -top-2.5 hidden h-5 w-5 rounded-full bg-white md:block md:bottom-[-11px] md:left-[-11px] md:right-auto md:top-auto"
+              />
+
+              {/* Account card — set password / login / confirmed */}
+              {showSetPassword && (
+                <div className="rounded-2xl border border-primary/15 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <FiShield size={16} className="text-primary" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-gray-900">
+                        Your account has been created!
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                        Set a password to track your orders and view invoices
+                        later.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setModalMode("full");
+                          setModalOpen(true);
+                        }}
+                        className="mt-3 inline-flex min-h-[38px] items-center gap-2 rounded-lg bg-primary px-4 text-xs font-semibold text-white shadow-sm shadow-primary/20 transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                      >
+                        <FiShield size={13} /> Set Password Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showLoginPrompt && (
+                <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                      <FiLogIn size={16} className="text-blue-600" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-gray-900">
+                        You already have an account!
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                        Log in to track your orders and view invoices.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setModalMode("login");
+                          setModalOpen(true);
+                        }}
+                        className="mt-3 inline-flex min-h-[38px] items-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+                      >
+                        <FiLogIn size={13} /> Login Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {successState && (
+                <div
+                  role="status"
+                  className="flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 p-4"
                 >
-                  <FiShield size={13} /> Set Password Now
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                  <FaCheckCircle className="shrink-0 text-xl text-green-500" />
+                  <p className="text-[13px] font-semibold text-green-800">
+                    Logged in successfully! Now you can track your order.
+                  </p>
+                </div>
+              )}
 
-        {/* ── Verified but not logged in: Login ──────────────────────── */}
-        {showLoginPrompt && (
-          <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 border border-blue-100 rounded-2xl p-6 mb-7 max-w-sm w-full">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                <FiLogIn size={18} className="text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-gray-800 font-semibold text-sm mb-1">
-                  You already have an account!
-                </p>
-                <p className="text-gray-500 text-xs mb-4 leading-relaxed">
-                  Log in to track your orders and view invoices.
-                </p>
-                <button
-                  onClick={() => {
-                    setModalMode("login");
-                    setModalOpen(true);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm"
+              {/* Phase 1C — opt-in email prompt. Skip-able + dismissible. */}
+              {showEmailPrompt && (
+                <div
+                  className={`relative rounded-2xl border border-amber-200 bg-amber-50/70 p-4 ${
+                    showAccountCard ? "mt-3" : ""
+                  }`}
                 >
-                  <FiLogIn size={13} /> Login Now
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── After modal success ──────────────────────────────────────── */}
-        {successState && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 max-w-sm w-full">
-            <div className="flex items-center gap-3">
-              <FaCheckCircle className="text-green-500 text-xl shrink-0" />
-              <p className="text-green-800 font-semibold text-sm">
-                Logged in successfully! Now you can track your order.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Phase 1C — opt-in email prompt. Skip-able + dismissible. */}
-        {showEmailPrompt && (
-          <div className="bg-gradient-to-br from-amber-50 via-white to-amber-50 border border-amber-200 rounded-2xl p-5 mb-7 max-w-md w-full relative">
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={() => setEmailPromptDismissed(true)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-            >
-              <FiX size={16} />
-            </button>
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                <FaEnvelope size={14} className="text-amber-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-gray-800 font-semibold text-sm mb-1">
-                  Want a receipt + tracking link?
-                </p>
-                <p className="text-gray-500 text-xs mb-3 leading-relaxed">
-                  Add your email — we'll send the invoice + courier updates.
-                  Optional, you can skip.
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="email"
-                    value={emailValue}
-                    onChange={(e) => setEmailValue(e.target.value)}
-                    placeholder="you@example.com"
-                    maxLength={120}
-                    className="border px-3 py-2 text-sm rounded outline-amber-500 flex-1 min-w-[180px]"
-                  />
                   <button
                     type="button"
-                    onClick={saveEmailForOrder}
-                    disabled={emailSaving}
-                    className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded inline-flex items-center gap-1 disabled:opacity-50"
+                    aria-label="Dismiss email prompt"
+                    onClick={() => setEmailPromptDismissed(true)}
+                    className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-amber-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                   >
-                    {emailSaving ? "Saving…" : "Save"}
+                    <FiX size={15} />
                   </button>
+
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                      <FaEnvelope size={13} className="text-amber-600" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <label
+                        htmlFor="order-success-email"
+                        className="block pr-6 text-[13px] font-semibold text-gray-900"
+                      >
+                        Want a receipt + tracking link?
+                      </label>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                        Add your email — we&apos;ll send the invoice + courier
+                        updates. Optional.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <input
+                          id="order-success-email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          value={emailValue}
+                          onChange={(e) => setEmailValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !emailSaving)
+                              saveEmailForOrder();
+                          }}
+                          placeholder="you@example.com"
+                          maxLength={120}
+                          className="min-h-[38px] min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300/50"
+                        />
+                        <button
+                          type="button"
+                          onClick={saveEmailForOrder}
+                          disabled={emailSaving}
+                          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg bg-amber-500 px-4 text-[13px] font-semibold text-white transition-colors hover:bg-amber-600 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+                        >
+                          {emailSaving ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {emailSaved && (
+                <div
+                  role="status"
+                  className={`flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 ${
+                    showAccountCard ? "mt-3" : ""
+                  }`}
+                >
+                  <FaCheckCircle className="shrink-0 text-xl text-green-500" />
+                  <p className="text-[13px] font-semibold text-green-800">
+                    Email saved. We&apos;ll send your invoice + tracking
+                    shortly.
+                  </p>
+                </div>
+              )}
+
+              {/* ── Actions — one primary, the rest subordinate ─────────── */}
+              <div
+                className={
+                  showAccountCard || showEmailPrompt || emailSaved
+                    ? "mt-5 border-t border-gray-200 pt-5"
+                    : ""
+                }
+              >
+                <Link href={`/orders/${orderId}`} className="block">
+                  <Button className="h-11 w-full gap-2 rounded-xl text-sm font-semibold shadow-sm">
+                    <FaFileInvoice size={14} /> View Invoice
+                  </Button>
+                </Link>
+
+                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+                  <Link
+                    href={`/orders/order-tracking/${invoiceId}`}
+                    className="block"
+                  >
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full gap-2 rounded-xl bg-white text-sm font-medium"
+                    >
+                      <FiTruck size={14} /> Track Order
+                    </Button>
+                  </Link>
+
+                  {isLoggedIn || successState ? (
+                    <Link
+                      href="/user-profile?tab=purchase-history"
+                      className="block"
+                    >
+                      <Button
+                        variant="outline"
+                        className="h-11 w-full gap-2 rounded-xl bg-white text-sm font-medium"
+                      >
+                        <FiShoppingBag size={14} /> My Orders
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/")}
+                      className="h-11 w-full gap-2 rounded-xl bg-white text-sm font-medium"
+                    >
+                      <FiHome size={14} /> Go to Home
+                    </Button>
+                  )}
+                </div>
+
+                {(isLoggedIn || successState) && (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/")}
+                    className="mt-3 w-full text-center text-[13px] font-medium text-gray-500 underline-offset-4 transition-colors hover:text-primary hover:underline"
+                  >
+                    Continue shopping
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        )}
-
-        {emailSaved && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 max-w-md w-full">
-            <div className="flex items-center gap-3">
-              <FaCheckCircle className="text-green-500 text-xl shrink-0" />
-              <p className="text-green-800 font-semibold text-sm">
-                Email saved. We'll send your invoice + tracking shortly.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href={`/orders/${orderId}`}>
-            <Button className="flex items-center gap-2">
-              <FaFileInvoice size={14} /> View Invoice
-            </Button>
-          </Link>
-
-          {(isLoggedIn || successState) && (
-            <Link href="/user-profile?tab=purchase-history">
-              <Button variant="outline">View All Orders</Button>
-            </Link>
-          )}
-          <Link href={`/orders/order-tracking/${invoiceId}`}>
-            <Button variant="outline" className="flex items-center gap-2">
-              <FiTruck size={14} /> Track Order
-            </Button>
-          </Link>
-          <Button
-            className="bg-secondary hover:bg-red-500 text-white"
-            onClick={() => router.push("/")}
-          >
-            Go to Home
-          </Button>
         </div>
       </div>
 
