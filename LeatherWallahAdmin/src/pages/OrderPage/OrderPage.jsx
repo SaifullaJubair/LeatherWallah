@@ -15,6 +15,10 @@ import PendingRow from "../../components/Order/PendingRow";
 import SteadfastRow from "../../components/Order/SteadfastRow";
 import PathaoRow from "../../components/Order/PathaoRow";
 import DefaultRow from "../../components/Order/DefaultRow";
+import {
+  isCourierLocked,
+  tabHintForStatus,
+} from "../../components/Order/orderStatus.constants";
 
 const TABS = [
   { label: "Pending", value: "pending" },
@@ -76,6 +80,7 @@ const PENDING_HEAD = [
   "Grand Total",
   "Address",
   "Date",
+  "Status",
   "Send Courier",
   "Cancel",
   "Fraud",
@@ -109,6 +114,9 @@ const PATHAO_HEAD = [
   "Cancel",
   "Details",
 ];
+// Column count MUST match the <td> count in DefaultRow — the row renders every
+// cell unconditionally (empty actions show a "—") precisely so head and body
+// can never drift apart.
 const DEFAULT_HEAD = [
   "SL",
   "Invoice",
@@ -118,6 +126,10 @@ const DEFAULT_HEAD = [
   "Courier",
   "Grand Total",
   "Date",
+  "Send Courier",
+  "Cancel",
+  "Print",
+  "Fraud",
   "Details",
 ];
 
@@ -461,6 +473,85 @@ const OrderPage = () => {
     }
   };
 
+  // ── Status change (Order List) ────────────────────────────
+  // Mirrors ViewAllOrderInfo.handleStatusChange so advancing an order from the
+  // list behaves exactly like advancing it from the detail page. Previously the
+  // list could ONLY cancel, so every confirm/process/ship step forced a trip
+  // into the detail page and back.
+  //
+  // The backend stamps every *_time field, restocks on cancel/return and fires
+  // the confirm SMS, so this only has to send { _id, order_status } (+ reason).
+  const handleStatusChange = async (order, nextStatus) => {
+    if (!nextStatus || nextStatus === order?.order_status) return;
+
+    // Courier already holds the parcel → cancelling/returning here would
+    // restock goods that never came back. Use the courier flow instead.
+    if (
+      (nextStatus === "cancel" || nextStatus === "return") &&
+      isCourierLocked(order)
+    ) {
+      Swal.fire(
+        "Cannot change status here",
+        `This order is already with the courier (${order?.courier_type}). Use the ${order?.courier_type} tab to cancel or handle the return.`,
+        "warning",
+      );
+      return;
+    }
+
+    const sendData = { _id: order._id, order_status: nextStatus };
+
+    // Same reason prompt as the detail page — without it, a cancel made from
+    // the list would lose the "why", and the two paths would disagree.
+    if (nextStatus === "cancel" || nextStatus === "return") {
+      const isCancel = nextStatus === "cancel";
+      const { value: reason, isDismissed } = await Swal.fire({
+        title: isCancel ? "Cancel order?" : "Mark as returned?",
+        html: `<p>Invoice: <strong>${order?.invoice_id}</strong></p>`,
+        input: "textarea",
+        inputLabel: isCancel
+          ? "Reason for cancellation (optional)"
+          : "Reason for return (optional)",
+        inputPlaceholder: isCancel
+          ? "e.g. customer requested / out of stock / fraud"
+          : "e.g. wrong item / damaged / customer changed mind",
+        showCancelButton: true,
+        confirmButtonText: isCancel ? "Confirm Cancel" : "Confirm Return",
+        confirmButtonColor: "#d33",
+      });
+      if (isDismissed) return;
+      if (reason) sendData[isCancel ? "cancel_reason" : "return_reason"] = reason;
+    }
+
+    try {
+      setLoadingOrderId(order._id);
+      const res = await fetch(`${BASE_URL}/order`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sendData),
+      });
+      const data = await res.json();
+      if (data?.success || data?.statusCode === 200) {
+        // The row leaves the current tab the moment its status changes, which
+        // reads as "my order vanished" — so say where it went.
+        const hint = tabHintForStatus(nextStatus);
+        toast.success(
+          `${order?.invoice_id} → ${nextStatus}` +
+            (hint && activeTab !== hint.toLowerCase()
+              ? ` (now in "${hint}" tab)`
+              : ""),
+        );
+        refetch();
+      } else {
+        throw new Error(data?.message || "Status update failed");
+      }
+    } catch (e) {
+      toast.error(e.message || "Status update failed");
+    } finally {
+      setLoadingOrderId(null);
+    }
+  };
+
   // ── Cancel ────────────────────────────────────────────────
   const handleCancelOrder = async (order) => {
     const isSteadfastSent =
@@ -682,6 +773,7 @@ const OrderPage = () => {
           onSendPathao={handleSendToPathao}
           onSendSteadfast={handleSendToSteadfast}
           onCancel={handleCancelOrder}
+          onStatusChange={handleStatusChange}
         />
       );
     if (activeTab === "steadfast")
@@ -707,10 +799,12 @@ const OrderPage = () => {
     return (
       <DefaultRow
         key={order._id}
-        order={order}
-        index={index}
-        page={page}
-        limit={limit}
+        {...common}
+        onStatusChange={handleStatusChange}
+        onCancel={handleCancelOrder}
+        onPrint={handlePrintClick}
+        onSendPathao={handleSendToPathao}
+        onSendSteadfast={handleSendToSteadfast}
       />
     );
   };

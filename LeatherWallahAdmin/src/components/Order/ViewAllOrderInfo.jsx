@@ -17,6 +17,11 @@ import {
 import { AuthContext } from "../../context/AuthProvider";
 import PaymentInfoCard from "./PaymentInfoCard";
 import PrintLabel from "../common/printLabel/PrintLabel";
+import {
+  NEXT_STATUS_OPTIONS,
+  ORDER_STATUS_COLOR,
+  isCourierLocked,
+} from "./orderStatus.constants";
 
 const STEADFAST_STATUS_COLOR = {
   delivered: "bg-green-100 text-green-700 border-green-200",
@@ -45,17 +50,8 @@ const PATHAO_STATUS_COLOR = {
   "Pickup Requested": "bg-blue-100 text-blue-700 border-blue-200",
 };
 
-const ORDER_STATUS_COLOR = {
-  pending: "bg-orange-100 text-orange-700",
-  on_hold: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-teal-100 text-teal-700",
-  processing: "bg-blue-100 text-blue-700",
-  shipped: "bg-purple-100 text-purple-700",
-  delivered: "bg-green-100 text-green-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancel: "bg-red-100 text-red-700",
-  return: "bg-rose-100 text-rose-700",
-};
+// ORDER_STATUS_COLOR / NEXT_STATUS_OPTIONS now live in ./orderStatus.constants
+// so the Order List tables share exactly one copy with this page.
 
 // ── Delivery Info Edit Modal ──────────────────────────────────────────────────
 const DeliveryInfoModal = ({ order, onClose, onSuccess }) => {
@@ -307,20 +303,8 @@ const AdminNotesCard = ({ order, refetch }) => {
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-// Forward / terminal status options from the current status. MUST stay in sync
-// with ALLOWED_STATUS_TRANSITIONS in backend order.service.ts (the server is
-// the real guard; this just drives the dropdown UI).
-const NEXT_STATUS_OPTIONS = {
-  pending: ["on_hold", "confirmed", "cancel"],
-  on_hold: ["confirmed", "cancel"],
-  confirmed: ["processing", "cancel"],
-  processing: ["shipped", "cancel"],
-  shipped: ["delivered", "return"],
-  delivered: ["completed", "return"],
-  completed: [],
-  cancel: [],
-  return: [],
-};
+// NEXT_STATUS_OPTIONS moved to ./orderStatus.constants — shared with the
+// Order List tables so the two can never drift out of sync.
 
 const ViewAllOrderInfo = () => {
   const { id } = useParams();
@@ -395,10 +379,7 @@ const ViewAllOrderInfo = () => {
     // Don't let an order already handed to a courier be cancelled OR returned
     // here — the courier still has the parcel, and restocking now would drift
     // inventory. Use the courier cancel/sync flow instead.
-    const courierLocked =
-      (order?.courier_type === "steadfast" && order?.steadfast_consignment_id) ||
-      (order?.courier_type === "pathao" && order?.consignment_id);
-    if ((nextStatus === "cancel" || nextStatus === "return") && courierLocked) {
+    if ((nextStatus === "cancel" || nextStatus === "return") && isCourierLocked(order)) {
       Swal.fire(
         "Cannot change status here",
         `This order is already with the courier (${order?.courier_type}). Use the courier flow to cancel or handle the return.`,
@@ -481,11 +462,20 @@ const ViewAllOrderInfo = () => {
               <option value="" disabled>
                 {statusUpdating ? "Updating…" : "Change status →"}
               </option>
-              {nextOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
+              {nextOptions
+                // Hide cancel/return once a courier holds the parcel — the
+                // handler refuses them anyway, so offering them only invites a
+                // dead click.
+                .filter(
+                  (s) =>
+                    !isCourierLocked(order) ||
+                    (s !== "cancel" && s !== "return"),
+                )
+                .map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
             </select>
           )}
           {order?.order_type && order?.order_type !== "regular" && (

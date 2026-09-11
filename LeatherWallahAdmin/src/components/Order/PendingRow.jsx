@@ -2,6 +2,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FaPrint } from "react-icons/fa";
 import MiniSpinner from "../../shared/MiniSpinner/MiniSpinner";
+import {
+  NEXT_STATUS_OPTIONS,
+  isCourierLocked,
+  normalizePhoneForFraud,
+} from "./orderStatus.constants";
 
 const PendingRow = ({
   order,
@@ -14,6 +19,7 @@ const PendingRow = ({
   onSendPathao,
   onSendSteadfast,
   onCancel,
+  onStatusChange,
   loadingOrderId,
   canUpdate,
 }) => {
@@ -21,10 +27,14 @@ const PendingRow = ({
   const rowClass = index % 2 === 0 ? "bg-white" : "bg-tableRowBGColor";
   const navigate = useNavigate();
 
-  const handleFraudCheck = () => {
-    const phone = order.customer_phone.replace(/^\+?88/, "");
-    navigate(`/fraud-check?phone=${phone}`);
-  };
+  // Every row here is `pending`, but confirming/holding one used to mean
+  // opening the detail page — the tab only offered Cancel. Same dropdown as
+  // the All tab, minus the badge (the status is implied by the tab).
+  const nextOptions = NEXT_STATUS_OPTIONS[order?.order_status] ?? [];
+  const courierLocked = isCourierLocked(order);
+
+  const handleFraudCheck = () =>
+    navigate(`/fraud-check?phone=${normalizePhoneForFraud(order.customer_phone)}`);
 
   return (
     <tr className={`divide-x divide-gray-200 ${rowClass}`}>
@@ -66,6 +76,35 @@ const PendingRow = ({
       <td className="whitespace-nowrap p-4 text-xs text-gray-500">
         {new Date(order.createdAt).toLocaleDateString("en-BD")}
       </td>
+
+      {/* Advance status without leaving the list */}
+      <td className="whitespace-nowrap p-4">
+        {canUpdate && nextOptions.length > 0 ? (
+          <select
+            value=""
+            disabled={isLoading}
+            onChange={(e) => onStatusChange?.(order, e.target.value)}
+            className="px-2 py-1 text-xs border border-gray-300 rounded-lg bg-white cursor-pointer disabled:opacity-50"
+            title="Advance order status"
+          >
+            <option value="" disabled>
+              {isLoading ? "Updating…" : "Change →"}
+            </option>
+            {nextOptions
+              .filter(
+                (s) => !courierLocked || (s !== "cancel" && s !== "return"),
+              )
+              .map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+          </select>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )}
+      </td>
+
       <td className="whitespace-nowrap p-4">
         {isLoading ? (
           <MiniSpinner />
