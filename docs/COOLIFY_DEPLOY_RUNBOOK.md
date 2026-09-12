@@ -694,3 +694,111 @@ docker exec coolify php artisan tinker --execute='App\Models\Server::find(0)->se
 > (the UI's save handler does), so without step 3 you get a valid FQDN, a recreated container, and
 > still no cert. `StartProxy` / `SaveProxyConfiguration` do not write it either;
 > `setupDynamicProxyConfiguration()` is the one. The cert appeared ~1 min after the file was written.
+
+---
+
+## 12. ⚠️ Server compromised, rebuilt — and the backups did NOT come back (2026-09-12/13)
+
+On **2026-09-12** the dedicated VPS was **compromised** (crypto-mining malware; the box went down).
+The owner restored from backup and reinstalled: Coolify + all three LW apps were redeployed fresh.
+Root cause of the breach was never established.
+
+**The apps came back. The safety net did not.** A check the next day found:
+
+| | State after rebuild |
+|---|---|
+| Coolify `scheduled_database_backups` | **empty** |
+| Mongo registered in Coolify | **no** — now a plain `lw-mongo` container, not a managed DB |
+| `s3_storages` (the §7e S3 config) | **empty** |
+| root crontab / systemd timers | **none** |
+| `/data/coolify/backups/` | **empty** |
+
+So the live shop ran **with zero backups** from the rebuild until this was fixed. Nothing was lost —
+but nothing would have been recoverable either.
+
+> ⭐ **The lesson**: a restore-and-redeploy brings back what is *in* Coolify (apps, domains, env).
+> It does not bring back what Coolify was *doing* (schedules), and anything moved out of Coolify's
+> management — here, the database — silently loses its schedule entirely. **After any rebuild,
+> re-verify backups explicitly.** "The site is up" says nothing about them.
+
+### 12a. Why §7e no longer applies
+
+§7e configures a backup through Coolify's API against a **Coolify-managed** database. After the
+rebuild Mongo is a standalone `lw-mongo` container, so Coolify has no backup to schedule. Two
+options: re-adopt Mongo into Coolify (invasive, risks the live data) or run the backup outside it.
+Chose the latter — smaller blast radius on a shop that had just been down.
+
+### 12b. What was installed instead (2026-09-13)
+
+`/root/backup/lw-mongo-backup.sh`, cron `0 2 * * *` (same schedule §7e used), plus
+`/root/backup/s3put.py` (upload + prune, uses `python3-boto3` — `awscli` has no install candidate
+on this Ubuntu). Log: `/var/log/lw-backup.log`.
+
+Retention: **3 local** (`/var/backups/lw`) / **30 in S3** — same as §7e. S3 target unchanged:
+bucket `leatherwallah-backup`, prefix `mongo/`.
+
+Three properties worth keeping if this is ever rewritten:
+
+1. **`mongodump --archive --gzip`** — one file, BSON preserved. Never round-trip through JSON;
+   that is what destroyed every ObjectId in §11 (see `json-roundtrip-destroys-objectids`).
+2. **The dump is verified before it is trusted** — `mongorestore --dryRun` against the archive, and
+   the script aborts on a dump under 1 KB. A backup that cannot be read is not a backup.
+3. **No secrets on disk.** `MONGO_URI` and the S3 keys are read at runtime with
+   `docker exec <backend> printenv`. Rotating credentials on the app needs no edit here, and a
+   stolen copy of the script grants nothing.
+
+### 12c. Verified end-to-end, not just configured
+
+§7e's own warning ("Configured-but-never-run is not a backup") applies double after a compromise,
+so the full circle was exercised on 2026-09-13:
+
+```
+run script      -> dump 18,851 bytes, --dryRun verify passed
+list S3         -> mongo/lw-mongo-2026-09-12_185927.archive.gz present
+download from S3-> byte size matches
+restore it      -> --nsFrom 'leatherwallah.*' --nsTo 'restoretest.*'   (throwaway namespace)
+verify          -> 37 collections, 2 admins, 2 products, _id instanceof ObjectId == true
+cleanup         -> dropDatabase('restoretest'); live db still 37 collections / 2 admins
+```
+
+Restoring into a **renamed namespace** is what makes this safe to run against a live server —
+`--drop` then only ever touches `restoretest`.
+
+### 12d. Firewall gaps found in the same pass
+
+Hardening from the rebuild was real (SSH keys-only, `PermitRootLogin prohibit-password`, fail2ban
+active, Mongo bound to `127.0.0.1:27017`). Two holes remained:
+
+1. **No host firewall.** UFW's iptables chains were present but the package was gone and policy was
+   `ACCEPT`. Installed UFW: default deny incoming, only 22/80/443.
+2. **`iptables-persistent` was uninstalled (`rc`) while its systemd link survived** — so the
+   existing `DOCKER-USER` DROP rules for 8000 (Coolify panel) and 8080 (Traefik dashboard) **would
+   have disappeared at the next reboot**, putting the panel back on the public internet one restart
+   after a compromise. Reinstalled and saved.
+
+Also closed 6001/6002 (`coolify-realtime`), genuinely reachable from outside. Result from off-box:
+only 22/80/443 answer.
+
+> ⭐ **UFW does not stop Docker.** Docker writes its own netfilter rules that bypass UFW's INPUT
+> chain, so `ufw deny <port>` has no effect on a published container port:
+> ```bash
+> iptables -I DOCKER-USER 1 -p tcp ! -s 127.0.0.1 --dport <port> -j DROP
+> netfilter-persistent save        # without this it dies at reboot
+> ```
+> Two traps: installing `iptables-persistent` **loads the old saved ruleset and wipes rules you just
+> added** (add → install → re-add → save); and always verify from **outside** the box, never by
+> reading the chain — the chain looked correct at a moment when the port was in fact open.
+
+Safe pattern for enabling a firewall over SSH, reusable: arm a deadman (`sleep 600; ufw --force
+disable` unless a confirm-file exists) *before* `ufw enable`, then cancel it only once a **brand-new**
+SSH connection succeeds.
+
+### 12e. Still open
+
+- **Breach root cause unknown.** SSH was keys-only and Mongo was localhost-bound, so the likely
+  paths were the old panel being exposed or a container vulnerability. Worth a log review.
+- **`lw-mongo` uses anonymous volumes** (`:/data/db`, no name). It survives restarts, but a
+  `docker rm` is far more dangerous than with a named volume. Now mitigated by the daily backup;
+  worth naming properly at the next maintenance window.
+- Backups cover the **database only**. Product images live in the `leather-wallah` S3 bucket and are
+  not copied anywhere — acceptable (S3 is already durable), but it is not a second copy.
