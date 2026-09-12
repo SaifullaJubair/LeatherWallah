@@ -1,4 +1,6 @@
 // src/utils/send.order.sms.ts
+// deploy-webhook-check: 2026-09-12 — confirming auto-deploy fires on push
+// after the server rebuild. Safe to remove once confirmed.
 import axios from "axios";
 import {
   getSmsConfig,
