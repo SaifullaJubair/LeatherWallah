@@ -2,6 +2,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BASE_URL } from "@/components/utils/baseURL";
 import MyOrderTracking from "@/components/orderTracking/MyOrderTracking";
@@ -34,13 +35,18 @@ const OrderTrackingPage = () => {
       });
       const result = await res.json();
 
-      if (!result?.success || !result?.data) {
+      const orderInfo = result?.data?.order_info;
+      const orderProducts = result?.data?.order_products;
+
+      // An unknown invoice still answers 200 with success:true and
+      // `data: { order_info: null }`, so checking `result.data` alone let a
+      // null order through to MyOrderTracking, which threw and handed the
+      // visitor the generic "something went wrong" boundary. Anyone mistyping
+      // an invoice from an SMS saw a broken site instead of "not found".
+      if (!result?.success || !orderInfo) {
         setError("Order not found. Please check your Invoice ID.");
         return;
       }
-
-      const orderInfo = result?.data?.order_info;
-      const orderProducts = result?.data?.order_products;
 
       // ২. Courier status sync based on courier type
       if (orderInfo?.courier_type) {
@@ -127,13 +133,23 @@ const OrderTrackingPage = () => {
           <FaTruck size={28} className="text-red-300" />
         </div>
         <p className="text-gray-700 font-medium">{error}</p>
-        <p className="text-sm text-gray-400">Invoice: {id}</p>
-        <button
-          onClick={fetchOrderByInvoice}
-          className="mt-2 px-5 py-2 text-sm bg-primary text-white rounded hover:opacity-90"
-        >
-          Try Again
-        </button>
+        <p className="font-mono text-sm text-gray-400">Invoice: {id}</p>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <button
+            onClick={fetchOrderByInvoice}
+            className="px-5 py-2 text-sm bg-primary text-white rounded hover:opacity-90"
+          >
+            Try Again
+          </button>
+          {/* Retrying a wrong invoice just fails again, so offer the form
+              where a different number can be typed. */}
+          <Link
+            href="/orders/order-tracking"
+            className="px-5 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+          >
+            Track another order
+          </Link>
+        </div>
       </div>
     );
   }
