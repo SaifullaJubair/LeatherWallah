@@ -44,4 +44,7 @@ BuisnessPLan/
 
 # Debug/QA screenshots (local only)
 *.jpeg
+# Browser screenshots dropped at the repo root by Playwright runs.
+# Leading slash = root only, so real image assets deeper in the tree stay tracked.
+/*.png
 LeatherWallahFrontend/public/img-check.html
