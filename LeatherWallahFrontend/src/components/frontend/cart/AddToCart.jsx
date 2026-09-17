@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { splitName } from "@/utils/nameSplit";
 import { normalizeBdPhone } from "@/utils/phone";
 import { firePurchaseOnce } from "@/utils/purchaseDedup";
+import { generateEventId } from "@/components/analyticsScripts/utils/metaPixel/useMetaPixel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
@@ -312,6 +313,12 @@ const AddToCart = () => {
         customer_phone || formData.customer_phone,
       );
 
+      // Generated once per checkout attempt — shared by the browser Pixel
+      // fire below AND passed to the backend so its server-side CAPI
+      // Purchase call uses the SAME event_id. Meta/TikTok then dedupe the
+      // browser+server legs of the same event instead of double-counting.
+      const purchaseEventId = generateEventId();
+
       const orderData = {
         pathao_city_id: parseInt(divisionID),
         pathao_city_name: division,
@@ -339,6 +346,7 @@ const AddToCart = () => {
         grand_total_amount: shopGrandTotals || 0,
         coupon_id: couponData?._id || null,
         need_user_create: !userInfo?.data?.user_phone,
+        purchase_event_id: purchaseEventId,
         fbc: getCookie("_fbc"),
         fbp: getCookie("_fbp"),
         order_products: cartData.map((product) => {
@@ -422,6 +430,7 @@ const AddToCart = () => {
               country: "bd",
               external_id: userInfo?.data?._id,
             },
+            purchaseEventId, // same id sent to backend as purchase_event_id
           );
         });
 

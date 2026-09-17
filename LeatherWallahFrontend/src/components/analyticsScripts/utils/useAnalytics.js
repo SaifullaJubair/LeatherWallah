@@ -300,9 +300,18 @@ const useAnalytics = () => {
   );
 
   // ── Purchase ───────────────────────────────────────
+  // Purchase CAPI is intentionally NOT sent from here. The backend already
+  // fires Meta/TikTok Purchase CAPI server-side right after order creation
+  // (order.controller.ts), keyed off the SAME `eventId` this function is
+  // given (passed in by the caller as `purchase_event_id` on the order
+  // payload) — that backend leg is reliable regardless of ad-blockers or
+  // client JS failures. Firing CAPI again here duplicated it under a
+  // DIFFERENT event_id than the backend's, which Meta/TikTok could not
+  // dedupe, causing Purchase overcounting. Only the browser pixel fires
+  // here now; it shares `eventId` with the backend CAPI call so Meta/TikTok
+  // merge the two into one event.
   const trackPurchase = useCallback(
-    async (orderData, userData = {}) => {
-      const eventId = generateEventId();
+    async (orderData, userData = {}, eventId = generateEventId()) => {
       const value = toNumber(orderData?.grand_total_amount);
       const contentIds = toStringIds(
         orderData?.order_products?.map((p) => p?.product_id),
@@ -333,22 +342,9 @@ const useAnalytics = () => {
           },
           { eventID: eventId },
         );
-
-        if (metaCapiEnabled) {
-          await sendServerEvent({
-            event_name: "Purchase",
-            event_id: eventId,
-            user_data: userData,
-            custom_data: {
-              content_ids: contentIds,
-              content_type: "product",
-              currency,
-              value,
-              num_items: numItems,
-              order_id: orderId, // Phase 1B B6 — server-side dedup key
-            },
-          });
-        }
+        // Meta CAPI Purchase is NOT sent from here — the backend already
+        // sends it server-side (order.controller.ts) using this same
+        // eventId as `purchase_event_id`. See comment above trackPurchase.
       }
 
       if (tiktokEnabled) {

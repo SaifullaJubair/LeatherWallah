@@ -7,6 +7,7 @@
 import { splitName } from "@/utils/nameSplit";
 import { normalizeBdPhone } from "@/utils/phone";
 import { firePurchaseOnce } from "@/utils/purchaseDedup";
+import { generateEventId } from "@/components/analyticsScripts/utils/metaPixel/useMetaPixel";
 import { buildAnalyticsUserData } from "@/utils/buildAnalyticsUserData";
 import RightSideDeliveryInfo from "./rightSideShoppingSection/RightSideDeliveryInfo";
 import ChartModal from "./productHighLightSection/ChartModal";
@@ -556,12 +557,18 @@ const SingleProduct = ({ product, theme }) => {
       " " +
       new Date().toLocaleTimeString();
 
+    // Generated once per checkout attempt — shared by the browser Pixel
+    // fire below AND passed to the backend so its server-side CAPI
+    // Purchase call uses the SAME event_id (Meta/TikTok dedupe on match).
+    const purchaseEventId = generateEventId();
+
     const sendData = {
       order_status: "pending",
       pending_time: today,
       customer_id: userInfo?.data?._id || null,
       // F1.3 — submit one consistent phone format (E.164), symmetric with BE.
       customer_phone: normalizeBdPhone(customer_phone || data?.customer_phone),
+      purchase_event_id: purchaseEventId,
       billing_country: "Bangladesh",
       billing_city: district,
       billing_state: division,
@@ -625,6 +632,7 @@ const SingleProduct = ({ product, theme }) => {
               country: "bd",
               external_id: userInfo?.data?._id,
             },
+            purchaseEventId, // same id sent to backend as purchase_event_id
           );
         });
 
