@@ -9,6 +9,7 @@ import POSReceipt from "./POSReceipt";
 import ProductQuickViewModal from "./ProductQuickViewModal";
 import { divisions } from "../../data/division-data";
 import { districts } from "../../data/district-data";
+import { cities as pathaoCities } from "../../data/pathao-city-data";
 import {
   FiSearch, FiX, FiPlus, FiMinus, FiShoppingCart,
   FiUser, FiTruck, FiTag, FiPrinter,
@@ -25,9 +26,17 @@ function useDebounce(value, delay = 400) {
   return debounced;
 }
 
-const SHIPPING_INSIDE = 60;
-const SHIPPING_OUTSIDE = 120;
-const DHAKA_DISTRICT_ID = "47";
+// Shipping charges are DB-driven (Site Settings → Shipping Configuration).
+// They are NOT hardcoded here: the server recomputes the same numbers from
+// `settings.inside_dhaka_shipping_charge` / `outside_dhaka_shipping_charge`
+// keyed off `billing_state`, so any constant here would silently disagree
+// with what actually gets charged. 0 is the safe fallback while /setting
+// is still loading — the cashier sees "…" rather than a wrong number.
+
+// Pathao's own id for Dhaka city. The server's zone check is a name match on
+// `billing_state` ("dhaka"), but we key the UI off the id because it is stable
+// even if Pathao ever relabels the city.
+const PATHAO_DHAKA_CITY_ID = 1;
 const PER_PAGE_OPTIONS = [20, 50, 100];
 
 const SkeletonCard = () => (
@@ -83,6 +92,41 @@ function resolveCustomerDivDistrict(customer) {
   return { divId: "", distId: "" };
 }
 
+// Map a saved customer onto a Pathao city. The POS now books against Pathao's
+// city/zone list (same as the storefront), but existing User docs only carry
+// the legacy free-text `user_division` / `user_district`, and those two fields
+// are known to hold each other's values on older records — hence we try both
+// against the Pathao city names before giving up. Returning "" just means the
+// cashier picks the city manually; it is never a hard failure.
+function resolveCustomerPathaoCity(customer) {
+  const normalize = (s) => (s || "").trim().toLowerCase();
+  const candidates = [customer?.user_division, customer?.user_district];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const city = pathaoCities.find(
+      (c) => normalize(c.city_name) === normalize(candidate),
+    );
+    if (city) return city;
+  }
+
+  // Legacy rescue: the stored value may be a DISTRICT (e.g. "Savar") whose
+  // parent division shares a Pathao city name. Resolve district → division,
+  // then division → Pathao city.
+  const { divId } = resolveCustomerDivDistrict(customer);
+  if (divId) {
+    const divName = divisions.find((d) => d.id === divId)?.name;
+    if (divName) {
+      const city = pathaoCities.find(
+        (c) => normalize(c.city_name) === normalize(divName),
+      );
+      if (city) return city;
+    }
+  }
+
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 const CreateOrderPage = () => {
   const { user } = useContext(AuthContext);
@@ -116,9 +160,13 @@ const CreateOrderPage = () => {
   const customerRef = useRef(null);
 
   // ── Delivery ────────────────────────────────────────────────────
+  // City/zone mirror the storefront checkout so both channels speak Pathao's
+  // vocabulary. `cityId` drives the charge (Dhaka vs outside) AND the courier
+  // booking; `zoneId` is only needed by the courier, so it stays optional —
+  // see the zone query below for why that matters at a POS counter.
   const [deliveryType, setDeliveryType] = useState("delivery");
-  const [selectedDivisionId, setSelectedDivisionId] = useState("");
-  const [selectedDistrictId, setSelectedDistrictId] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState("");
+  const [selectedZoneId, setSelectedZoneId] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
 
   // ── Discount ────────────────────────────────────────────────────
@@ -167,6 +215,49 @@ const CreateOrderPage = () => {
     staleTime: 300_000,
   });
 
+  // ── Shop settings ────────────────────────────────────────────────
+  // Shipping charges, free-delivery rule and VAT all live in the DB. staleTime
+  // is deliberately short: the owner changes a rate in Site Settings and the
+  // very next sale at the counter must already use it.
+  const { data: settingData } = useQuery({
+    queryKey: ["pos-setting"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE_URL}/setting`, { credentials: "include" });
+      return res.json();
+    },
+    staleTime: 30_000,
+  });
+  const setting = settingData?.data?.[0] || {};
+
+  // ── Pathao zones for the chosen city ─────────────────────────────
+  // This hits Pathao's live API through the backend. It can legitimately fail
+  // (Pathao down, credentials not configured on a fresh shop) and the POS must
+  // survive that: the zone is only needed for courier booking, never for the
+  // price, so a failure downgrades to "book the courier later" instead of
+  // blocking the sale with a customer standing at the counter.
+  const {
+    data: zoneData,
+    isLoading: zoneLoading,
+    isError: zoneError,
+    refetch: refetchZone,
+  } = useQuery({
+    queryKey: ["pos-zones", selectedCityId],
+    queryFn: async () => {
+      const res = await fetch(`${BASE_URL}/setting/zone?city_id=${selectedCityId}`, {
+        credentials: "include",
+      });
+      const json = await res.json();
+      // The endpoint answers 200 even when the upstream lookup failed, so a
+      // non-array payload is treated as an error rather than "no zones".
+      if (!Array.isArray(json?.data)) throw new Error("Zone lookup failed");
+      return json;
+    },
+    enabled: deliveryType === "delivery" && !!selectedCityId,
+    retry: 1,
+    staleTime: 300_000,
+  });
+  const zones = zoneData?.data || [];
+
   // ── Customer search — block search if a customer is already selected ──
   useEffect(() => {
     if (selectedCustomer) return;           // already locked, don't re-search
@@ -193,14 +284,16 @@ const CreateOrderPage = () => {
   const totalPages = Math.ceil(totalProducts / perPage);
   const categories = useMemo(() => (categoryData?.data || []).filter((c) => !c.parent_id), [categoryData]);
   const brands = useMemo(() => brandData?.data || [], [brandData]);
-  const filteredDistricts = useMemo(
-    () => selectedDivisionId ? districts.filter((d) => d.division_id === selectedDivisionId) : [],
-    [selectedDivisionId],
+  const selectedCity = useMemo(
+    () => pathaoCities.find((c) => String(c.city_id) === String(selectedCityId)) || null,
+    [selectedCityId],
   );
-  const shippingLocation = selectedDistrictId === DHAKA_DISTRICT_ID ? "inside_dhaka" : "outside_dhaka";
-  const shippingCost = deliveryType === "pickup" ? 0 : shippingLocation === "inside_dhaka" ? SHIPPING_INSIDE : SHIPPING_OUTSIDE;
+  const isInsideDhaka = Number(selectedCityId) === PATHAO_DHAKA_CITY_ID;
 
   // ── Totals ───────────────────────────────────────────────────────
+  // Everything below mirrors the server's recompute (order.recompute.ts) so
+  // the cashier collects exactly what gets stored. The server remains the
+  // authority — this is a preview, not a second source of truth.
   const subTotal = useMemo(
     () => lines.reduce((s, l) => s + l.unit_price * l.product_quantity, 0),
     [lines],
@@ -212,7 +305,87 @@ const CreateOrderPage = () => {
       ? Math.round(subTotal * Math.min(rawDiscountInput, 100) / 100)
       : Math.max(0, rawDiscountInput);
   }, [discountType, rawDiscountInput, subTotal]);
-  const grandTotal = Math.max(0, subTotal + shippingCost - discount);
+
+  // Shipping — per-line, same rules as the server: `inherit` lines split the
+  // zone charge between them and are the only ones the global free-delivery
+  // rule can waive; explicit per-product modes bypass that rule entirely.
+  const shippingCost = useMemo(() => {
+    if (deliveryType === "pickup") return 0;
+    if (lines.length === 0) return 0;
+    if (!selectedCityId) return 0;
+
+    const zoneCharge = isInsideDhaka
+      ? Number(setting.inside_dhaka_shipping_charge) || 0
+      : Number(setting.outside_dhaka_shipping_charge) || 0;
+
+    const inheritLines = lines.filter(
+      (l) => !l.delivery_mode || l.delivery_mode === "inherit",
+    );
+    const overrideLines = lines.filter(
+      (l) => l.delivery_mode && l.delivery_mode !== "inherit",
+    );
+
+    const inheritSubtotal = inheritLines.reduce(
+      (s, l) => s + l.unit_price * l.product_quantity,
+      0,
+    );
+    const freeType = setting.free_delivery_type;
+    const freeMin = Number(setting.free_delivery_min_amount) || 0;
+    const globalFreeApplies =
+      setting.free_delivery_enabled === true &&
+      (freeType === "always" ||
+        (freeType === "min_order" && inheritSubtotal >= freeMin));
+
+    const inheritShare =
+      inheritLines.length > 0 && !globalFreeApplies
+        ? Math.round(zoneCharge / inheritLines.length)
+        : 0;
+
+    let total = inheritLines.length * inheritShare;
+
+    for (const line of overrideLines) {
+      if (line.delivery_mode === "free") continue;
+      if (line.delivery_mode === "flat") {
+        total += Number(line.delivery_flat_amount) || 0;
+        continue;
+      }
+      if (line.delivery_mode === "qty_threshold") {
+        const threshold = Number(line.delivery_free_after_qty) || 0;
+        if (threshold > 0 && line.product_quantity >= threshold) continue;
+        // Below threshold: the server falls back to the inherit share when
+        // there are inherit lines to share with, else the full zone charge.
+        total += inheritLines.length > 0 ? inheritShare : zoneCharge;
+      }
+    }
+    return total;
+  }, [deliveryType, lines, selectedCityId, isInsideDhaka, setting]);
+
+  const freeDeliveryApplied =
+    deliveryType === "delivery" &&
+    setting.free_delivery_enabled === true &&
+    shippingCost === 0 &&
+    lines.length > 0 &&
+    !!selectedCityId;
+
+  // VAT — per line, on the post-discount amount, matching the server. The
+  // discount is apportioned across lines by value so a line's tax follows what
+  // the customer actually pays for it. Rounded once at the end.
+  const vatAmount = useMemo(() => {
+    if (subTotal <= 0) return 0;
+    const defaultPct = Number(setting.vat_percentage) || 0;
+    let total = 0;
+    for (const l of lines) {
+      const override = Number(l.vat_percentage_override) || 0;
+      const pct = override > 0 ? override : defaultPct;
+      if (pct <= 0) continue;
+      const lineTotal = l.unit_price * l.product_quantity;
+      const lineShare = (lineTotal / subTotal) * discount;
+      total += ((lineTotal - lineShare) * pct) / 100;
+    }
+    return Math.round(total);
+  }, [lines, subTotal, discount, setting]);
+
+  const grandTotal = Math.max(0, subTotal - discount + vatAmount + shippingCost);
   const paidNum = Number(paidAmount) || 0;
   const returnAmount = Math.max(0, paidNum - grandTotal);
   const dueAmount = Math.max(0, grandTotal - paidNum);
@@ -240,6 +413,13 @@ const CreateOrderPage = () => {
         variation_label: selectedVar?.variation_name || "",
         unit_price: unitPrice,
         product_quantity: qty,
+        // Preview-only copies of the server's pricing inputs. They are never
+        // sent back — the server re-reads them from the product document —
+        // but they let the counter total match the stored order.
+        vat_percentage_override: Number(product.vat_percentage_override) || 0,
+        delivery_mode: product.delivery_mode || "inherit",
+        delivery_flat_amount: Number(product.delivery_flat_amount) || 0,
+        delivery_free_after_qty: Number(product.delivery_free_after_qty) || 0,
       }];
     });
   }, []);
@@ -269,9 +449,13 @@ const CreateOrderPage = () => {
     setShowCustomerDrop(false);
     // Auto-fill address
     if (c.user_address) setBillingAddress(c.user_address);
-    const { divId, distId } = resolveCustomerDivDistrict(c);
-    if (divId) setSelectedDivisionId(divId);
-    if (distId) setSelectedDistrictId(distId);
+    // Saved customers predate the Pathao city picker, so this is best-effort:
+    // no match just leaves the dropdown empty for the cashier to fill in.
+    const city = resolveCustomerPathaoCity(c);
+    if (city) {
+      setSelectedCityId(String(city.city_id));
+      setSelectedZoneId("");
+    }
   }, []);
 
   const handlePrint = useCallback(() => {
@@ -286,9 +470,9 @@ const CreateOrderPage = () => {
     const customerPhone = isWalkIn ? walkInPhone : selectedCustomer?.user_phone;
     if (!customerPhone?.trim()) { toast.error("Customer phone is required."); return; }
     if (deliveryType === "delivery" && !billingAddress.trim()) { toast.error("Delivery address is required."); return; }
+    if (deliveryType === "delivery" && !selectedCityId) { toast.error("Please select a city."); return; }
 
-    const divName = divisions.find((d) => d.id === selectedDivisionId)?.name || "Dhaka";
-    const distName = districts.find((d) => d.id === selectedDistrictId)?.name || "Dhaka";
+    const zoneName = zones.find((z) => String(z.zone_id) === String(selectedZoneId))?.zone_name;
 
     const orderPayload = {
       order_source: "admin",
@@ -296,12 +480,37 @@ const CreateOrderPage = () => {
       customer_name: customerName,
       customer_phone: customerPhone,
       billing_country: "Bangladesh",
-      billing_city: divName,
-      billing_state: distName,
+      // billing_state MUST hold the city/division name: the server derives the
+      // shipping zone from it (order.recompute.ts). These two were previously
+      // swapped here, which is why the server's own recompute had to be
+      // overridden for POS orders.
+      billing_state: selectedCity?.city_name || "",
+      billing_city: zoneName || selectedCity?.city_name || "",
       billing_address: deliveryType === "pickup" ? "Pickup" : billingAddress,
-      shipping_location: shippingLocation,
+      shipping_location:
+        deliveryType === "pickup"
+          ? "Pickup"
+          : isInsideDhaka
+            ? `Inside Dhaka, ${setting.inside_dhaka_shipping_days || 0} Days`
+            : `Outside Dhaka, ${setting.outside_dhaka_shipping_days || 0} Days`,
       shipping_cost: shippingCost,
       delivery_type: deliveryType,
+      // Courier booking needs these. POS orders never carried them before, so
+      // Pathao booking could not work at all from the counter. Zone stays
+      // optional: if the live lookup failed, the order is still taken and the
+      // zone can be set later from the order detail page.
+      ...(deliveryType === "delivery" && selectedCity
+        ? {
+            pathao_city_id: Number(selectedCity.city_id),
+            pathao_city_name: selectedCity.city_name,
+            ...(selectedZoneId
+              ? {
+                  pathao_zone_id: Number(selectedZoneId),
+                  pathao_zone_name: zoneName,
+                }
+              : {}),
+          }
+        : {}),
       sub_total_amount: subTotal,
       discount_amount: discount,
       admin_manual_discount: discount,
@@ -368,7 +577,7 @@ const CreateOrderPage = () => {
       <POSReceipt
         lines={lines} customer={receiptCustomer}
         delivery={{ address: deliveryType === "pickup" ? "Pickup" : billingAddress }}
-        discount={discount} shippingCost={shippingCost} grandTotal={grandTotal}
+        discount={discount} shippingCost={shippingCost} vatAmount={vatAmount} grandTotal={grandTotal}
         invoiceId={lastInvoiceId} shopName={user?.admin_name}
       />
 
@@ -756,23 +965,39 @@ const CreateOrderPage = () => {
               </div>
               {deliveryType === "delivery" && (
                 <div className="space-y-2">
-                  <select value={selectedDivisionId}
-                    onChange={(e) => { setSelectedDivisionId(e.target.value); setSelectedDistrictId(""); }}
+                  <select value={selectedCityId}
+                    onChange={(e) => { setSelectedCityId(e.target.value); setSelectedZoneId(""); }}
                     className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blueColor-500 bg-white">
-                    <option value="">Select Division</option>
-                    {divisions.map((d) => <option key={d.id} value={d.id}>{d.name} — {d.bn_name}</option>)}
+                    <option value="">Select City *</option>
+                    {pathaoCities.map((c) => <option key={c.city_id} value={c.city_id}>{c.city_name.trim()}</option>)}
                   </select>
-                  <select value={selectedDistrictId}
-                    onChange={(e) => setSelectedDistrictId(e.target.value)}
-                    disabled={!selectedDivisionId}
+                  <select value={selectedZoneId}
+                    onChange={(e) => setSelectedZoneId(e.target.value)}
+                    disabled={!selectedCityId || zoneLoading || zoneError}
                     className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blueColor-500 bg-white disabled:opacity-50">
-                    <option value="">Select District</option>
-                    {filteredDistricts.map((d) => <option key={d.id} value={d.id}>{d.name} — {d.bn_name}</option>)}
+                    <option value="">
+                      {zoneLoading ? "Loading zones…" : zoneError ? "Zones unavailable" : "Select Zone (for courier)"}
+                    </option>
+                    {zones.map((z) => <option key={z.zone_id} value={z.zone_id}>{z.zone_name}</option>)}
                   </select>
-                  {selectedDistrictId && (
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${shippingLocation === "inside_dhaka" ? "bg-green-50 text-green-700 border border-green-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
-                      <span>{shippingLocation === "inside_dhaka" ? "✓" : "→"}</span>
-                      <span>{shippingLocation === "inside_dhaka" ? `Inside Dhaka — ৳${SHIPPING_INSIDE}` : `Outside Dhaka — ৳${SHIPPING_OUTSIDE}`}</span>
+                  {/* The zone lookup goes to Pathao live, so it can fail while
+                      the shop is perfectly able to sell. Never block the sale —
+                      say what is lost (courier booking) and offer a retry. */}
+                  {zoneError && (
+                    <div className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                      <span>Zone list unavailable — you can still take the order.</span>
+                      <button type="button" onClick={() => refetchZone()}
+                        className="underline shrink-0 hover:text-amber-900">Retry</button>
+                    </div>
+                  )}
+                  {selectedCityId && (
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${isInsideDhaka ? "bg-green-50 text-green-700 border border-green-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
+                      <span>{isInsideDhaka ? "✓" : "→"}</span>
+                      <span>
+                        {freeDeliveryApplied
+                          ? `${isInsideDhaka ? "Inside" : "Outside"} Dhaka — Free delivery`
+                          : `${isInsideDhaka ? "Inside" : "Outside"} Dhaka — ৳${shippingCost}`}
+                      </span>
                     </div>
                   )}
                   <input type="text" value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)}
@@ -899,13 +1124,21 @@ const CreateOrderPage = () => {
                   <div className="flex justify-between text-xs text-gray-600">
                     <span>Shipping</span>
                     <span className="font-medium">
-                      {deliveryType === "pickup" ? <span className="text-green-600">Free</span> : `৳${shippingCost}`}
+                      {deliveryType === "pickup" || freeDeliveryApplied
+                        ? <span className="text-green-600">Free</span>
+                        : `৳${shippingCost}`}
                     </span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-xs text-green-600">
                       <span>Discount{discountType === "percent" && rawDiscountInput > 0 && <span className="ml-1 text-[10px]">({rawDiscountInput}%)</span>}</span>
                       <span>− ৳{discount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {vatAmount > 0 && (
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>VAT</span>
+                      <span className="font-medium">৳{vatAmount.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center border-t border-gray-200 pt-2">
