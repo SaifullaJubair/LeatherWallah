@@ -66,7 +66,7 @@ const ImageUpload = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB limit
+    fileSize: 25 * 1024 * 1024, // 25 MB limit — modern phone/DSLR photos routinely exceed 10 MB
   },
 });
 
