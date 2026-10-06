@@ -81,9 +81,17 @@ const PrintableSticker = ({ order, settingData }) => {
         className="border-2 border-black mx-auto"
         style={{ width: "100mm", minHeight: "150mm", padding: "5mm", boxSizing: "border-box" }}
       >
-        {/* Shop name */}
-        <div className="text-center border-b-2 border-black pb-2 mb-3">
-          <h1 className="text-xl font-bold">
+        {/* Shop logo + name — courier/delivery staff need the name readable,
+            not just the logo, so both show together (logo kept small). */}
+        <div className="flex flex-col items-center border-b-2 border-black pb-2 mb-3">
+          {settingData?.logo && (
+            <img
+              src={settingData.logo}
+              alt={settingData?.title || "Logo"}
+              className="h-8 object-contain mb-1"
+            />
+          )}
+          <h1 className="text-lg font-bold">
             {settingData?.title || "Leather Wallah"}
           </h1>
           {settingData?.contact && (
