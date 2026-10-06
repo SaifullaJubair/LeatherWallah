@@ -7,6 +7,7 @@ import { BASE_URL } from "../../utils/baseURL";
 import TableLoadingSkeleton from "../../components/common/loadingSkeleton/TableLoadingSkeleton";
 import Pagination from "../../components/common/pagination/Pagination";
 import PrintableInvoice from "../../components/common/printableInvoice/PrintableInvoice";
+import PrintableSticker from "../../components/common/printableInvoice/PrintableSticker";
 import { SettingContext } from "../../context/SettingProvider";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2-optimized";
@@ -159,6 +160,7 @@ const OrderPage = () => {
   const [bulkSyncLoading, setBulkSyncLoading] = useState(false);
 
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [printMode, setPrintMode] = useState("invoice"); // "invoice" | "sticker"
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderProducts, setSelectedOrderProducts] = useState([]);
 
@@ -944,11 +946,37 @@ const OrderPage = () => {
       {printModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-auto">
-            <PrintableInvoice
-              order={selectedOrder}
-              orderProducts={selectedOrderProducts}
-              settingData={settingData}
-            />
+            <div className="no-print flex gap-2 justify-center pt-4">
+              <button
+                onClick={() => setPrintMode("invoice")}
+                className={`px-4 py-1.5 rounded text-sm font-medium ${
+                  printMode === "invoice"
+                    ? "bg-blueColor-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Full Invoice
+              </button>
+              <button
+                onClick={() => setPrintMode("sticker")}
+                className={`px-4 py-1.5 rounded text-sm font-medium ${
+                  printMode === "sticker"
+                    ? "bg-blueColor-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Box Sticker
+              </button>
+            </div>
+            {printMode === "invoice" ? (
+              <PrintableInvoice
+                order={selectedOrder}
+                orderProducts={selectedOrderProducts}
+                settingData={settingData}
+              />
+            ) : (
+              <PrintableSticker order={selectedOrder} settingData={settingData} />
+            )}
             <div className="p-4 flex justify-end">
               <button
                 onClick={() => setPrintModalOpen(false)}
