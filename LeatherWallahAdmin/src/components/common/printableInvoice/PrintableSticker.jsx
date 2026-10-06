@@ -35,13 +35,21 @@ const PrintableSticker = ({ order, settingData }) => {
     }
 
     #printable-sticker {
-      position: absolute;
+      position: fixed;
       left: 0;
       top: 0;
       margin: 0;
       padding: 0;
       z-index: 9999;
       background: white;
+      width: 100mm;
+    }
+
+    #printable-sticker-label {
+      width: 100mm !important;
+      min-height: 150mm !important;
+      margin: 0 !important;
+      border-width: 0 !important;
     }
 
     .no-print {
@@ -50,13 +58,16 @@ const PrintableSticker = ({ order, settingData }) => {
 
     @page {
       size: 100mm 150mm;
-      margin: 4mm;
+      margin: 0;
     }
   }
   `}
       </style>
 
-      <div className="no-print flex justify-end mb-3">
+      <div className="no-print mb-3">
+        <p className="text-xs text-gray-500 mb-2">
+          প্রিন্ট ডায়ালগে Paper size → &quot;4x6 in&quot; বা &quot;Custom&quot; (100mm × 150mm) সিলেক্ট করুন, নাহলে A4 এ প্রিন্ট হবে।
+        </p>
         <button
           onClick={() => window.print()}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -66,8 +77,9 @@ const PrintableSticker = ({ order, settingData }) => {
       </div>
 
       <div
+        id="printable-sticker-label"
         className="border-2 border-black mx-auto"
-        style={{ width: "100mm", minHeight: "150mm", padding: "5mm" }}
+        style={{ width: "100mm", minHeight: "150mm", padding: "5mm", boxSizing: "border-box" }}
       >
         {/* Shop name */}
         <div className="text-center border-b-2 border-black pb-2 mb-3">
