@@ -30,6 +30,7 @@ const DefaultRow = ({
   onPrint,
   onSendPathao,
   onSendSteadfast,
+  settingData,
 }) => {
   const rowClass = index % 2 === 0 ? "bg-white" : "bg-tableRowBGColor";
   const navigate = useNavigate();
@@ -129,20 +130,24 @@ const DefaultRow = ({
           </span>
         ) : canSendCourier ? (
           <div className="flex gap-2 justify-center">
-            <button
-              onClick={() => onSendPathao?.(order)}
-              disabled={!!loadingOrderId}
-              className="h-[36px] rounded-lg px-3 bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white text-xs font-medium"
-            >
-              Send Pathao
-            </button>
-            <button
-              onClick={() => onSendSteadfast?.(order)}
-              disabled={!!loadingOrderId}
-              className="h-[36px] rounded-lg px-3 bg-red-500 hover:bg-red-400 disabled:opacity-50 text-white text-xs font-medium"
-            >
-              Send Steadfast
-            </button>
+            {settingData?.pathao_enabled === true && (
+              <button
+                onClick={() => onSendPathao?.(order)}
+                disabled={!!loadingOrderId}
+                className="h-[36px] rounded-lg px-3 bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white text-xs font-medium"
+              >
+                Send Pathao
+              </button>
+            )}
+            {settingData?.steadfast_enabled === true && (
+              <button
+                onClick={() => onSendSteadfast?.(order)}
+                disabled={!!loadingOrderId}
+                className="h-[36px] rounded-lg px-3 bg-red-500 hover:bg-red-400 disabled:opacity-50 text-white text-xs font-medium"
+              >
+                Send Steadfast
+              </button>
+            )}
           </div>
         ) : (
           <span className="text-xs text-gray-400">—</span>

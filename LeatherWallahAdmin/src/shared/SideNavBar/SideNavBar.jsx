@@ -204,20 +204,26 @@ const SideNavBar = () => {
                   isActive={isActive("/order/create")}
                 />
               )}
-              {user?.role_id?.order_show === true && (
-                <>
+              {user?.role_id?.order_show === true &&
+                settingData?.steadfast_enabled === true && (
                   <ChildMenuItem
                     to="/steadfast-order"
                     icon={Truck}
                     label="SteadFast Orders"
                     isActive={isActive("/steadfast-order")}
                   />
+                )}
+              {user?.role_id?.order_show === true &&
+                settingData?.pathao_enabled === true && (
                   <ChildMenuItem
                     to="/pathao-order"
                     icon={Truck}
                     label="Pathao Orders"
                     isActive={isActive("/pathao-order")}
                   />
+                )}
+              {user?.role_id?.order_show === true && (
+                <>
                   <ChildMenuItem
                     to="/fraud-check"
                     icon={ShieldAlert}

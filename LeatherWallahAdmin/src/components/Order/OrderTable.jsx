@@ -416,18 +416,22 @@ const OrderTable = ({
                         user?.role_id?.order_update === true &&
                         order?.order_status == "pending" && (
                           <div className="flex gap-2 justify-center">
-                            <button
-                              className="h-[40px] rounded-[8px] py-[10px] px-[14px] bg-blue-500 hover:bg-blue-400 duration-200 text-white text-sm"
-                              onClick={() => handleOrderSendPathao(order)}
-                            >
-                              Send Pathao
-                            </button>
-                            <button
-                              className="h-[40px] rounded-[8px] py-[10px] px-[14px] bg-red-500 hover:bg-red-400 duration-200 text-white text-sm"
-                              onClick={() => handleOrderSendSteadFast(order)}
-                            >
-                              Send SteadFast
-                            </button>
+                            {settingData?.pathao_enabled === true && (
+                              <button
+                                className="h-[40px] rounded-[8px] py-[10px] px-[14px] bg-blue-500 hover:bg-blue-400 duration-200 text-white text-sm"
+                                onClick={() => handleOrderSendPathao(order)}
+                              >
+                                Send Pathao
+                              </button>
+                            )}
+                            {settingData?.steadfast_enabled === true && (
+                              <button
+                                className="h-[40px] rounded-[8px] py-[10px] px-[14px] bg-red-500 hover:bg-red-400 duration-200 text-white text-sm"
+                                onClick={() => handleOrderSendSteadFast(order)}
+                              >
+                                Send SteadFast
+                              </button>
+                            )}
                           </div>
                         )
                       )}

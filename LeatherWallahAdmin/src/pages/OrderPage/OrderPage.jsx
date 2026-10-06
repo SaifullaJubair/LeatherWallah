@@ -761,6 +761,7 @@ const OrderPage = () => {
       limit,
       loadingOrderId,
       canUpdate: !!user?.role_id?.order_update,
+      settingData,
     };
     if (activeTab === "pending")
       return (
