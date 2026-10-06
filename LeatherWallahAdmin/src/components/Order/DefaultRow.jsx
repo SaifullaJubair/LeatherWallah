@@ -58,6 +58,16 @@ const DefaultRow = ({
         {(page - 1) * limit + index + 1}
       </td>
 
+      {/* Print */}
+      <td className="whitespace-nowrap p-4">
+        <button
+          onClick={() => onPrint?.(order)}
+          className="flex items-center gap-1 mx-auto text-gray-700 hover:text-blue-700"
+        >
+          <FaPrint /> Print
+        </button>
+      </td>
+
       <td className="whitespace-nowrap p-4">
         <Link
           to={`/all-order-info/${order._id}`}
@@ -167,16 +177,6 @@ const DefaultRow = ({
         ) : (
           <span className="text-xs text-gray-400">—</span>
         )}
-      </td>
-
-      {/* Print */}
-      <td className="whitespace-nowrap p-4">
-        <button
-          onClick={() => onPrint?.(order)}
-          className="flex items-center gap-1 mx-auto text-gray-700 hover:text-blue-700"
-        >
-          <FaPrint /> Print
-        </button>
       </td>
 
       {/* Fraud */}

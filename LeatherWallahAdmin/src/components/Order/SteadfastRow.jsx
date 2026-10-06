@@ -1,6 +1,6 @@
 // OrderPage/components/SteadfastRow.jsx
 import { Link } from "react-router-dom";
-import { FaSync } from "react-icons/fa";
+import { FaSync, FaPrint } from "react-icons/fa";
 import MiniSpinner from "../../shared/MiniSpinner/MiniSpinner";
 
 const STEADFAST_STATUS_COLOR = {
@@ -36,6 +36,7 @@ const SteadfastRow = ({
   limit,
   onSync,
   onCancel,
+  onPrint,
   syncingOrderId,
   loadingOrderId,
   canUpdate,
@@ -50,6 +51,14 @@ const SteadfastRow = ({
     <tr className={`divide-x divide-gray-200 ${rowClass}`}>
       <td className="whitespace-nowrap p-4">
         {(page - 1) * limit + index + 1}
+      </td>
+      <td className="whitespace-nowrap p-4">
+        <button
+          onClick={() => onPrint?.(order)}
+          className="flex items-center gap-1 mx-auto text-gray-700 hover:text-blue-700"
+        >
+          <FaPrint /> Print
+        </button>
       </td>
       <td className="whitespace-nowrap p-4">
         <Link

@@ -89,6 +89,7 @@ const PENDING_HEAD = [
 ];
 const STEADFAST_HEAD = [
   "SL",
+  "Print",
   "Invoice",
   "Customer",
   "Phone",
@@ -103,6 +104,7 @@ const STEADFAST_HEAD = [
 ];
 const PATHAO_HEAD = [
   "SL",
+  "Print",
   "Invoice",
   "Customer",
   "Phone",
@@ -120,6 +122,7 @@ const PATHAO_HEAD = [
 // can never drift apart.
 const DEFAULT_HEAD = [
   "SL",
+  "Print",
   "Invoice",
   "Customer",
   "Phone",
@@ -129,7 +132,6 @@ const DEFAULT_HEAD = [
   "Date",
   "Send Courier",
   "Cancel",
-  "Print",
   "Fraud",
   "Details",
 ];
@@ -786,6 +788,7 @@ const OrderPage = () => {
           {...common}
           onSync={handleSyncSteadfast}
           onCancel={handleCancelOrder}
+          onPrint={handlePrintClick}
           syncingOrderId={syncingOrderId}
         />
       );
@@ -796,6 +799,7 @@ const OrderPage = () => {
           {...common}
           onSync={handleSyncPathao}
           onCancel={handleCancelOrder}
+          onPrint={handlePrintClick}
           syncingOrderId={syncingOrderId}
         />
       );
