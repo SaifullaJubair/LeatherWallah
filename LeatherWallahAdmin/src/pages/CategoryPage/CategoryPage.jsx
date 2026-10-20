@@ -15,9 +15,9 @@ function CategoryPage() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [`/api/v1/category/tree`],
+    queryKey: [`/api/v1/category/tree`, "includeInactive"],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/category/tree`, {
+      const res = await fetch(`${BASE_URL}/category/tree?includeInactive=true`, {
         credentials: "include",
       });
       if (!res.ok) {
