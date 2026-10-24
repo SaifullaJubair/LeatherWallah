@@ -201,6 +201,12 @@ const RightSideDeliveryInfo = ({
                   getOptionLabel={(x) => x?.zone_name}
                   getOptionValue={(x) => x?.zone_id}
                   isLoading={zoneLoading}
+                  noOptionsMessage={() =>
+                    zoneData?.success === false
+                      ? zoneData?.message ||
+                        "Could not load areas. Please re-select the district."
+                      : "No options"
+                  }
                   onChange={(opt) => {
                     setDistrict(opt?.zone_name);
                     setDistrictId(opt?.zone_id);

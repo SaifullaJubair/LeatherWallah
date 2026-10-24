@@ -4,7 +4,10 @@ import httpStatus from "http-status";
 import ApiError from "../../errors/ApiError";
 import { ISettingInterface } from "./setting.interface";
 import { getPathaoLookupConfig } from "../order/courier.config";
-import { getPathaoAccessToken } from "../order/pathao.service";
+import {
+  getPathaoAccessToken,
+  invalidatePathaoToken,
+} from "../order/pathao.service";
 import {
   getSettingServices,
   getSettingWithSecretsServices,
@@ -194,23 +197,51 @@ export const getZoneData: RequestHandler = async (
     // store_id, so these credentials cannot send a parcel anywhere. Order sending
     // still goes through getPathaoConfig and still fails closed.
     const cfg = await getPathaoLookupConfig();
-    const token = await getPathaoAccessToken(cfg);
 
-    const zoneData = await fetch(`${cfg.base_url}/cities/${city_id}/zone-list`, {
-      method: "get",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // fetch() does not throw on a non-2xx, so the old code read `data.data` off
+    // whatever Pathao answered — an error body included — and reported success
+    // with no data. The checkout then showed a bare "No options" with nothing to
+    // act on. Check the answer, and on a 401 (a token Pathao no longer honours)
+    // drop the cached token and retry once with a fresh one.
+    const fetchZones = async () => {
+      const token = await getPathaoAccessToken(cfg);
+      const response = await fetch(
+        `${cfg.base_url}/cities/${city_id}/zone-list`,
+        {
+          method: "get",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      const body: any = await response.json().catch(() => null);
+      return { status: response.status, body };
+    };
 
-    const zoneResult = await zoneData.json();
+    let { status, body } = await fetchZones();
+    if (status === 401) {
+      invalidatePathaoToken();
+      ({ status, body } = await fetchZones());
+    }
+
+    const zones = body?.data?.data;
+    if (!Array.isArray(zones)) {
+      console.error(
+        `Pathao zone-list failed for city ${city_id}: HTTP ${status}`,
+        JSON.stringify(body),
+      );
+      throw new ApiError(
+        502,
+        "Delivery areas could not be loaded right now. Please try again in a moment.",
+      );
+    }
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Setting Get successfully !",
-      data: zoneResult?.data?.data,
+      data: zones,
     });
   } catch (error: any) {
     next(error);

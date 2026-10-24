@@ -34,6 +34,14 @@ let tokenExpiry = 0;
 const credsKey = (c: PathaoLookupConfig) =>
   `${c.base_url}|${c.client_id}|${c.username}`;
 
+// Drops the cached token so the next call issues a fresh one. For callers that
+// learn from a 401 that Pathao has stopped honouring the token we still think
+// is valid.
+export const invalidatePathaoToken = (): void => {
+  cachedToken = null;
+  tokenExpiry = 0;
+};
+
 // Takes PathaoLookupConfig, not PathaoConfig: issuing a token needs the four auth
 // fields and nothing else. PathaoConfig is a superset, so order-sending still
 // passes straight through — but the checkout's read-only zone lookup can call this
