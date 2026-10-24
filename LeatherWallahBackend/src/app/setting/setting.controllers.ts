@@ -206,11 +206,26 @@ export const getZoneData: RequestHandler = async (
 
     const zoneResult = await zoneData.json();
 
+    // Pathao can answer with HTTP 200 and still carry an error body (rate
+    // limit, invalid city_id, maintenance) — `data.data` is then missing and
+    // we were silently returning success:true with no list. Surface what
+    // Pathao actually said so this doesn't look like a frontend bug next time.
+    if (!zoneData.ok || !Array.isArray(zoneResult?.data?.data)) {
+      console.error(
+        `[zone-list] Pathao responded ${zoneData.status} for city_id=${city_id}:`,
+        JSON.stringify(zoneResult),
+      );
+      throw new ApiError(
+        400,
+        zoneResult?.message || "Pathao থেকে Zone list আনা যায়নি।",
+      );
+    }
+
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Setting Get successfully !",
-      data: zoneResult?.data?.data,
+      data: zoneResult.data.data,
     });
   } catch (error: any) {
     next(error);
