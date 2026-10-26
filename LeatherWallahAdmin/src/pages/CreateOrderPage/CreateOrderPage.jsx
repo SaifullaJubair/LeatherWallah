@@ -459,7 +459,7 @@ const CreateOrderPage = () => {
     const customerPhone = isWalkIn ? walkInPhone : selectedCustomer?.user_phone;
     if (!customerPhone?.trim()) { toast.error("Customer phone is required."); return; }
     if (deliveryType === "delivery" && !billingAddress.trim()) { toast.error("Delivery address is required."); return; }
-    if (deliveryType === "delivery" && !selectedDistrictId) { toast.error("Please select a district."); return; }
+    if (deliveryType === "delivery" && !selectedDistrictId) { toast.error("Please select a city."); return; }
     if (deliveryType === "delivery" && !selectedUpazilaId) { toast.error("Please select an area."); return; }
 
     const districtName = geoDistricts.find((d) => String(d._id) === String(selectedDistrictId))?.name_en;
@@ -962,7 +962,7 @@ const CreateOrderPage = () => {
                     disabled={districtsGeoLoading || districtsGeoError}
                     className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blueColor-500 bg-white">
                     <option value="">
-                      {districtsGeoLoading ? "Loading districts…" : districtsGeoError ? "Districts unavailable" : "Select District *"}
+                      {districtsGeoLoading ? "Loading cities…" : districtsGeoError ? "Cities unavailable" : "Select City *"}
                     </option>
                     {geoDistricts.map((d) => <option key={d._id} value={d._id}>{d.name_en}</option>)}
                   </select>
@@ -981,7 +981,7 @@ const CreateOrderPage = () => {
                       a retry. */}
                   {districtsGeoError && (
                     <div className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                      <span>District list unavailable — you can still take the order.</span>
+                      <span>City list unavailable — you can still take the order.</span>
                       <button type="button" onClick={() => refetchDistricts()}
                         className="underline shrink-0 hover:text-amber-900">Retry</button>
                     </div>

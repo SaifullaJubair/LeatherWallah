@@ -316,7 +316,7 @@ const AddToCart = () => {
         return;
       }
       if (!district) {
-        toast.error("Please select a District.");
+        toast.error("Please select a City.");
         return;
       }
       if (!upazila) {

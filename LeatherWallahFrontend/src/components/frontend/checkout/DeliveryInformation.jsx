@@ -197,12 +197,12 @@ const DeliveryInformation = ({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
-              District <span className="text-primary">*</span>
+              City <span className="text-primary">*</span>
             </label>
             <Select
               id="district"
               name="district"
-              placeholder="Select district"
+              placeholder="Select city"
               options={districts}
               value={districtId ? { _id: districtId, name_en: district } : null}
               isLoading={districtsLoading}

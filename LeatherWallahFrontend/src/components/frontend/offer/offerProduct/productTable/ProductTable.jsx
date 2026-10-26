@@ -176,7 +176,7 @@ const ProductTable = ({ offerProducts, offer_id }) => {
       new Date().toISOString().split("T")[0] +
       " " +
       new Date().toLocaleTimeString();
-    if (!district) return toast.error("Please select a District.");
+    if (!district) return toast.error("Please select a City.");
     if (!upazila) return toast.error("Please select an Area.");
 
     // Order Unification Phase B — offer orders now go through the SAME

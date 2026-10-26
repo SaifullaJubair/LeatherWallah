@@ -254,7 +254,7 @@ const Addresses = () => {
               className="border px-3 py-2 text-sm rounded outline-primary"
             />
             <Select
-              placeholder="District"
+              placeholder="City"
               options={districtsResp?.data}
               value={form.district ? { name_en: form.district } : null}
               isLoading={districtsLoading}

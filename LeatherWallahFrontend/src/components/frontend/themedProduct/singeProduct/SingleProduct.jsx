@@ -557,7 +557,7 @@ const SingleProduct = ({ product, theme }) => {
       return;
     }
     if (!district || !districtId) {
-      toast.error("Please select a District.");
+      toast.error("Please select a City.");
       return;
     }
     if (!upazila || !upazilaId) {

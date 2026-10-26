@@ -193,7 +193,7 @@ const RightSideDeliveryInfo = ({
                 style={{ color: "var(--heading-color)" }}
               >
                 <FiMapPin size={12} style={{ color: "var(--brand-primary)" }} />
-                District
+                City
               </label>
               <Select
                 placeholder="Select"
