@@ -25,6 +25,7 @@ import mongoose from "mongoose";
 import { sendMetaEvent } from "../metaPixel/meta.pixel.service";
 import { sendOrderSMS_GuestUnverified, sendOrderSMS_VerifiedGuest } from "../../utils/send.order.sms";
 import { recomputeOrderTotals } from "./order.recompute";
+import { resolveGeoSnapshotServices } from "../geo/geo.services";
 import {
   decrementStockForLines,
   restockOrder,
@@ -239,6 +240,53 @@ export const postOrder: any = async (
     const verifyPhoneOnOrder = orderSetting?.verify_phone_on_order ?? false;
     if (verifyPhoneOnOrder && !requestData?.otp_verified) {
       throw new ApiError(400, "Phone verification required before placing an order.");
+    }
+
+    // Geo module — resolve the client-supplied geo_district_id/
+    // geo_upazila_id into a server-trusted name snapshot. THE NAMES ARE
+    // NEVER TAKEN FROM THE REQUEST (see geo.services.ts
+    // resolveGeoSnapshotServices for why: this is a public, unauthenticated
+    // route).
+    //
+    // Division dropped from the picker UI (owner decision, 2026-10-27) — the
+    // frontend now sends ONLY geo_district_id/geo_upazila_id, no
+    // billing_city/billing_state at all. So billing_state/billing_city are
+    // now DERIVED here from the resolved snapshot (division name / district-
+    // or-upazila name) rather than trusted from the request — this is what
+    // keeps order.recompute.ts's shipping-cost "dhaka" string-match working
+    // without the customer ever seeing a Division field (see
+    // docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md Phase 2/3 update).
+    // billing_address (the free-text house/road/area line) still comes
+    // straight from the client — that part never changed.
+    const geoSnapshot = await resolveGeoSnapshotServices(
+      requestData?.geo_upazila_id || requestData?.geo_district_id,
+    );
+    Object.assign(requestData, geoSnapshot);
+    if (geoSnapshot.geo_division_name) {
+      requestData.billing_state = geoSnapshot.geo_division_name;
+    }
+    if (geoSnapshot.geo_upazila_name || geoSnapshot.geo_district_name) {
+      requestData.billing_city =
+        geoSnapshot.geo_upazila_name || geoSnapshot.geo_district_name;
+    }
+
+    // Audit finding #8 (2026-10-26): there was previously no server-side
+    // check that a delivery order had ANY location at all — only a
+    // client-side toast. A delivery order (not POS pickup) with neither a
+    // resolvable geo id NOR a billing_city/billing_state now fails loudly
+    // here instead of silently placing with a blank destination. District
+    // AND upazila both required now that Division alone isn't offered as a
+    // fallback level in the picker.
+    if (
+      requestData?.delivery_type !== "pickup" &&
+      (!geoSnapshot.geo_district_id || !geoSnapshot.geo_upazila_id) &&
+      !requestData?.billing_city &&
+      !requestData?.billing_state
+    ) {
+      throw new ApiError(
+        400,
+        "Delivery location is required. Please select your District and Area.",
+      );
     }
 
     await findOrCreateUser(requestData, session);
@@ -508,6 +556,33 @@ export const postSingleOrder: any = async (
     const singleVerifyPhone = singleOrderSetting?.verify_phone_on_order ?? false;
     if (singleVerifyPhone && !requestData?.otp_verified) {
       throw new ApiError(400, "Phone verification required before placing an order.");
+    }
+
+    // Geo module — same server-trusted resolve + billing_state/billing_city
+    // derivation + delivery-location guard as postOrder above (see its
+    // comment for the full rationale). This route is what the PDP buy-now
+    // form (SingleProduct.jsx) posts to.
+    const singleGeoSnapshot = await resolveGeoSnapshotServices(
+      requestData?.geo_upazila_id || requestData?.geo_district_id,
+    );
+    Object.assign(requestData, singleGeoSnapshot);
+    if (singleGeoSnapshot.geo_division_name) {
+      requestData.billing_state = singleGeoSnapshot.geo_division_name;
+    }
+    if (singleGeoSnapshot.geo_upazila_name || singleGeoSnapshot.geo_district_name) {
+      requestData.billing_city =
+        singleGeoSnapshot.geo_upazila_name || singleGeoSnapshot.geo_district_name;
+    }
+    if (
+      requestData?.delivery_type !== "pickup" &&
+      (!singleGeoSnapshot.geo_district_id || !singleGeoSnapshot.geo_upazila_id) &&
+      !requestData?.billing_city &&
+      !requestData?.billing_state
+    ) {
+      throw new ApiError(
+        400,
+        "Delivery location is required. Please select your District and Area.",
+      );
     }
 
     await findOrCreateUser(requestData, session);
@@ -1262,6 +1337,18 @@ export const postAdminOrder: any = async (
     if (requestData?.delivery_type === "pickup") {
       requestData.shipping_cost = 0;
     }
+
+    // Geo module — resolve geo_district_id/geo_upazila_id into a
+    // server-trusted name snapshot (see postOrder's comment for the full
+    // rationale). No "location required" rejection here, unlike the public
+    // storefront routes: this is an authenticated admin route
+    // (verifyToken("order_create_admin")), a POS walk-in legitimately has no
+    // delivery geography at all, and the cashier already sees a client-side
+    // prompt — see CreateOrderPage.jsx.
+    const adminGeoSnapshot = await resolveGeoSnapshotServices(
+      requestData?.geo_upazila_id || requestData?.geo_district_id,
+    );
+    Object.assign(requestData, adminGeoSnapshot);
 
     // C13 HIGH 6 — min_order_amount still enforced for POS
     const adminOrderSetting = await getCachedSetting().catch(() => null);

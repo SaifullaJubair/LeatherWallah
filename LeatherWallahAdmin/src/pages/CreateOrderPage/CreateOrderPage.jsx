@@ -9,7 +9,6 @@ import POSReceipt from "./POSReceipt";
 import ProductQuickViewModal from "./ProductQuickViewModal";
 import { divisions } from "../../data/division-data";
 import { districts } from "../../data/district-data";
-import { cities as pathaoCities } from "../../data/pathao-city-data";
 import {
   FiSearch, FiX, FiPlus, FiMinus, FiShoppingCart,
   FiUser, FiTruck, FiTag, FiPrinter,
@@ -33,10 +32,6 @@ function useDebounce(value, delay = 400) {
 // with what actually gets charged. 0 is the safe fallback while /setting
 // is still loading — the cashier sees "…" rather than a wrong number.
 
-// Pathao's own id for Dhaka city. The server's zone check is a name match on
-// `billing_state` ("dhaka"), but we key the UI off the id because it is stable
-// even if Pathao ever relabels the city.
-const PATHAO_DHAKA_CITY_ID = 1;
 const PER_PAGE_OPTIONS = [20, 50, 100];
 
 const SkeletonCard = () => (
@@ -92,41 +87,6 @@ function resolveCustomerDivDistrict(customer) {
   return { divId: "", distId: "" };
 }
 
-// Map a saved customer onto a Pathao city. The POS now books against Pathao's
-// city/zone list (same as the storefront), but existing User docs only carry
-// the legacy free-text `user_division` / `user_district`, and those two fields
-// are known to hold each other's values on older records — hence we try both
-// against the Pathao city names before giving up. Returning "" just means the
-// cashier picks the city manually; it is never a hard failure.
-function resolveCustomerPathaoCity(customer) {
-  const normalize = (s) => (s || "").trim().toLowerCase();
-  const candidates = [customer?.user_division, customer?.user_district];
-
-  for (const candidate of candidates) {
-    if (!candidate) continue;
-    const city = pathaoCities.find(
-      (c) => normalize(c.city_name) === normalize(candidate),
-    );
-    if (city) return city;
-  }
-
-  // Legacy rescue: the stored value may be a DISTRICT (e.g. "Savar") whose
-  // parent division shares a Pathao city name. Resolve district → division,
-  // then division → Pathao city.
-  const { divId } = resolveCustomerDivDistrict(customer);
-  if (divId) {
-    const divName = divisions.find((d) => d.id === divId)?.name;
-    if (divName) {
-      const city = pathaoCities.find(
-        (c) => normalize(c.city_name) === normalize(divName),
-      );
-      if (city) return city;
-    }
-  }
-
-  return null;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 const CreateOrderPage = () => {
   const { user } = useContext(AuthContext);
@@ -160,13 +120,19 @@ const CreateOrderPage = () => {
   const customerRef = useRef(null);
 
   // ── Delivery ────────────────────────────────────────────────────
-  // City/zone mirror the storefront checkout so both channels speak Pathao's
-  // vocabulary. `cityId` drives the charge (Dhaka vs outside) AND the courier
-  // booking; `zoneId` is only needed by the courier, so it stays optional —
-  // see the zone query below for why that matters at a POS counter.
+  // District/Area mirror the storefront checkout's own geo picker (see
+  // docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md) instead of Pathao's live
+  // city/zone list — the POS must not depend on Pathao's API being up to
+  // take a sale. No Division dropdown — `selectedDivisionName` is DERIVED
+  // from the picked district's own `division_name_en` (attached
+  // server-side) and still drives the shipping charge (Dhaka vs outside, by
+  // NAME match — same rule as order.recompute.ts/the storefront, not a
+  // numeric Pathao id). District AND Area are both required for a delivery
+  // order.
   const [deliveryType, setDeliveryType] = useState("delivery");
-  const [selectedCityId, setSelectedCityId] = useState("");
-  const [selectedZoneId, setSelectedZoneId] = useState("");
+  const [selectedDivisionName, setSelectedDivisionName] = useState("");
+  const [selectedDistrictId, setSelectedDistrictId] = useState("");
+  const [selectedUpazilaId, setSelectedUpazilaId] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
 
   // ── Discount ────────────────────────────────────────────────────
@@ -229,34 +195,42 @@ const CreateOrderPage = () => {
   });
   const setting = settingData?.data?.[0] || {};
 
-  // ── Pathao zones for the chosen city ─────────────────────────────
-  // This hits Pathao's live API through the backend. It can legitimately fail
-  // (Pathao down, credentials not configured on a fresh shop) and the POS must
-  // survive that: the zone is only needed for courier booking, never for the
-  // price, so a failure downgrades to "book the courier later" instead of
+  // ── Geo tree: District (flat, all 64, no Division step) → Upazila ──
+  // Our own collection (see docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md), not
+  // Pathao's live API — the POS must not depend on Pathao's uptime to take a
+  // sale. Upazila is only needed for courier booking, never for the price,
+  // so a failure downgrades to "book the courier later" instead of
   // blocking the sale with a customer standing at the counter.
   const {
-    data: zoneData,
-    isLoading: zoneLoading,
-    isError: zoneError,
-    refetch: refetchZone,
+    data: districtsResp,
+    isLoading: districtsGeoLoading,
+    isError: districtsGeoError,
+    refetch: refetchDistricts,
   } = useQuery({
-    queryKey: ["pos-zones", selectedCityId],
+    queryKey: ["pos-geo-districts"],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/setting/zone?city_id=${selectedCityId}`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${BASE_URL}/geo/districts`, { credentials: "include" });
       const json = await res.json();
-      // The endpoint answers 200 even when the upstream lookup failed, so a
-      // non-array payload is treated as an error rather than "no zones".
-      if (!Array.isArray(json?.data)) throw new Error("Zone lookup failed");
+      if (!Array.isArray(json?.data)) throw new Error("District lookup failed");
       return json;
     },
-    enabled: deliveryType === "delivery" && !!selectedCityId,
     retry: 1,
     staleTime: 300_000,
   });
-  const zones = zoneData?.data || [];
+  const geoDistricts = districtsResp?.data || [];
+
+  const { data: upazilasResp, isLoading: upazilasGeoLoading } = useQuery({
+    queryKey: ["pos-geo-upazilas", selectedDistrictId],
+    queryFn: async () => {
+      const res = await fetch(`${BASE_URL}/geo/children?parent=${selectedDistrictId}`, {
+        credentials: "include",
+      });
+      return res.json();
+    },
+    enabled: deliveryType === "delivery" && !!selectedDistrictId,
+    staleTime: 300_000,
+  });
+  const geoUpazilas = upazilasResp?.data || [];
 
   // ── Customer search — block search if a customer is already selected ──
   useEffect(() => {
@@ -284,11 +258,12 @@ const CreateOrderPage = () => {
   const totalPages = Math.ceil(totalProducts / perPage);
   const categories = useMemo(() => (categoryData?.data || []).filter((c) => !c.parent_id), [categoryData]);
   const brands = useMemo(() => brandData?.data || [], [brandData]);
-  const selectedCity = useMemo(
-    () => pathaoCities.find((c) => String(c.city_id) === String(selectedCityId)) || null,
-    [selectedCityId],
-  );
-  const isInsideDhaka = Number(selectedCityId) === PATHAO_DHAKA_CITY_ID;
+  // Name match, same rule as order.recompute.ts's recomputeShippingCost and
+  // the storefront checkout — NOT a numeric Pathao id. selectedDivisionName
+  // is DERIVED from the picked district's own division_name_en (see the
+  // district <select>'s onChange below), not picked directly.
+  const isInsideDhaka =
+    String(selectedDivisionName || "").trim().toLowerCase() === "dhaka";
 
   // ── Totals ───────────────────────────────────────────────────────
   // Everything below mirrors the server's recompute (order.recompute.ts) so
@@ -312,7 +287,7 @@ const CreateOrderPage = () => {
   const shippingCost = useMemo(() => {
     if (deliveryType === "pickup") return 0;
     if (lines.length === 0) return 0;
-    if (!selectedCityId) return 0;
+    if (!selectedDistrictId) return 0;
 
     const zoneCharge = isInsideDhaka
       ? Number(setting.inside_dhaka_shipping_charge) || 0
@@ -358,14 +333,14 @@ const CreateOrderPage = () => {
       }
     }
     return total;
-  }, [deliveryType, lines, selectedCityId, isInsideDhaka, setting]);
+  }, [deliveryType, lines, selectedDistrictId, isInsideDhaka, setting]);
 
   const freeDeliveryApplied =
     deliveryType === "delivery" &&
     setting.free_delivery_enabled === true &&
     shippingCost === 0 &&
     lines.length > 0 &&
-    !!selectedCityId;
+    !!selectedDistrictId;
 
   // VAT — per line, on the post-discount amount, matching the server. The
   // discount is apportioned across lines by value so a line's tax follows what
@@ -449,14 +424,28 @@ const CreateOrderPage = () => {
     setShowCustomerDrop(false);
     // Auto-fill address
     if (c.user_address) setBillingAddress(c.user_address);
-    // Saved customers predate the Pathao city picker, so this is best-effort:
-    // no match just leaves the dropdown empty for the cashier to fill in.
-    const city = resolveCustomerPathaoCity(c);
-    if (city) {
-      setSelectedCityId(String(city.city_id));
-      setSelectedZoneId("");
+    // Saved customers predate the geo district picker, so this is
+    // best-effort: no match just leaves the dropdown empty for the cashier
+    // to fill in. Matched against the already-loaded districts list (runs
+    // unconditionally, see above) rather than a second fetch. District, not
+    // Division — there's no Division dropdown any more.
+    const { distId } = resolveCustomerDivDistrict(c);
+    const matchedDistrict = distId
+      ? geoDistricts.find((d) => {
+          const localDist = districts.find((ld) => ld.id === distId);
+          return (
+            localDist &&
+            String(d.name_en || "").trim().toLowerCase() ===
+              String(localDist.name || "").trim().toLowerCase()
+          );
+        })
+      : null;
+    if (matchedDistrict) {
+      setSelectedDistrictId(String(matchedDistrict._id));
+      setSelectedDivisionName(matchedDistrict.division_name_en || "");
+      setSelectedUpazilaId("");
     }
-  }, []);
+  }, [geoDistricts]);
 
   const handlePrint = useCallback(() => {
     if (lines.length === 0) { toast.error("Add products before printing."); return; }
@@ -470,9 +459,11 @@ const CreateOrderPage = () => {
     const customerPhone = isWalkIn ? walkInPhone : selectedCustomer?.user_phone;
     if (!customerPhone?.trim()) { toast.error("Customer phone is required."); return; }
     if (deliveryType === "delivery" && !billingAddress.trim()) { toast.error("Delivery address is required."); return; }
-    if (deliveryType === "delivery" && !selectedCityId) { toast.error("Please select a city."); return; }
+    if (deliveryType === "delivery" && !selectedDistrictId) { toast.error("Please select a district."); return; }
+    if (deliveryType === "delivery" && !selectedUpazilaId) { toast.error("Please select an area."); return; }
 
-    const zoneName = zones.find((z) => String(z.zone_id) === String(selectedZoneId))?.zone_name;
+    const districtName = geoDistricts.find((d) => String(d._id) === String(selectedDistrictId))?.name_en;
+    const upazilaName = geoUpazilas.find((u) => String(u._id) === String(selectedUpazilaId))?.name_en;
 
     const orderPayload = {
       order_source: "admin",
@@ -480,12 +471,12 @@ const CreateOrderPage = () => {
       customer_name: customerName,
       customer_phone: customerPhone,
       billing_country: "Bangladesh",
-      // billing_state MUST hold the city/division name: the server derives the
-      // shipping zone from it (order.recompute.ts). These two were previously
-      // swapped here, which is why the server's own recompute had to be
-      // overridden for POS orders.
-      billing_state: selectedCity?.city_name || "",
-      billing_city: zoneName || selectedCity?.city_name || "",
+      // billing_state MUST hold the division name: the server derives the
+      // shipping zone from it (order.recompute.ts) by matching "dhaka".
+      // selectedDivisionName is DERIVED from the picked district, not
+      // picked directly — no Division field any more.
+      billing_state: selectedDivisionName || "",
+      billing_city: upazilaName || districtName || selectedDivisionName || "",
       billing_address: deliveryType === "pickup" ? "Pickup" : billingAddress,
       shipping_location:
         deliveryType === "pickup"
@@ -495,20 +486,14 @@ const CreateOrderPage = () => {
             : `Outside Dhaka, ${setting.outside_dhaka_shipping_days || 0} Days`,
       shipping_cost: shippingCost,
       delivery_type: deliveryType,
-      // Courier booking needs these. POS orders never carried them before, so
-      // Pathao booking could not work at all from the counter. Zone stays
-      // optional: if the live lookup failed, the order is still taken and the
-      // zone can be set later from the order detail page.
-      ...(deliveryType === "delivery" && selectedCity
+      // Geo tree ids — resolved server-side into billing_state/billing_city
+      // AND a Pathao city_id/zone_id at dispatch time (see
+      // docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md Phase 5). No Division id —
+      // the backend derives it from geo_district_id's own ancestry.
+      ...(deliveryType === "delivery" && selectedDistrictId
         ? {
-            pathao_city_id: Number(selectedCity.city_id),
-            pathao_city_name: selectedCity.city_name,
-            ...(selectedZoneId
-              ? {
-                  pathao_zone_id: Number(selectedZoneId),
-                  pathao_zone_name: zoneName,
-                }
-              : {}),
+            geo_district_id: selectedDistrictId,
+            ...(selectedUpazilaId ? { geo_upazila_id: selectedUpazilaId } : {}),
           }
         : {}),
       sub_total_amount: subTotal,
@@ -965,32 +950,43 @@ const CreateOrderPage = () => {
               </div>
               {deliveryType === "delivery" && (
                 <div className="space-y-2">
-                  <select value={selectedCityId}
-                    onChange={(e) => { setSelectedCityId(e.target.value); setSelectedZoneId(""); }}
+                  {/* No Division dropdown — selectedDivisionName is derived
+                      from the picked district's own division_name_en below. */}
+                  <select value={selectedDistrictId}
+                    onChange={(e) => {
+                      const d = geoDistricts.find((x) => String(x._id) === e.target.value);
+                      setSelectedDistrictId(e.target.value);
+                      setSelectedDivisionName(d?.division_name_en || "");
+                      setSelectedUpazilaId("");
+                    }}
+                    disabled={districtsGeoLoading || districtsGeoError}
                     className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blueColor-500 bg-white">
-                    <option value="">Select City *</option>
-                    {pathaoCities.map((c) => <option key={c.city_id} value={c.city_id}>{c.city_name.trim()}</option>)}
+                    <option value="">
+                      {districtsGeoLoading ? "Loading districts…" : districtsGeoError ? "Districts unavailable" : "Select District *"}
+                    </option>
+                    {geoDistricts.map((d) => <option key={d._id} value={d._id}>{d.name_en}</option>)}
                   </select>
-                  <select value={selectedZoneId}
-                    onChange={(e) => setSelectedZoneId(e.target.value)}
-                    disabled={!selectedCityId || zoneLoading || zoneError}
+                  <select value={selectedUpazilaId}
+                    onChange={(e) => setSelectedUpazilaId(e.target.value)}
+                    disabled={!selectedDistrictId || upazilasGeoLoading}
                     className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blueColor-500 bg-white disabled:opacity-50">
                     <option value="">
-                      {zoneLoading ? "Loading zones…" : zoneError ? "Zones unavailable" : "Select Zone (for courier)"}
+                      {upazilasGeoLoading ? "Loading areas…" : "Select Area *"}
                     </option>
-                    {zones.map((z) => <option key={z.zone_id} value={z.zone_id}>{z.zone_name}</option>)}
+                    {geoUpazilas.map((u) => <option key={u._id} value={u._id}>{u.name_en}</option>)}
                   </select>
-                  {/* The zone lookup goes to Pathao live, so it can fail while
-                      the shop is perfectly able to sell. Never block the sale —
-                      say what is lost (courier booking) and offer a retry. */}
-                  {zoneError && (
+                  {/* Our own collection, not a live Pathao call, but the
+                      fetch itself can still fail (network blip). Never block
+                      the sale — say what is lost (courier booking) and offer
+                      a retry. */}
+                  {districtsGeoError && (
                     <div className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                      <span>Zone list unavailable — you can still take the order.</span>
-                      <button type="button" onClick={() => refetchZone()}
+                      <span>District list unavailable — you can still take the order.</span>
+                      <button type="button" onClick={() => refetchDistricts()}
                         className="underline shrink-0 hover:text-amber-900">Retry</button>
                     </div>
                   )}
-                  {selectedCityId && (
+                  {selectedDistrictId && (
                     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${isInsideDhaka ? "bg-green-50 text-green-700 border border-green-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
                       <span>{isInsideDhaka ? "✓" : "→"}</span>
                       <span>

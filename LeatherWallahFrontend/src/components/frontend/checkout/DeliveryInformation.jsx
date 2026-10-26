@@ -1,13 +1,13 @@
-import { cities } from "@/data/cites";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import Select from "react-select";
 import { FaMapMarkedAlt, FaStar } from "react-icons/fa";
 import { FiMapPin } from "react-icons/fi";
 import "react-phone-number-input/style.css";
 
-// Brand-matched react-select styling so City/Zone dropdowns line up with the
-// text inputs (same height, radius, burgundy focus). menuPortal z-index kept
-// at 999 exactly as before so the menu still renders above the sticky column.
+// Brand-matched react-select styling so District/Area dropdowns line up with
+// the text inputs (same height, radius, burgundy focus). menuPortal z-index
+// kept at 999 exactly as before so the menu still renders above the sticky
+// column.
 const selectStyles = {
   menuPortal: (base) => ({ ...base, zIndex: 999 }),
   control: (base, state) => ({
@@ -37,21 +37,26 @@ const DeliveryInformation = ({
   register,
   userInfo,
   errors,
-  districtsData,
   setUserPhoneLogin,
   customer_phone,
   setUserPhone,
-  setDivision,
-  setDistrictId,
-  setDivisionID,
-  division,
-  district,
+  // Geo picker — District + Area only, no Division field (owner decision,
+  // 2026-10-27, mirrors the FruitSnacks migration — see
+  // docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md). district/division keep their
+  // PRE-geo-module meaning (display NAME) so billing_city/billing_state and
+  // the shipping-cost string-match in order.recompute.ts stay untouched.
+  // division is DERIVED by the backend from the picked district, not picked
+  // here directly.
+  districts,
+  districtsLoading,
+  district, // selected district NAME — unchanged meaning
+  districtId, // selected district's geo_locations _id
   setDistrict,
-  setIsOpenDistrict,
-  isOpenDistrict,
-  refetchZone,
-  zoneLoading,
-  zoneData,
+  upazilas,
+  upazilasLoading,
+  upazila, // selected upazila NAME
+  upazilaId,
+  setUpazila,
   // S6 (2026-06-04) — saved-addresses picker. Both props are optional;
   // anonymous (FB-ads) checkout flows never receive them.
   savedAddresses = [],
@@ -184,28 +189,33 @@ const DeliveryInformation = ({
           )}
         </div>
 
-        {/* City + Zone side by side */}
+        {/* District + Area, cascading. Reads our own geo tree (no Pathao
+            credentials needed — see geo module), not Pathao's live
+            zone-list API. No Division field — the backend resolves it from
+            the picked district. Both fields required, both searchable
+            (react-select's built-in filter) and clearable. */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
-              City <span className="text-primary">*</span>
+              District <span className="text-primary">*</span>
             </label>
             <Select
-              id="city"
-              name="city"
-              placeholder="Select city"
-              options={cities}
-              value={division ? { city_name: division } : null}
-              getOptionLabel={(x) => x?.city_name}
-              getOptionValue={(x) => x?.city_id}
+              id="district"
+              name="district"
+              placeholder="Select district"
+              options={districts}
+              value={districtId ? { _id: districtId, name_en: district } : null}
+              isLoading={districtsLoading}
+              isClearable
+              getOptionLabel={(x) => x?.name_en}
+              getOptionValue={(x) => x?._id}
               onChange={(selectedOption) => {
-                refetchZone();
-                setIsOpenDistrict(false);
-                setDistrict();
-                setDistrictId();
-                setDivisionID(selectedOption?.city_id);
-                setDivision(selectedOption?.city_name);
-                setTimeout(() => setIsOpenDistrict(true), 100);
+                setUpazila?.(undefined, undefined);
+                setDistrict(
+                  selectedOption?._id,
+                  selectedOption?.name_en,
+                  selectedOption?.division_name_en,
+                );
               }}
               menuPortalTarget={document.body}
               styles={selectStyles}
@@ -213,21 +223,21 @@ const DeliveryInformation = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary/80 mb-1.5 uppercase tracking-wide">
-              Zone <span className="text-primary">*</span>
+              Area <span className="text-primary">*</span>
             </label>
             <Select
-              id="Zone"
-              name="Zone"
-              placeholder="Select zone"
-              options={zoneData?.data}
-              value={district ? { zone_name: district } : null}
-              isDisabled={!isOpenDistrict && !zoneLoading}
-              isLoading={zoneLoading}
-              getOptionLabel={(x) => x?.zone_name}
-              getOptionValue={(x) => x?.zone_id}
+              id="upazila"
+              name="upazila"
+              placeholder="Select area"
+              options={upazilas}
+              value={upazilaId ? { _id: upazilaId, name_en: upazila } : null}
+              isDisabled={!districtId}
+              isLoading={upazilasLoading}
+              isClearable
+              getOptionLabel={(x) => x?.name_en}
+              getOptionValue={(x) => x?._id}
               onChange={(selectedOption) => {
-                setDistrict(selectedOption?.zone_name);
-                setDistrictId(selectedOption?.zone_id);
+                setUpazila?.(selectedOption?._id, selectedOption?.name_en);
               }}
               menuPortalTarget={document.body}
               styles={selectStyles}

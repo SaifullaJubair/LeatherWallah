@@ -5,8 +5,9 @@ import { useUserInfoQuery } from "@/redux/feature/auth/authApi";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import OfferSummary from "./OfferSummary";
-import { districts } from "@/data/districts";
 import { normalizeBdPhone } from "@/utils/phone";
+import useGetGeoChildren from "@/components/lib/getGeoChildren";
+import useGetAllDistricts from "@/components/lib/getAllDistricts";
 import useGetSettingData from "@/components/lib/getSettingData";
 import { toast } from "react-toastify";
 import { BASE_URL } from "@/components/utils/baseURL";
@@ -23,17 +24,28 @@ const ProductTable = ({ offerProducts, offer_id }) => {
   const navigate = useRouter();
   const [selectedVariations, setSelectedVariations] = useState({});
   const { data: userInfo, isLoading: userGetLoading } = useUserInfoQuery();
-  const [districtsData, setDistrictsData] = useState([]);
-  const [districtId, setDistrictId] = useState("");
-  const [division, setDivision] = useState(userInfo?.data?.user_division);
+  // Geo picker state — District + Area only, no Division field (owner
+  // decision, 2026-10-27). Same pattern as AddToCart.jsx / SingleProduct.jsx.
+  // division/district keep their pre-geo-module meaning (display NAME);
+  // division is DERIVED from the picked district. *Id fields are the
+  // geo_locations _id, resolved server-side into a Pathao city_id/zone_id
+  // at dispatch time (Phase 5).
+  const [division, setDivision] = useState(userInfo?.data?.user_division); // derived
+  const [districtId, setDistrictId] = useState();
   const [district, setDistrict] = useState(userInfo?.data?.user_district);
-  const [isOpenDistrict, setIsOpenDistrict] = useState(true);
+  const [upazilaId, setUpazilaId] = useState();
+  const [upazila, setUpazila] = useState();
   const [loading, setLoading] = useState(false);
   const [totalDiscount, setTotalDiscount] = useState(0);
   const [shopSubtotals, setShopSubtotals] = useState(0);
   const [shopTotal, setShopTotal] = useState(0);
   const [shopGrandTotals, setShopGrandTotals] = useState(0);
   const { data: settingData, isLoading: settingLoading } = useGetSettingData();
+
+  const { data: districtsResp, isLoading: districtsLoading } =
+    useGetAllDistricts();
+  const { data: upazilasResp, isLoading: upazilasLoading } =
+    useGetGeoChildren(districtId);
 
   // console.log(offerProducts);
   useEffect(() => {
@@ -42,15 +54,6 @@ const ProductTable = ({ offerProducts, offer_id }) => {
       setDistrict(userInfo?.data?.user_district);
     }
   }, [userInfo]);
-
-  useEffect(() => {
-    if (districtId) {
-      const districtData = districts.filter(
-        (district) => district?.division_id === districtId
-      );
-      setDistrictsData(districtData);
-    }
-  }, [districtId]);
   // Initialize selected variations
   useEffect(() => {
     const initialSelections = {};
@@ -173,8 +176,8 @@ const ProductTable = ({ offerProducts, offer_id }) => {
       new Date().toISOString().split("T")[0] +
       " " +
       new Date().toLocaleTimeString();
-    if (!district || !division)
-      return toast.error("Please select a district and division.");
+    if (!district) return toast.error("Please select a District.");
+    if (!upazila) return toast.error("Please select an Area.");
 
     // Order Unification Phase B — offer orders now go through the SAME
     // /order endpoint as regular orders (order_type:"offer" + offer_id). The
@@ -195,6 +198,12 @@ const ProductTable = ({ offerProducts, offer_id }) => {
       billing_city: district || userInfo?.data?.user_district,
       billing_state: division || userInfo?.data?.user_division,
       billing_address: data?.address,
+      // Geo tree ids — resolved server-side into billing_state/billing_city
+      // AND a Pathao city_id/zone_id at dispatch time (see
+      // docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md Phase 5). No Division id —
+      // the backend derives it from geo_district_id's own ancestry.
+      geo_district_id: districtId || null,
+      geo_upazila_id: upazilaId || null,
       shipping_location:
         division === "Dhaka"
           ? ` Inside Dhaka, ${settingData?.data[0]?.inside_dhaka_shipping_days} Days`
@@ -420,14 +429,23 @@ const ProductTable = ({ offerProducts, offer_id }) => {
                   register={register}
                   userInfo={userInfo}
                   errors={errors}
-                  setDivision={setDivision}
-                  setDistrictId={setDistrictId}
-                  setDistrict={setDistrict}
-                  setIsOpenDistrict={setIsOpenDistrict}
-                  isOpenDistrict={isOpenDistrict}
-                  districtsData={districtsData}
-                  division={division}
+                  districts={districtsResp?.data}
+                  districtsLoading={districtsLoading}
                   district={district}
+                  districtId={districtId}
+                  setDistrict={(id, name, divisionName) => {
+                    setDistrictId(id);
+                    setDistrict(name);
+                    setDivision(divisionName);
+                  }}
+                  upazilas={upazilasResp?.data}
+                  upazilasLoading={upazilasLoading}
+                  upazila={upazila}
+                  upazilaId={upazilaId}
+                  setUpazila={(id, name) => {
+                    setUpazilaId(id);
+                    setUpazila(name);
+                  }}
                 />
               </div>
             </div>

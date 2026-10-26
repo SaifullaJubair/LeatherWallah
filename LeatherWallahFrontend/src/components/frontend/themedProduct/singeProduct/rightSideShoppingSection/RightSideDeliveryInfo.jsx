@@ -1,5 +1,4 @@
 "use client";
-import { cities } from "@/data/cites";
 import { useEffect, useState } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 import Skeleton from "react-loading-skeleton";
@@ -51,14 +50,22 @@ const RightSideDeliveryInfo = ({
   register,
   userInfo,
   errors,
-  setDivision,
-  setDistrictId,
-  setDivisionID,
-  setDistrict,
-  setIsOpenDistrict,
-  isOpenDistrict,
-  division,
+  // Geo picker — District + Area only, no Division field (owner decision,
+  // 2026-10-27). district/division keep their PRE-geo-module meaning
+  // (display NAME) so billing_city/billing_state and the shipping-cost
+  // string-match stay untouched — see docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md.
+  // division is DERIVED by the parent from the picked district, not picked
+  // here directly.
+  districts,
+  districtsLoading,
   district,
+  districtId,
+  setDistrict,
+  upazilas,
+  upazilasLoading,
+  upazila,
+  upazilaId,
+  setUpazila,
   watch,
   loading,
   isAccordionOpen,
@@ -66,8 +73,6 @@ const RightSideDeliveryInfo = ({
   customer_phone,
   setUserPhone,
   setUserPhoneLogin,
-  zoneLoading,
-  zoneData,
 }) => {
   if (loading) {
     return (
@@ -175,8 +180,12 @@ const RightSideDeliveryInfo = ({
             )}
           </div>
 
-          {/* District + Thana — stack on mobile (the "সিলেক্ট করুন" label wraps
-              and breaks when squeezed into 2 narrow columns), 2-up on sm+. */}
+          {/* District + Area — stack on mobile (the "Select" label wraps and
+              breaks when squeezed into 2 narrow columns), 2-up on sm+. No
+              Division field — the backend derives it from the picked
+              district. Reads our own geo tree, not Pathao's live API — see
+              geo module / docs/_ai/GEO_LOCATION_SELF_HOSTED_PLAN.md. Both
+              fields required, both searchable + clearable. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label
@@ -188,17 +197,15 @@ const RightSideDeliveryInfo = ({
               </label>
               <Select
                 placeholder="Select"
-                options={cities}
-                value={division ? { city_name: division } : null}
-                getOptionLabel={(x) => x?.city_name}
-                getOptionValue={(x) => x?.city_id}
+                options={districts}
+                value={districtId ? { _id: districtId, name_en: district } : null}
+                getOptionLabel={(x) => x?.name_en}
+                getOptionValue={(x) => x?._id}
+                isLoading={districtsLoading}
+                isClearable
                 onChange={(opt) => {
-                  setIsOpenDistrict(false);
-                  setDistrict(undefined);
-                  setDistrictId(undefined);
-                  setDivision(opt?.city_name);
-                  setDivisionID(opt?.city_id); // ✅ এটা set হলেই useGetZoneData auto fetch করবে
-                  setTimeout(() => setIsOpenDistrict(true), 50);
+                  setUpazila?.(undefined, undefined);
+                  setDistrict(opt?._id, opt?.name_en, opt?.division_name_en);
                 }}
                 styles={selectStyles}
                 menuPortalTarget={
@@ -206,33 +213,32 @@ const RightSideDeliveryInfo = ({
                 }
               />
             </div>
-            {(isOpenDistrict || zoneLoading) && (
-              <div>
-                <label
-                  className="flex items-center gap-1.5 text-xs font-bold mb-1.5"
-                  style={{ color: "var(--heading-color)" }}
-                >
-                  <FiMapPin size={12} style={{ color: "var(--brand-primary)" }} />
-                  Thana / Area
-                </label>
-                <Select
-                  placeholder="Select"
-                  options={zoneData?.data}
-                  value={district ? { zone_name: district } : null}
-                  getOptionLabel={(x) => x?.zone_name}
-                  getOptionValue={(x) => x?.zone_id}
-                  isLoading={zoneLoading}
-                  onChange={(opt) => {
-                    setDistrict(opt?.zone_name);
-                    setDistrictId(opt?.zone_id);
-                  }}
-                  styles={selectStyles}
-                  menuPortalTarget={
-                    typeof document !== "undefined" ? document.body : null
-                  }
-                />
-              </div>
-            )}
+            <div>
+              <label
+                className="flex items-center gap-1.5 text-xs font-bold mb-1.5"
+                style={{ color: "var(--heading-color)" }}
+              >
+                <FiMapPin size={12} style={{ color: "var(--brand-primary)" }} />
+                Area
+              </label>
+              <Select
+                placeholder="Select"
+                options={upazilas}
+                value={upazilaId ? { _id: upazilaId, name_en: upazila } : null}
+                isDisabled={!districtId}
+                getOptionLabel={(x) => x?.name_en}
+                getOptionValue={(x) => x?._id}
+                isLoading={upazilasLoading}
+                isClearable
+                onChange={(opt) => {
+                  setUpazila?.(opt?._id, opt?.name_en);
+                }}
+                styles={selectStyles}
+                menuPortalTarget={
+                  typeof document !== "undefined" ? document.body : null
+                }
+              />
+            </div>
           </div>
 
           {/* Address */}

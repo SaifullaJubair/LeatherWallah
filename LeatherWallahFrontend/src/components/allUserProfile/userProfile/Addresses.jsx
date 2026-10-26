@@ -28,8 +28,7 @@ import {
   FaCheck,
 } from "react-icons/fa";
 import { BASE_URL } from "@/components/utils/baseURL";
-import { cities } from "@/data/cites";
-import useGetZoneData from "@/components/lib/getZoneData";
+import useGetAllDistricts from "@/components/lib/getAllDistricts";
 
 const emptyForm = {
   label: "",
@@ -48,9 +47,14 @@ const Addresses = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
-  const [divisionID, setDivisionID] = useState(null);
-  const [isZoneOpen, setIsZoneOpen] = useState(true);
-  const { data: zoneData, isLoading: zoneLoading } = useGetZoneData(divisionID);
+  // Geo picker — District only, no Division field (owner decision,
+  // 2026-10-27). form.division/form.district stay NAME-only, same as before
+  // this module — the address schema is name-based, not id-based. form.division
+  // is set from the picked district's own division_name_en (attached
+  // server-side, see geo.services.ts findAllDistrictsServices).
+  const [districtId, setDistrictId] = useState(null);
+  const { data: districtsResp, isLoading: districtsLoading } =
+    useGetAllDistricts();
 
   const fetchList = async () => {
     setLoading(true);
@@ -75,8 +79,7 @@ const Addresses = () => {
   const openAdd = () => {
     setEditingId(null);
     setForm({ ...emptyForm, is_default: list.length === 0 });
-    setDivisionID(null);
-    setIsZoneOpen(true);
+    setDistrictId(null);
     setShowForm(true);
   };
 
@@ -91,8 +94,10 @@ const Addresses = () => {
       address_line: addr.address_line || "",
       is_default: !!addr.is_default,
     });
-    setDivisionID(null);
-    setIsZoneOpen(true);
+    // Existing addresses carry no geo_locations id (name-only schema, see
+    // note above) — the dropdown can't pre-select by id, the name still
+    // shows via form.district read-only until re-picked.
+    setDistrictId(null);
     setShowForm(true);
   };
 
@@ -249,30 +254,23 @@ const Addresses = () => {
               className="border px-3 py-2 text-sm rounded outline-primary"
             />
             <Select
-              placeholder="City"
-              options={cities}
-              value={form.division ? { city_name: form.division } : null}
-              getOptionLabel={(x) => x?.city_name}
-              getOptionValue={(x) => x?.city_id}
+              placeholder="District"
+              options={districtsResp?.data}
+              value={form.district ? { name_en: form.district } : null}
+              isLoading={districtsLoading}
+              isClearable
+              getOptionLabel={(x) => x?.name_en}
+              getOptionValue={(x) => x?._id}
               onChange={(opt) => {
-                setIsZoneOpen(false);
-                setForm({ ...form, division: opt?.city_name || "", district: "" });
-                setDivisionID(opt?.city_id);
-                setTimeout(() => setIsZoneOpen(true), 100);
-              }}
-              menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-              styles={{ menuPortal: (base) => ({ ...base, zIndex: 999 }) }}
-            />
-            <Select
-              placeholder="Zone / Thana"
-              options={zoneData?.data}
-              value={form.district ? { zone_name: form.district } : null}
-              isDisabled={!isZoneOpen || !divisionID}
-              isLoading={zoneLoading}
-              getOptionLabel={(x) => x?.zone_name}
-              getOptionValue={(x) => x?.zone_id}
-              onChange={(opt) => {
-                setForm({ ...form, district: opt?.zone_name || "" });
+                // Division is derived from the picked district's own
+                // division_name_en, not picked directly — no Division field
+                // here any more (owner decision, 2026-10-27).
+                setForm({
+                  ...form,
+                  district: opt?.name_en || "",
+                  division: opt?.division_name_en || "",
+                });
+                setDistrictId(opt?._id || null);
               }}
               menuPortalTarget={typeof document !== "undefined" ? document.body : null}
               styles={{ menuPortal: (base) => ({ ...base, zIndex: 999 }) }}
