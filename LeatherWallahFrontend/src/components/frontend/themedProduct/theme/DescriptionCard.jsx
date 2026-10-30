@@ -124,13 +124,13 @@ export default function DescriptionCard({ html, customFields = [] }) {
   const specClamped = specMightOverflow && specOverflows && !specExpanded;
 
   return (
-    <section className="mb-8">
+    <section className="mb-4 md:mb-8">
       {/* Two columns on desktop; stack on mobile. items-stretch makes the two
           white cards share the row's height so they line up. Each side clamps
           its own content to the SAME cap and grows its own toggle, so whichever
           one is longer no longer decides the row's height. If only one side has
           data it spans on its own. */}
-      <div className="grid md:grid-cols-2 gap-6 items-stretch">
+      <div className="grid md:grid-cols-2 gap-4 md:gap-6 items-stretch">
         {/* LEFT — description */}
         {hasHtml && (
           <div className="flex flex-col">

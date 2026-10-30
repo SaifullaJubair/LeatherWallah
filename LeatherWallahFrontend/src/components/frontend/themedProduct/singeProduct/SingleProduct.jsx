@@ -48,10 +48,10 @@ import {
 import useGetGeoChildren from "@/components/lib/getGeoChildren";
 import useGetAllDistricts from "@/components/lib/getAllDistricts";
 import "react-phone-number-input/style.css";
-import { FaHeart, FaRegHeart, FaStar, FaLock } from "react-icons/fa";
+import { FaHeart, FaRegHeart, FaStar, FaLock, FaQuestionCircle } from "react-icons/fa";
+import { HiX } from "react-icons/hi";
 import { HiMinus, HiOutlinePlus } from "react-icons/hi";
 import { BsCart, BsCartCheckFill } from "react-icons/bs";
-import { GoGitCompare } from "react-icons/go";
 
 // ✅ একটাই analytics hook — সব platform
 import useAnalytics from "@/components/analyticsScripts/utils/useAnalytics";
@@ -95,6 +95,9 @@ const SingleProduct = ({ product, theme }) => {
   const [isAccordionOpen, setIsAccordionOpen] = useState(true);
   const [showChart, setShowChart] = useState(false);
   const [cartAnim, setCartAnim] = useState(false);
+  // Order confirmation modal — gates the actual submit (see onFormSubmit).
+  const [showOrderConfirm, setShowOrderConfirm] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState(null);
   const navigate = useRouter();
   // ── URL ↔ variation sync ──────────────────────────────────────────────────
   // Pattern: /products/:slug?size=m&color=jet-black
@@ -166,7 +169,6 @@ const SingleProduct = ({ product, theme }) => {
   const [lineThoughPrice, setLineThoughPrice] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isCompare, setIsCompare] = useState(false);
   const cartProducts = useSelector((state) => state.cart.products);
   const dispatch = useDispatch();
   const { data: districtsResp, isLoading: districtsLoading } =
@@ -423,20 +425,12 @@ const SingleProduct = ({ product, theme }) => {
     );
   };
 
-  // Wishlist & compare sync
+  // Wishlist sync
   useEffect(() => {
     try {
       const w = JSON.parse(localStorage.getItem("wishlist")) || [];
-      const c = JSON.parse(localStorage.getItem("compare")) || [];
       setIsWishlisted(
         w.some(
-          (i) =>
-            i.productId === product?._id &&
-            i.variation_product_id === (variationProduct?._id || null),
-        ),
-      );
-      setIsCompare(
-        c.some(
           (i) =>
             i.productId === product?._id &&
             i.variation_product_id === (variationProduct?._id || null),
@@ -487,33 +481,6 @@ const SingleProduct = ({ product, theme }) => {
     window.dispatchEvent(new Event("localStorageUpdated"));
   };
 
-  const handleAddToCompare = () => {
-    const item = {
-      productId: product?._id,
-      variation_product_id: variationProduct?._id || null,
-    };
-    let list = [];
-    try {
-      list = JSON.parse(localStorage.getItem("compare")) || [];
-    } catch (e) {}
-    const idx = list.findIndex(
-      (i) =>
-        i.productId === product?._id &&
-        i.variation_product_id === (variationProduct?._id || null),
-    );
-    if (idx !== -1) {
-      list.splice(idx, 1);
-      setIsCompare(false);
-      toast.error("Removed from compare", { autoClose: 1500 });
-    } else {
-      list.push(item);
-      setIsCompare(true);
-      toast.success("Added to compare", { autoClose: 1500 });
-    }
-    localStorage.setItem("compare", JSON.stringify(list));
-    window.dispatchEvent(new Event("localStorageUpdated"));
-  };
-
   useEffect(() => {
     // Subtotal is the pre-discount line total, so it uses the struck-out price
     // when there is one. `> 0` rather than `!= null`: a 0 is not a price, and
@@ -533,7 +500,9 @@ const SingleProduct = ({ product, theme }) => {
   }, [errors]);
 
   // ✅ Order submit — Purchase
-  const handleOrderProduct = async (data) => {
+  // Shared by both the pre-modal gate and the actual submit, so the two
+  // can't drift. Returns true when the form is ready to order.
+  const validateOrderFields = () => {
     if (!userPhoneLogin) {
       if (customer_phone) {
         if (
@@ -545,7 +514,7 @@ const SingleProduct = ({ product, theme }) => {
             position: "top-center",
             autoClose: 2000,
           });
-          return;
+          return false;
         }
       }
     }
@@ -554,16 +523,30 @@ const SingleProduct = ({ product, theme }) => {
         position: "top-center",
         autoClose: 2000,
       });
-      return;
+      return false;
     }
     if (!district || !districtId) {
       toast.error("Please select a City.");
-      return;
+      return false;
     }
     if (!upazila || !upazilaId) {
       toast.error("Please select an Area.");
-      return;
+      return false;
     }
+    return true;
+  };
+
+  // react-hook-form calls this on submit. Instead of placing the order right
+  // away, it validates then opens the confirmation modal; the modal's own
+  // "Place Order" button is what actually calls handleOrderProduct.
+  const onFormSubmit = (data) => {
+    if (!validateOrderFields()) return;
+    setPendingOrderData(data);
+    setShowOrderConfirm(true);
+  };
+
+  const handleOrderProduct = async (data) => {
+    if (!validateOrderFields()) return;
 
     const today =
       new Date().toISOString().split("T")[0] +
@@ -683,6 +666,85 @@ const SingleProduct = ({ product, theme }) => {
       : 0;
   const variantName = variationProduct?.variation_name || product?.product_name;
 
+  // Price breakdown + Confirm Order — rendered twice (desktop: left column
+  // below Add to Cart; mobile: right after the delivery form) so the button
+  // always sits right after whichever section the buyer sees last. Defined
+  // once here so both spots stay in sync.
+  const confirmOrderBlock = (
+    <>
+      {/* Price breakdown — folded into this card (no separate summary box) */}
+      <div
+        className="rounded-xl p-4 space-y-2 text-sm"
+        style={{ background: "#fff", color: "var(--body-color)" }}
+      >
+        <div className="flex justify-between">
+          <span>Subtotal</span>
+          <span>{currencySymbol}{shopSubtotals}</span>
+        </div>
+        {totalDiscount > 0 && (
+          <div className="flex justify-between text-emerald-600">
+            <span>Discount</span>
+            <span>- {currencySymbol}{totalDiscount}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span>Delivery Charge</span>
+          <span>
+            {division ? `${currencySymbol}${shippingCharge}` : "Select area"}
+          </span>
+        </div>
+        <div
+          className="flex justify-between items-center pt-2 mt-1 border-t border-dashed"
+          style={{ borderColor: "var(--brand-primary-light)" }}
+        >
+          <span className="font-bold" style={{ color: "var(--heading-color)" }}>
+            Grand Total
+          </span>
+          <span className="text-2xl font-black" style={{ color: "var(--brand-primary)" }}>
+            {currencySymbol}{shopGrandTotals}
+          </span>
+        </div>
+      </div>
+
+      {/* Confirm order */}
+      {loading ? (
+        <div
+          className="w-full py-3.5 flex items-center justify-center gap-2 text-sm font-bold rounded-xl"
+          style={{ background: "var(--brand-primary)", color: "var(--button-text,#fff)", opacity: 0.8 }}
+        >
+          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          Placing order...
+        </div>
+      ) : stock > 0 ? (
+        <button
+          type="submit"
+          className="w-full py-3.5 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:scale-[1.01] active:scale-[0.99]"
+          style={{
+            background: "var(--brand-primary)",
+            color: "var(--button-text, #fff)",
+            borderRadius: "var(--button-radius, 8px)",
+          }}
+        >
+          Confirm Order <FaLock size={13} />
+        </button>
+      ) : (
+        <div className="w-full py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500 rounded-xl">
+          Out of Stock
+        </div>
+      )}
+      <p className="text-center text-[11px]" style={{ color: "var(--body-color)", opacity: 0.6 }}>
+        Your information is 100% safe and private
+      </p>
+    </>
+  );
+
+  // Human-readable "Size: 39, Color: Chocolate" from the currently selected
+  // variation axes, for the confirmation modal.
+  const selectedVariationLabel = Object.entries(selectedVariations || {})
+    .map(([axisName, value]) => value?.attribute_value_name && `${axisName}: ${value.attribute_value_name}`)
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <div
       className="overflow-x-hidden"
@@ -701,10 +763,116 @@ const SingleProduct = ({ product, theme }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(handleOrderProduct)}>
+      {/* Order confirmation modal — gates the actual submit. Compact by
+          design (no internal scroll on mobile): a short centered card, not a
+          full sheet. "Place Order" calls handleOrderProduct directly with
+          the data react-hook-form already validated and captured. */}
+      {showOrderConfirm && pendingOrderData && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          style={{ background: "rgba(17, 17, 17, 0.55)" }}
+          onClick={() => setShowOrderConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-5 py-3.5"
+              style={{ background: "var(--brand-primary)" }}
+            >
+              <span className="inline-flex items-center gap-2 text-sm font-bold text-white">
+                <FaQuestionCircle size={16} />
+                Confirm Your Order
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowOrderConfirm(false)}
+                className="p-1 rounded-full hover:bg-white/15 transition-colors text-white"
+                aria-label="Close"
+              >
+                <HiX size={18} />
+              </button>
+            </div>
+
+            {/* Product summary */}
+            <div className="px-5 pt-4 flex items-center gap-3">
+              {(variationProduct?.variation_image || product?.main_image) && (
+                <img
+                  src={variationProduct?.variation_image || product?.main_image}
+                  alt=""
+                  className="w-14 h-14 rounded-xl object-cover shrink-0 border"
+                  style={{ borderColor: "var(--brand-primary-light)" }}
+                />
+              )}
+              <div className="min-w-0">
+                <p
+                  className="text-sm font-bold leading-snug line-clamp-2"
+                  style={{ color: "var(--heading-color)" }}
+                >
+                  {product?.product_name}
+                </p>
+                {selectedVariationLabel && (
+                  <p className="text-xs font-semibold mt-0.5" style={{ color: "var(--body-color)" }}>
+                    {selectedVariationLabel}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Qty + Total — highlighted box */}
+            <div className="px-5 pt-3">
+              <div
+                className="flex items-center justify-between rounded-xl px-4 py-3"
+                style={{ background: "var(--section-bg, #F4F4F4)" }}
+              >
+                <span className="text-sm font-semibold" style={{ color: "var(--body-color)" }}>
+                  Qty: <span className="text-base font-black" style={{ color: "var(--heading-color)" }}>{quantity}</span>
+                </span>
+                <span className="text-xl font-black" style={{ color: "var(--brand-primary)" }}>
+                  {currencySymbol}{shopGrandTotals}
+                </span>
+              </div>
+            </div>
+
+            <p className="px-5 pt-3 text-sm text-center" style={{ color: "var(--body-color)" }}>
+              Are you sure you want to place this order?
+            </p>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2.5 px-5 pt-4 pb-5">
+              <button
+                type="button"
+                onClick={() => setShowOrderConfirm(false)}
+                className="flex-1 py-2.5 text-sm font-bold border-2 rounded-xl transition-all hover:bg-gray-50"
+                style={{ borderColor: "#e5e7eb", color: "var(--body-color)" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOrderConfirm(false);
+                  handleOrderProduct(pendingOrderData);
+                }}
+                className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-sm font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: "var(--brand-primary)",
+                  color: "var(--button-text, #fff)",
+                }}
+              >
+                Place Order <FaLock size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onFormSubmit)}>
         <div className="max-w-6xl mx-auto px-4">
           {/* ════════════ HERO ════════════ */}
-          <section className="relative overflow-hidden py-6 md:py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <section className="relative overflow-hidden pt-6 pb-2 md:py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Hero floats anchor to the whole section. On large screens the
                 grid is side-by-side so left-aligned floats sit over the text
                 column (above the badge — the spot that looked good). On mobile
@@ -714,7 +882,7 @@ const SingleProduct = ({ product, theme }) => {
                 product image instead of being buried under it. */}
             <FloatingAssets assets={theme?.floating_assets} section="hero" />
             {/* Left — text */}
-            <div className="space-y-4 order-2 lg:order-1 relative z-10">
+            <div className="space-y-2.5 md:space-y-4 order-2 lg:order-1 relative z-10">
               {product?.badge_text && (
                 <span
                   className="inline-block text-xs font-semibold px-3 py-1 rounded-full"
@@ -728,7 +896,7 @@ const SingleProduct = ({ product, theme }) => {
               )}
 
               <h1
-                className="text-3xl md:text-5xl font-black leading-tight"
+                className="text-2xl md:text-5xl font-black leading-tight"
                 style={{
                   color: "var(--heading-color)",
                   fontWeight: "var(--brand-heading-weight, 700)",
@@ -813,26 +981,31 @@ const SingleProduct = ({ product, theme }) => {
                 )}
               </div>
 
-              {/* F2 — PDP price meta: flash countdown + sold count + tier + group hint. */}
-              <PdpPriceMeta
-                product={product}
-                currencySymbol={currencySymbol}
-                showSoldCount={showSoldCount}
-                showViewCount={showViewCount}
-              />
+              {/* Mobile: price-meta (e.g. viewing badge) + SKU sit side-by-side on
+                  one row to save vertical height. Desktop keeps the original
+                  stacked order (price-meta block, then SKU below it). */}
+              <div className="flex items-center justify-between flex-wrap gap-x-3 gap-y-1 md:block md:space-y-0">
+                {/* F2 — PDP price meta: flash countdown + sold count + tier + group hint. */}
+                <PdpPriceMeta
+                  product={product}
+                  currencySymbol={currencySymbol}
+                  showSoldCount={showSoldCount}
+                  showViewCount={showViewCount}
+                />
 
-              {/* SKU display — variation_sku when a specific variation is
-                  selected, otherwise the parent product_sku. Industry standard
-                  (Shopify pattern): small grey text below price for buyer
-                  reference + customer-support handoff. */}
-              {(variationProduct?.variation_sku || product?.product_sku) && (
-                <p className="text-xs text-gray-400 mt-1">
-                  SKU:{" "}
-                  <code className="font-mono text-gray-500 select-all">
-                    {variationProduct?.variation_sku || product?.product_sku}
-                  </code>
-                </p>
-              )}
+                {/* SKU display — variation_sku when a specific variation is
+                    selected, otherwise the parent product_sku. Industry standard
+                    (Shopify pattern): small grey text below price for buyer
+                    reference + customer-support handoff. */}
+                {(variationProduct?.variation_sku || product?.product_sku) && (
+                  <p className="text-xs text-gray-400 md:mt-1">
+                    SKU:{" "}
+                    <code className="font-mono text-gray-500 select-all">
+                      {variationProduct?.variation_sku || product?.product_sku}
+                    </code>
+                  </p>
+                )}
+              </div>
 
               {/* Rating */}
               {(product?.avarage_review_ratting > 0 ||
@@ -866,8 +1039,10 @@ const SingleProduct = ({ product, theme }) => {
                 </div>
               )}
 
-              {/* Hero CTAs — scroll to order section */}
-              <div className="flex flex-wrap gap-3 pt-2">
+              {/* Hero CTAs — scroll to order section. Hidden on mobile: the
+                  Order Now section below is already one scroll away, and
+                  removing this row shortens the mobile hero significantly. */}
+              <div className="hidden md:flex flex-wrap gap-3 pt-2">
                 <a
                   href="#order-section"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold transition-all hover:scale-[1.02]"
@@ -914,7 +1089,7 @@ const SingleProduct = ({ product, theme }) => {
           {/* ════════════ ORDER SECTION ════════════ */}
           <section
             id="order-section"
-            className="relative overflow-hidden rounded-2xl p-5 md:p-7 mb-8 scroll-mt-20"
+            className="relative overflow-hidden rounded-2xl p-5 md:p-7 mb-4 md:mb-8 scroll-mt-20"
             style={{ background: "var(--section-bg, #fff)" }}
           >
             {/* Theme floats anchored to the "order" section. Needs the relative
@@ -1065,9 +1240,22 @@ const SingleProduct = ({ product, theme }) => {
                   </div>
                 </div>
 
-                {/* Add to cart + wishlist + compare */}
+                {/* Order Now (scrolls to the delivery form below) + Add to Cart
+                    + wishlist. Compare removed from this row (owner request,
+                    2026-10-31) — hidden on all devices. */}
                 {stock > 0 && (
                   <div className="flex items-center gap-2">
+                    <a
+                      href="#delivery-form"
+                      className="flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all"
+                      style={{
+                        background: "var(--brand-primary)",
+                        color: "var(--button-text, #fff)",
+                        borderRadius: "var(--button-radius, 8px)",
+                      }}
+                    >
+                      Order Now <BsCartCheckFill size={16} />
+                    </a>
                     <button
                       type="button"
                       onClick={handleAddToCart}
@@ -1104,90 +1292,19 @@ const SingleProduct = ({ product, theme }) => {
                     >
                       {isWishlisted ? <FaHeart size={15} /> : <FaRegHeart size={15} />}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleAddToCompare}
-                      title="Compare"
-                      className="p-3 border-2 transition-all"
-                      style={{
-                        borderRadius: "var(--button-radius, 8px)",
-                        borderColor: isCompare ? "var(--brand-primary)" : "#e5e7eb",
-                        background: isCompare ? "var(--brand-primary)" : "#fff",
-                        color: isCompare ? "var(--button-text,#fff)" : "#9ca3af",
-                      }}
-                    >
-                      <GoGitCompare size={15} />
-                    </button>
                   </div>
                 )}
 
-                {/* Price breakdown — folded into this card (no separate summary box) */}
-                <div
-                  className="rounded-xl p-4 space-y-2 text-sm"
-                  style={{ background: "#fff", color: "var(--body-color)" }}
-                >
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{currencySymbol}{shopSubtotals}</span>
-                  </div>
-                  {totalDiscount > 0 && (
-                    <div className="flex justify-between text-emerald-600">
-                      <span>Discount</span>
-                      <span>- {currencySymbol}{totalDiscount}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span>Delivery Charge</span>
-                    <span>
-                      {division ? `${currencySymbol}${shippingCharge}` : "Select area"}
-                    </span>
-                  </div>
-                  <div
-                    className="flex justify-between items-center pt-2 mt-1 border-t border-dashed"
-                    style={{ borderColor: "var(--brand-primary-light)" }}
-                  >
-                    <span className="font-bold" style={{ color: "var(--heading-color)" }}>
-                      Grand Total
-                    </span>
-                    <span className="text-2xl font-black" style={{ color: "var(--brand-primary)" }}>
-                      {currencySymbol}{shopGrandTotals}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Confirm order */}
-                {loading ? (
-                  <div
-                    className="w-full py-3.5 flex items-center justify-center gap-2 text-sm font-bold rounded-xl"
-                    style={{ background: "var(--brand-primary)", color: "var(--button-text,#fff)", opacity: 0.8 }}
-                  >
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Placing order...
-                  </div>
-                ) : stock > 0 ? (
-                  <button
-                    type="submit"
-                    className="w-full py-3.5 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:scale-[1.01] active:scale-[0.99]"
-                    style={{
-                      background: "var(--brand-primary)",
-                      color: "var(--button-text, #fff)",
-                      borderRadius: "var(--button-radius, 8px)",
-                    }}
-                  >
-                    Confirm Order <FaLock size={13} />
-                  </button>
-                ) : (
-                  <div className="w-full py-3.5 text-center text-sm font-semibold bg-gray-200 text-gray-500 rounded-xl">
-                    Out of Stock
-                  </div>
-                )}
-                <p className="text-center text-[11px]" style={{ color: "var(--body-color)", opacity: 0.6 }}>
-                  Your information is 100% safe and private
-                </p>
+                {/* Price breakdown + Confirm Order — desktop only here (kept in
+                    the left column, same spot as before). Mobile renders the
+                    same block again below the delivery form (see
+                    confirmOrderBlock usage further down) so the buyer fills
+                    the form first and hits Confirm right after it. */}
+                <div className="hidden md:block space-y-5">{confirmOrderBlock}</div>
               </div>
 
               {/* --- right: delivery form --- */}
-              <div>
+              <div id="delivery-form" className="scroll-mt-20">
                 <RightSideDeliveryInfo
                   register={register}
                   userInfo={userInfo}
@@ -1217,6 +1334,11 @@ const SingleProduct = ({ product, theme }) => {
                   setUserPhone={handlePhoneChangeWithTracking}
                   setUserPhoneLogin={setUserPhoneLogin}
                 />
+                {/* Mobile only — same price breakdown + Confirm Order block,
+                    placed right after the form so the buyer fills it in and
+                    confirms immediately below, instead of seeing Confirm
+                    Order above an empty form. */}
+                <div className="md:hidden mt-5 space-y-5">{confirmOrderBlock}</div>
               </div>
             </div>
           </section>
