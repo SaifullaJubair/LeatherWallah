@@ -984,7 +984,7 @@ const SingleProduct = ({ product, theme }) => {
               {/* Mobile: price-meta (e.g. viewing badge) + SKU sit side-by-side on
                   one row to save vertical height. Desktop keeps the original
                   stacked order (price-meta block, then SKU below it). */}
-              <div className="flex items-center justify-between flex-wrap gap-x-3 gap-y-1 md:block md:space-y-0">
+              <div className="flex flex-row-reverse items-center justify-between flex-wrap gap-x-3 gap-y-1 md:block md:space-y-0">
                 {/* F2 — PDP price meta: flash countdown + sold count + tier + group hint. */}
                 <PdpPriceMeta
                   product={product}
@@ -1247,19 +1247,19 @@ const SingleProduct = ({ product, theme }) => {
                   <div className="flex items-center gap-2">
                     <a
                       href="#delivery-form"
-                      className="flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all"
+                      className="flex-1 py-3 flex items-center justify-center gap-2 text-xs md:text-sm font-bold transition-all"
                       style={{
                         background: "var(--brand-primary)",
                         color: "var(--button-text, #fff)",
                         borderRadius: "var(--button-radius, 8px)",
                       }}
                     >
-                      Order Now <BsCartCheckFill size={16} />
+                      Order Now <BsCartCheckFill size={16} className="hidden md:inline" />
                     </a>
                     <button
                       type="button"
                       onClick={handleAddToCart}
-                      className="flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all"
+                      className="flex-1 py-3 flex items-center justify-center gap-2 text-xs md:text-sm font-bold border-2 transition-all"
                       style={{
                         borderColor: "var(--brand-primary)",
                         color: cartAnim
@@ -1271,11 +1271,11 @@ const SingleProduct = ({ product, theme }) => {
                     >
                       {cartAnim ? (
                         <>
-                          <BsCartCheckFill size={16} /> Added to Cart!
+                          <BsCartCheckFill size={16} className="hidden md:inline" /> Added to Cart!
                         </>
                       ) : (
                         <>
-                          <BsCart size={16} /> Add to Cart
+                          <BsCart size={16} className="hidden md:inline" /> Add to Cart
                         </>
                       )}
                     </button>
