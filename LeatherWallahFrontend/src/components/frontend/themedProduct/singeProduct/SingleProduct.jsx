@@ -821,22 +821,48 @@ const SingleProduct = ({ product, theme }) => {
               </div>
             </div>
 
-            {/* Qty + Total — highlighted box */}
+            {/* Qty + price breakdown — same figures as the price-breakdown card
+                below the form, so the total isn't a surprise number here. */}
             <div className="px-5 pt-3">
               <div
-                className="flex items-center justify-between rounded-xl px-4 py-3"
-                style={{ background: "var(--section-bg, #F4F4F4)" }}
+                className="rounded-xl px-4 py-3 space-y-1.5 text-sm"
+                style={{ background: "var(--section-bg, #F4F4F4)", color: "var(--body-color)" }}
               >
-                <span className="text-sm font-semibold" style={{ color: "var(--body-color)" }}>
-                  Qty: <span className="text-base font-black" style={{ color: "var(--heading-color)" }}>{quantity}</span>
-                </span>
-                <span className="text-xl font-black" style={{ color: "var(--brand-primary)" }}>
-                  {currencySymbol}{shopGrandTotals}
-                </span>
+                <div className="flex justify-between">
+                  <span>Qty</span>
+                  <span className="font-bold" style={{ color: "var(--heading-color)" }}>{quantity}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>{currencySymbol}{shopSubtotals}</span>
+                </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Discount</span>
+                    <span>- {currencySymbol}{totalDiscount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span>Delivery Charge</span>
+                  <span>
+                    {division ? `${currencySymbol}${shippingCharge}` : "Select area"}
+                  </span>
+                </div>
+                <div
+                  className="flex justify-between items-center pt-1.5 mt-0.5 border-t border-dashed"
+                  style={{ borderColor: "var(--brand-primary-light)" }}
+                >
+                  <span className="font-bold" style={{ color: "var(--heading-color)" }}>
+                    Grand Total
+                  </span>
+                  <span className="text-lg font-black" style={{ color: "var(--brand-primary)" }}>
+                    {currencySymbol}{shopGrandTotals}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <p className="px-5 pt-3 text-sm text-center" style={{ color: "var(--body-color)" }}>
+            <p className="px-5 pt-3 text-xs text-center whitespace-nowrap" style={{ color: "var(--body-color)" }}>
               Are you sure you want to place this order?
             </p>
 
