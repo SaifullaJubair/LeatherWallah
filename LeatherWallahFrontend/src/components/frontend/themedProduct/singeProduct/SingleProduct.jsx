@@ -14,8 +14,12 @@ import ChartModal from "./productHighLightSection/ChartModal";
 import WhatsAppOrderButton from "../theme/WhatsAppOrderButton";
 import HeroGallery from "../theme/HeroGallery";
 import FloatingAssets from "../theme/FloatingAssets";
-// DescriptionCard moved to ProductThemedSections (renders between Nutrition
-// and Reviews now) — was too prominent right after hero per mockup review.
+// DescriptionCard lives in ProductThemedSections for desktop (renders after
+// the hero/order sections there). On mobile it's ALSO rendered here, right
+// below Order Now/Add to Cart (owner request, 2026-10-31) — see the
+// `md:hidden` usage below; ProductThemedSections hides its own copy on
+// mobile (`hidden md:block`) so it isn't shown twice.
+import DescriptionCard from "../theme/DescriptionCard";
 import DynamicIcon from "@/lib/icons/DynamicIcon";
 import PdpPriceMeta from "./PdpPriceMeta";
 import ViewCountFire from "./ViewCountFire";
@@ -1320,6 +1324,17 @@ const SingleProduct = ({ product, theme }) => {
                     </button>
                   </div>
                 )}
+
+                {/* Mobile only — "About This Product" + spec sheet, right
+                    below Order Now/Add to Cart (owner request, 2026-10-31).
+                    Desktop keeps it in its original spot further down the
+                    page (ProductThemedSections hides its own mobile copy). */}
+                <div className="md:hidden">
+                  <DescriptionCard
+                    html={product?.description}
+                    customFields={product?.custom_fields}
+                  />
+                </div>
 
                 {/* Price breakdown + Confirm Order — desktop only here (kept in
                     the left column, same spot as before). Mobile renders the

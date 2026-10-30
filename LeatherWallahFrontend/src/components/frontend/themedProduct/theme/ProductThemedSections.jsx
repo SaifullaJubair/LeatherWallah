@@ -56,7 +56,10 @@ export default function ProductThemedSections({ product, theme: passedTheme, set
   return (
     <div className="themed-product-page" style={{ background: "var(--page-bg)" }}>
       <VideoSection product={product} theme={theme} />
-      <div className="max-w-6xl mx-auto px-4 mt-4 md:mt-8">
+      {/* Hidden on mobile — SingleProduct renders its own copy of this card
+          right below Order Now/Add to Cart there (owner request,
+          2026-10-31). Desktop keeps it here, in its original spot. */}
+      <div className="hidden md:block max-w-6xl mx-auto px-4 mt-4 md:mt-8">
         <DescriptionCard
           html={product?.description}
           customFields={product?.custom_fields}
