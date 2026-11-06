@@ -13,7 +13,9 @@ import {
   FiHome,
   FiChevronDown,
   FiChevronUp,
+  FiTag,
 } from "react-icons/fi";
+import { variantAxisAttributes } from "@/utils/helper";
 
 // ✅ Theme-aware react-select styles (brand-primary focus ring, 44px height)
 const selectStyles = {
@@ -50,6 +52,16 @@ const RightSideDeliveryInfo = ({
   register,
   userInfo,
   errors,
+  // Size/color picker mirror — sits above the name field so a buyer who
+  // scrolls straight to the form still sees (and must set) their choice,
+  // synced two-way with the chip picker above via the shared handler/state
+  // in SingleProduct.jsx (owner report, 2026-11-06: silent auto-selected
+  // size led to wrong-size orders).
+  product,
+  selectedVariations,
+  isVariationPicked,
+  handleSelectVariation,
+  variationError,
   // Geo picker — District + Area only, no Division field (owner decision,
   // 2026-10-27). district/division keep their PRE-geo-module meaning
   // (display NAME) so billing_city/billing_state and the shipping-cost
@@ -113,6 +125,53 @@ const RightSideDeliveryInfo = ({
       {/* Body — always open */}
       <div>
         <div className="px-5 py-5 space-y-4">
+          {/* Variation picker mirror — synced with the chip picker above via
+              the shared selectedVariations/handleSelectVariation. Shown only
+              for variation products; one dropdown per axis (size, color, …). */}
+          {product?.is_variation &&
+            variantAxisAttributes(product)?.map((axis, ai) => {
+              const values = axis?.attribute_values || [];
+              if (!values.length) return null;
+              const picked = isVariationPicked?.(axis.attribute_name);
+              const current = selectedVariations?.[axis.attribute_name];
+              return (
+                <div key={axis?.attribute_id || ai}>
+                  <label
+                    className="flex items-center gap-1.5 text-xs font-bold mb-1.5"
+                    style={{ color: "var(--heading-color)" }}
+                  >
+                    <FiTag size={12} style={{ color: "var(--brand-primary)" }} />
+                    Select {axis.attribute_name}
+                  </label>
+                  <select
+                    aria-label={`${axis.attribute_name} select`}
+                    value={picked && current?._id ? String(current._id) : ""}
+                    onChange={(e) => {
+                      const val = values.find(
+                        (v) => String(v._id) === e.target.value,
+                      );
+                      if (val) handleSelectVariation?.(val, axis.attribute_name);
+                    }}
+                    className="themed-input w-full px-3.5 py-3 text-sm rounded-xl border-2 outline-none transition-all bg-white"
+                  >
+                    <option value="" disabled>
+                      -- Select {axis.attribute_name} --
+                    </option>
+                    {values.map((v) => (
+                      <option key={v._id} value={String(v._id)}>
+                        {v.attribute_value_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          {product?.is_variation && variationError && (
+            <p className="text-red-500 text-xs -mt-2 flex items-center gap-1">
+              <span>⚠</span> {variationError}
+            </p>
+          )}
+
           {/* Name */}
           <div>
             <label

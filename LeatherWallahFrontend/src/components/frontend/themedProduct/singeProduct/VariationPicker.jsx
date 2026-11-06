@@ -69,6 +69,12 @@ const VariationPicker = ({
   product,
   attribute,
   selectedVariations,
+  // Whether the CUSTOMER picked a value on this axis (click, dropdown, or a
+  // deep-link URL param) — as opposed to selectedVariations holding a
+  // silently-seeded value just so price/stock have something to show on
+  // landing. Chips only render as "selected" once this is true, so a buyer
+  // never sees a choice they never made (owner report, 2026-11-06).
+  isPicked = true,
   findVariation,
   handleSelectVariation,
 }) => {
@@ -149,6 +155,7 @@ const VariationPicker = ({
   // ---- Per-value chip renderer (reused by main grid + modal) ----
   const renderChip = (val) => {
     const selected =
+      isPicked &&
       selectedValue?.attribute_value_name === val?.attribute_value_name;
     const branch = resolveBranch(
       attribute?.display_type,
@@ -265,14 +272,14 @@ const VariationPicker = ({
     return (
       <div className="space-y-2">
         <p
-          className="text-sm font-semibold"
+          className="text-base md:text-lg font-bold"
           style={{ color: "var(--heading-color)" }}
         >
           Select {attribute?.attribute_name}
         </p>
         <select
           aria-label={`${attribute?.attribute_name} select`}
-          value={selectedValue?._id ? String(selectedValue._id) : ""}
+          value={isPicked && selectedValue?._id ? String(selectedValue._id) : ""}
           onChange={(e) => {
             const picked = allValues.find(
               (v) => String(v._id) === e.target.value,
@@ -312,7 +319,7 @@ const VariationPicker = ({
   return (
     <div className="space-y-2">
       <p
-        className="text-sm font-semibold"
+        className="text-base md:text-lg font-bold"
         style={{ color: "var(--heading-color)" }}
       >
         Select {attribute?.attribute_name}

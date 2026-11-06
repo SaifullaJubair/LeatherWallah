@@ -156,6 +156,17 @@ const SingleProduct = ({ product, theme }) => {
   const [shopTotal, setShopTotal] = useState(0);
   const [shopGrandTotals, setShopGrandTotals] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState({});
+  // Which axes the CUSTOMER has actually picked (clicked a chip, used the
+  // dropdown, or arrived via a deep-link URL param) — separate from
+  // selectedVariations, which is also seeded internally on landing (first
+  // in-stock combo) purely so price/stock have something to show. Owner
+  // report (2026-11-06): customers were placing orders in the auto-seeded
+  // size without ever touching the picker, because nothing on screen showed
+  // it as "chosen". Validation and the chip highlight both key off THIS set,
+  // not selectedVariations, so a silently-seeded value never counts as a
+  // real choice. Keyed by attribute_name, same as selectedVariations.
+  const [userPickedAxes, setUserPickedAxes] = useState(new Set());
+  const [variationError, setVariationError] = useState("");
   const [variationProduct, setVariationProduct] = useState(null);
   const [stock, setStock] = useState(
     product?.is_variation
@@ -304,6 +315,7 @@ const SingleProduct = ({ product, theme }) => {
       );
     }
     const initial = {};
+    const pickedAxes = new Set();
     axisAttrs?.forEach((axis) => {
       if (!axis?.attribute_values?.length) return;
       const axisKey = safeKey(axis.attribute_slug, axis.attribute_id);
@@ -314,6 +326,9 @@ const SingleProduct = ({ product, theme }) => {
             return valueKey === wanted || String(v._id) === wanted;
           })
         : null;
+      // A URL-pinned value is a real choice (deep-link / share) — count it.
+      // The seed-match fallback below is NOT a real choice, so it's excluded.
+      if (urlMatch) pickedAxes.add(axis.attribute_name);
       // Seed-variation match: find the axis value that belongs to seedVariation.
       const seedMatch =
         seedVariation && Array.isArray(seedVariation.combination)
@@ -327,6 +342,7 @@ const SingleProduct = ({ product, theme }) => {
         urlMatch || seedMatch || axis.attribute_values[0];
     });
     setSelectedVariations(initial);
+    setUserPickedAxes(pickedAxes);
     const found =
       findVariationByValueIds(initial) ||
       seedVariation ||
@@ -357,6 +373,8 @@ const SingleProduct = ({ product, theme }) => {
   const handleSelectVariation = (value, attributeName) => {
     const newVars = { ...selectedVariations, [attributeName]: value };
     setSelectedVariations(newVars);
+    setUserPickedAxes((prev) => new Set(prev).add(attributeName));
+    setVariationError("");
     const found = findVariationByValueIds(newVars);
     setVariationProduct(found || null);
 
@@ -507,6 +525,23 @@ const SingleProduct = ({ product, theme }) => {
   // Shared by both the pre-modal gate and the actual submit, so the two
   // can't drift. Returns true when the form is ready to order.
   const validateOrderFields = () => {
+    // Variation axes (size, color, …) must be a CUSTOMER choice, not the
+    // silently-seeded first-in-stock combo — see userPickedAxes comment at
+    // its declaration. Blocks the order and surfaces both a toast and an
+    // inline message under the picker (variationError) so a buyer scrolling
+    // straight to the form still gets pulled back up to fix it.
+    if (product?.is_variation) {
+      const axisAttrs = variantAxisAttributes(product);
+      const missingAxis = axisAttrs?.find(
+        (axis) => !userPickedAxes.has(axis.attribute_name),
+      );
+      if (missingAxis) {
+        const msg = `Please select ${missingAxis.attribute_name}`;
+        toast.error(msg, { position: "top-center", autoClose: 2500 });
+        setVariationError(msg);
+        return false;
+      }
+    }
     if (!userPhoneLogin) {
       if (customer_phone) {
         if (
@@ -1127,12 +1162,6 @@ const SingleProduct = ({ product, theme }) => {
                 pointer-events-none (in FloatingAssets) lets clicks reach the
                 weight picker / Add-to-Cart underneath. */}
             <FloatingAssets assets={theme?.floating_assets} section="order" />
-            <h2
-              className="relative z-10 text-xl md:text-2xl font-bold mb-5"
-              style={{ color: "var(--heading-color)" }}
-            >
-              Order Now
-            </h2>
 
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* --- left: variant + qty --- */}
@@ -1151,10 +1180,16 @@ const SingleProduct = ({ product, theme }) => {
                       product={product}
                       attribute={attr}
                       selectedVariations={selectedVariations}
+                      isPicked={userPickedAxes.has(attr?.attribute_name)}
                       findVariation={findVariation}
                       handleSelectVariation={handleSelectVariation}
                     />
                   ))}
+                {product?.is_variation && variationError && (
+                  <p className="text-xs font-semibold text-red-600 flex items-center gap-1">
+                    <span>⚠</span> {variationError}
+                  </p>
+                )}
 
                 {/* Size chart */}
                 {product?.size_chart && (
@@ -1162,8 +1197,12 @@ const SingleProduct = ({ product, theme }) => {
                     <button
                       type="button"
                       onClick={() => setShowChart(!showChart)}
-                      className="text-xs underline underline-offset-4"
-                      style={{ color: "var(--brand-primary)" }}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition-all hover:scale-[1.02]"
+                      style={{
+                        background: "var(--brand-primary)",
+                        color: "var(--button-text, #fff)",
+                        borderRadius: "var(--button-radius, 8px)",
+                      }}
                     >
                       📏 Size Chart
                     </button>
@@ -1350,6 +1389,11 @@ const SingleProduct = ({ product, theme }) => {
                   register={register}
                   userInfo={userInfo}
                   errors={errors}
+                  product={product}
+                  selectedVariations={selectedVariations}
+                  isVariationPicked={(attrName) => userPickedAxes.has(attrName)}
+                  handleSelectVariation={handleSelectVariation}
+                  variationError={variationError}
                   districts={districtsResp?.data}
                   districtsLoading={districtsLoading}
                   district={district}
