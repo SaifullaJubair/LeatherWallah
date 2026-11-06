@@ -17,6 +17,7 @@ import {
   updateOrder,
   cancelSteadfastOrder,
   updateOrderDeliveryInfo,
+  updateOrderLine,
   // S4+S5 Phase 1C — post-order opt-in email for guest checkout.
   setOrderEmail,
 } from "./order.controller";
@@ -59,6 +60,12 @@ router.route("/order_tracking").post(getOrderTrackingInfo);
 router
   .route("/delivery-info/:order_id")
   .patch(verifyToken("order_update"), updateOrderDeliveryInfo);
+
+// Admin order-line edit (variation/quantity) — 2026-11-06.
+// ⚠️ /:order_id এর আগে রাখতে হবে নইলে match হয়ে যাবে
+router
+  .route("/admin/:order_id/line/:line_id")
+  .patch(verifyToken("order_update"), updateOrderLine);
 
 // S4+S5 Phase 1C — opt-in email collection for guest orders, called
 // from the post-order success-page prompt. Public (no auth) by

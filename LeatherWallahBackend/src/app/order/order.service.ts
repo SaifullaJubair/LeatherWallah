@@ -4,6 +4,8 @@ import OrderModel from "./order.model";
 import ApiError from "../../errors/ApiError";
 import OrderProductModel from "../orderProducts/orderProduct.model";
 import { USER_PUBLIC_PROJECTION } from "../user/user.interface";
+import { restockLine, decrementLine } from "./order.stock";
+import { recomputeLineForEdit } from "./order.recompute";
 
 // Create A Order
 export const postOrderServices = async (
@@ -367,4 +369,194 @@ export const updateOrderServices = async (
     session,
     runValidators: true,
   });
+};
+
+// An order whose parcel is already with a courier must not have its line
+// items edited — the courier's weight/COD-amount is already based on the
+// original items. Mirrors the admin's own `isCourierLocked` in
+// LeatherWallahAdmin/src/components/Order/orderStatus.constants.js EXACTLY
+// (consignment-id presence, not order_status) so the two can never diverge —
+// an order can sit in "processing" with no consignment yet (editable) or get
+// manually re-marked after a consignment already exists via a webhook race.
+export const isCourierLockedServer = (order: any): boolean =>
+  (order?.courier_type === "steadfast" && !!order?.steadfast_consignment_id) ||
+  (order?.courier_type === "pathao" && !!order?.consignment_id);
+
+const currencyLog = (n: number) => `৳${n}`;
+
+/**
+ * Admin order-line edit (2026-11-06) — change ONE line's variation and/or
+ * quantity on a not-yet-shipped order. Owner's confirmed business flow: when
+ * admin calls to confirm a pending COD order, the customer sometimes wants a
+ * different size/qty; previously the only option was cancel + ask the
+ * customer to reorder (customer usually doesn't bother).
+ *
+ * MUST run inside the caller's transaction (session). Order:
+ *   1. Guard: order not courier-locked.
+ *   2. Guard: the line belongs to this order.
+ *   3. Price the NEW product/variation via recomputeLineForEdit (keeps
+ *      coupon/loyalty on the order untouched — see that function's comment).
+ *   4. Stock: restock the OLD line's qty, then decrement the NEW variation's
+ *      qty — both inside the one transaction; a failed decrement aborts the
+ *      whole edit (restockLine/decrementLine never touch stock_restored).
+ *   5. Overwrite the line's price fields AND all six snapshot fields
+ *      together (never partially — a half-updated snapshot reproduces the
+ *      "wrong size on the label" bug this feature exists to fix).
+ *   6. Re-sum the order's totals from its (now-edited) lines, preserving
+ *      discount_amount/loyalty_redeem_amount/coupon_id exactly as they were.
+ */
+export const updateOrderLineServices = async (
+  orderId: string,
+  lineId: string,
+  newVariationId: string | undefined,
+  newQuantity: number | undefined,
+  adminUserId: any,
+  session: mongoose.ClientSession,
+): Promise<{
+  line: any;
+  order: any;
+  price_changed: boolean;
+  old_unit_price: number;
+  new_unit_price: number;
+}> => {
+  const order: any = await OrderModel.findById(orderId).session(session);
+  if (!order) throw new ApiError(404, "Order not found.");
+
+  if (isCourierLockedServer(order)) {
+    throw new ApiError(
+      400,
+      `This order is already with the courier (${order?.courier_type}). Line items can no longer be edited.`,
+    );
+  }
+
+  const line: any = await OrderProductModel.findOne({
+    _id: lineId,
+    order_id: orderId,
+  }).session(session);
+  if (!line) throw new ApiError(404, "Order line not found on this order.");
+
+  const quantity = Math.max(
+    1,
+    Number(newQuantity ?? line.product_quantity) || 1,
+  );
+  const variationId = newVariationId ?? line.variation_id ?? undefined;
+
+  // Restock the OLD line first (its product/variation may since have been
+  // deleted from the catalog — restockLine no-ops rather than throwing, so
+  // that never blocks editing this line).
+  await restockLine(
+    {
+      product_id: line.product_id,
+      variation_id: line.variation_id,
+      product_quantity: line.product_quantity,
+    },
+    session,
+  );
+
+  // Price + snapshot the NEW product/variation. Throws if the product (or
+  // the requested variation on it) doesn't exist — the admin UI only ever
+  // offers currently-live variations, so this only fires on a stale request.
+  const priced = await recomputeLineForEdit(
+    line.product_id,
+    variationId,
+    quantity,
+    line.campaign_id,
+    order.customer_id,
+    session,
+  );
+
+  // Decrement the NEW side. On failure this throws (409 Out of stock) and
+  // the caller's transaction aborts — the restock above is rolled back too,
+  // so stock never ends up partially moved.
+  await decrementLine(
+    { product_id: line.product_id, variation_id: variationId, product_quantity: quantity },
+    session,
+  );
+
+  const old_unit_price = Number(line.product_unit_final_price) || 0;
+  const new_unit_price = priced.product_unit_final_price;
+  const price_changed = old_unit_price !== new_unit_price;
+
+  await OrderProductModel.updateOne(
+    { _id: lineId },
+    {
+      $set: {
+        variation_id: variationId,
+        product_quantity: quantity,
+        product_unit_price: priced.product_unit_price,
+        product_unit_final_price: priced.product_unit_final_price,
+        product_grand_total_price: priced.product_grand_total_price,
+        product_main_price: priced.product_main_price,
+        product_main_discount_price: priced.product_main_discount_price,
+        vat_rate: priced.vat_pct,
+        vat_amount: Math.round(
+          (priced.product_grand_total_price * priced.vat_pct) / 100,
+        ),
+        discount_source: priced.discount_source,
+        // Snapshot refresh — all six together, never partial (see fn doc).
+        product_sku_snapshot: priced.product_sku_snapshot,
+        variation_sku_snapshot: priced.variation_sku_snapshot,
+        product_barcode_snapshot: priced.product_barcode_snapshot,
+        variation_barcode_snapshot: priced.variation_barcode_snapshot,
+        product_name_snapshot: priced.product_name_snapshot,
+        product_image_snapshot: priced.product_image_snapshot,
+      },
+    },
+    { session },
+  );
+
+  // Re-sum order-level totals from ALL this order's lines (the edited one
+  // now carries its new price). discount_amount / loyalty_redeem_amount /
+  // coupon_id are intentionally left untouched — see recomputeLineForEdit's
+  // doc comment for why re-validating them here would be wrong.
+  const allLines = await OrderProductModel.find({ order_id: orderId })
+    .select("product_grand_total_price vat_amount")
+    .session(session);
+  const sub_total_amount = allLines.reduce(
+    (s, l: any) => s + (Number(l.product_grand_total_price) || 0),
+    0,
+  );
+  const vat_amount = allLines.reduce(
+    (s, l: any) => s + (Number(l.vat_amount) || 0),
+    0,
+  );
+  const discount_amount = Number(order.discount_amount) || 0;
+  const shipping_cost = Number(order.shipping_cost) || 0;
+  const grand_total_amount =
+    sub_total_amount - discount_amount + vat_amount + shipping_cost;
+
+  // Lightweight structured audit trail, appended to internal_note (never
+  // exposed to the customer) rather than overwriting any existing note.
+  const timeNow =
+    new Date().toISOString().split("T")[0] + " " + new Date().toLocaleTimeString();
+  const auditLine = `[EDIT ${timeNow} by ${adminUserId}] variation ${
+    line.variation_id || "-"
+  }→${variationId || "-"}, qty ${line.product_quantity}→${quantity}, price ${currencyLog(old_unit_price)}→${currencyLog(new_unit_price)}`;
+  const nextNote = order.internal_note
+    ? `${order.internal_note}\n${auditLine}`
+    : auditLine;
+
+  await OrderModel.updateOne(
+    { _id: orderId },
+    {
+      $set: {
+        sub_total_amount,
+        vat_amount,
+        grand_total_amount,
+        internal_note: nextNote,
+      },
+    },
+    { session, runValidators: true },
+  );
+
+  const updatedLine = await OrderProductModel.findById(lineId).session(session);
+  const updatedOrder = await OrderModel.findById(orderId).session(session);
+
+  return {
+    line: updatedLine,
+    order: updatedOrder,
+    price_changed,
+    old_unit_price,
+    new_unit_price,
+  };
 };

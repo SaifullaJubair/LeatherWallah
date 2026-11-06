@@ -17,6 +17,7 @@ import {
 import { AuthContext } from "../../context/AuthProvider";
 import PaymentInfoCard from "./PaymentInfoCard";
 import PrintLabel from "../common/printLabel/PrintLabel";
+import EditOrderLineModal from "./EditOrderLineModal";
 import {
   NEXT_STATUS_OPTIONS,
   ORDER_STATUS_COLOR,
@@ -314,6 +315,8 @@ const ViewAllOrderInfo = () => {
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false); // ✅ নতুন
   // Phase D Bug #3 — per-line print label modal target. `null` = closed.
   const [labelLine, setLabelLine] = useState(null);
+  // 2026-11-06 — order-line edit (variation/qty) modal target. `null` = closed.
+  const [editLine, setEditLine] = useState(null);
 
   const {
     data: orders,
@@ -856,6 +859,7 @@ const ViewAllOrderInfo = () => {
                   "Qty",
                   "Total",
                   "Label",
+                  "Edit",
                 ].map((h) => (
                   <th key={h} className="p-4 whitespace-nowrap">
                     {h}
@@ -948,6 +952,26 @@ const ViewAllOrderInfo = () => {
                         Label
                       </button>
                     </td>
+                    <td className="p-4">
+                      {isCourierLocked(order) ? (
+                        <span
+                          className="text-xs text-gray-300"
+                          title="Already sent to courier — item can no longer be edited"
+                        >
+                          Locked
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditLine(product)}
+                          title="Edit variation / quantity"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-amber-50 text-amber-700 rounded hover:bg-amber-100"
+                        >
+                          <FiEdit2 size={11} />
+                          Edit
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -988,6 +1012,16 @@ const ViewAllOrderInfo = () => {
       {/* Phase D Bug #3 — single-line sticker label print modal */}
       {labelLine && (
         <PrintLabel line={labelLine} onClose={() => setLabelLine(null)} />
+      )}
+
+      {/* 2026-11-06 — order-line edit (variation/qty) modal */}
+      {editLine && (
+        <EditOrderLineModal
+          order={order}
+          line={editLine}
+          onClose={() => setEditLine(null)}
+          onSuccess={refetch}
+        />
       )}
     </section>
   );

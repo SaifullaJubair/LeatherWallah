@@ -12,6 +12,7 @@ import {
   getOrderTrackingInfoService,
   postOrderServices,
   updateOrderServices,
+  updateOrderLineServices,
 } from "./order.service";
 import OrderProductModel from "../orderProducts/orderProduct.model";
 import OrderModel from "./order.model";
@@ -1307,6 +1308,58 @@ export const updateOrderDeliveryInfo: RequestHandler = async (
       message: "Delivery Info Updated Successfully!",
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// ================================================================
+// PATCH Admin — edit one order line's variation/quantity
+// ================================================================
+// 2026-11-06 — admin call-to-confirm flow: customer wants a different size
+// or qty on a still-pending order. Blocked once the order is courier-locked
+// (see isCourierLockedServer). Moves stock atomically (old restocked, new
+// decremented, same transaction), refreshes the line's price + ALL six
+// snapshot fields together, and re-sums order totals while leaving any
+// already-applied coupon/loyalty discount untouched.
+export const updateOrderLine: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<any> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { order_id, line_id } = req.params;
+    const { variation_id, product_quantity } = req.body;
+
+    if (variation_id === undefined && product_quantity === undefined) {
+      throw new ApiError(
+        400,
+        "Provide at least one of variation_id or product_quantity to update.",
+      );
+    }
+
+    const result = await updateOrderLineServices(
+      order_id,
+      line_id,
+      variation_id,
+      product_quantity !== undefined ? Number(product_quantity) : undefined,
+      (req as any).userId,
+      session,
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Order line updated successfully!",
+      data: result,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     next(error);
   }
 };

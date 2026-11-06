@@ -647,3 +647,155 @@ export const recomputeOrderTotals = async (
     loyalty_redeem_amount,
   };
 };
+
+export interface RecomputedEditLine {
+  product_unit_price: number; // regular unit price incl. variation
+  product_unit_final_price: number; // what buyer pays per unit (after discounts)
+  product_grand_total_price: number; // final × quantity
+  product_main_price: number;
+  product_main_discount_price: number;
+  vat_pct: number;
+  product_sku_snapshot?: string;
+  variation_sku_snapshot?: string;
+  product_barcode_snapshot?: string;
+  variation_barcode_snapshot?: string;
+  product_name_snapshot?: string;
+  product_image_snapshot?: string;
+  discount_source:
+    | "offer"
+    | "campaign"
+    | "flash_sale"
+    | "coupon"
+    | "manual"
+    | "none";
+}
+
+/**
+ * Admin order-line edit (2026-11-06) — price a SINGLE line against the
+ * product/variation it's being changed to, for use AFTER placement.
+ *
+ * Deliberately NOT a call into recomputeOrderTotals(): that function
+ * re-validates the order's coupon (throws/drops the discount if the coupon
+ * has since expired or run out of uses) and re-clamps loyalty redemption
+ * against the customer's CURRENT point balance (which was already debited
+ * at placement by redeemOnOrder) — reusing it here would silently alter or
+ * drop a discount the customer already legitimately received. An edit must
+ * leave the order's coupon_id/discount_amount/loyalty_redeem_amount exactly
+ * as they were; only this one line's price/quantity/snapshot changes, and
+ * the caller re-sums sub_total/grand_total from the (now one-line-different)
+ * lines while keeping discount_amount untouched.
+ *
+ * Keeps the per-line slice of pricing logic (product/variation/campaign/
+ * flash/tier/customer-group/VAT + display & SKU/barcode snapshots) in sync
+ * with recomputeOrderTotals() above — same resolver, same layering order.
+ */
+export const recomputeLineForEdit = async (
+  productId: any,
+  variationId: any,
+  quantity: number,
+  campaignId: any,
+  customerId: any,
+  session?: mongoose.ClientSession,
+): Promise<RecomputedEditLine> => {
+  const q = <T>(p: mongoose.Query<T, any>) => (session ? p.session(session) : p);
+
+  const product: any = await q(ProductModel.findById(productId));
+  if (!product) throw new ApiError(400, `Product not found: ${productId}`);
+
+  let variation: any = null;
+  if (product?.is_variation && variationId) {
+    variation = await q(
+      VariationModel.findOne({ _id: variationId, product_id: productId }),
+    );
+    if (!variation) {
+      throw new ApiError(400, `Variation not found for product ${productId}.`);
+    }
+  }
+
+  const setting: any = await q(SettingModel.findOne({}));
+  const defaultVatPct = Number(setting?.vat_percentage) || 0;
+
+  let customerGroup: "retail" | "wholesale" | "vip" = "retail";
+  if (customerId) {
+    const u: any = await q(
+      UserModel.findById(customerId).select("customer_group"),
+    );
+    if (u?.customer_group === "wholesale" || u?.customer_group === "vip") {
+      customerGroup = u.customer_group;
+    }
+  }
+
+  const flashSale = await findActiveFlashForProduct(productId, session);
+  const resolved = resolveProductPrice(product, { variation, flashSale });
+  let unit_regular = resolved.regular_price;
+  let unit_final = resolved.final_price;
+
+  let discount_source: RecomputedEditLine["discount_source"] =
+    flashSale && typeof flashSale.flash_price === "number"
+      ? "flash_sale"
+      : "none";
+
+  const tiers: any[] = product?.tier_prices || [];
+  if (tiers.length > 0) {
+    const sorted = [...tiers]
+      .filter((t) => Number(t?.min_qty) > 0 && Number(t?.price) > 0)
+      .sort((a, b) => b.min_qty - a.min_qty);
+    for (const t of sorted) {
+      if (quantity >= Number(t.min_qty) && Number(t.price) < unit_final) {
+        unit_final = Number(t.price);
+        break;
+      }
+    }
+  }
+
+  if (customerGroup !== "retail") {
+    const groupPrices: any[] = product?.group_prices || [];
+    const match = groupPrices.find((g: any) => g?.group === customerGroup);
+    if (match && Number(match.price) > 0 && Number(match.price) < unit_final) {
+      unit_final = Number(match.price);
+    }
+  }
+
+  if (campaignId) {
+    const campaign: any = await q(CampaignModel.findById(campaignId));
+    const cp = campaign?.campaign_products?.find(
+      (c: any) => String(c?.campaign_product_id) === String(productId),
+    );
+    const campaignActive =
+      campaign?.campaign_status === "active" &&
+      cp?.campaign_product_status === "active";
+    if (campaignActive && typeof cp?.campaign_product_price === "number") {
+      unit_final = applyCampaign(
+        unit_regular,
+        cp.campaign_product_price,
+        cp.campaign_price_type,
+      );
+      discount_source = "campaign";
+    }
+  }
+
+  if (unit_final < 0) unit_final = 0;
+
+  const productVatOverride = Number(product?.vat_percentage_override);
+  const vat_pct = productVatOverride > 0 ? productVatOverride : defaultVatPct;
+
+  return {
+    product_unit_price: unit_regular,
+    product_unit_final_price: unit_final,
+    product_grand_total_price: unit_final * quantity,
+    product_main_price: Number(product?.product_price) || 0,
+    product_main_discount_price: Number(product?.product_discount_price) || 0,
+    vat_pct,
+    product_sku_snapshot: product?.product_sku || undefined,
+    variation_sku_snapshot: variation?.variation_sku || undefined,
+    product_barcode_snapshot: product?.barcode || undefined,
+    variation_barcode_snapshot: variation?.variation_barcode || undefined,
+    product_name_snapshot: product?.product_name || undefined,
+    product_image_snapshot:
+      variation?.variation_images?.[0] ||
+      variation?.variation_image ||
+      product?.main_image ||
+      undefined,
+    discount_source,
+  };
+};

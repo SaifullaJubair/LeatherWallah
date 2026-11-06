@@ -18,6 +18,17 @@ router.get(
   findVariationsByProduct,
 );
 
+// Same lean projection (no buying-price/SKU/barcode leak), gated on
+// order_update instead — used by the order-line-edit variation picker
+// (2026-11-06), whose admins have order_update but not necessarily
+// product_update. findVariationsByProductService already excludes the
+// sensitive fields, so sharing it across both gates is safe.
+router.get(
+  "/by-product-for-order/:productId",
+  verifyToken("order_update"),
+  findVariationsByProduct,
+);
+
 // MUST be declared before "/:id" — Express matches in declaration order, so
 // otherwise PATCH /variation/bulk resolves to patchVariation with id="bulk"
 // and dies in an ObjectId cast. Same hazard the /page-content route guards
